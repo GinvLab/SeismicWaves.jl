@@ -1,0 +1,6 @@
+name = "SeismicWaves"
+uuid = "f2cc81fa-a164-11e9-3f65-e3f851c759e3"
+authors = ["Andrea Zunino <inverseproblem@users.noreply.github.com>"]
+version = "0.1.0"
+
+
