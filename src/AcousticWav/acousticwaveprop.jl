@@ -1,11 +1,4 @@
 
-
-
-# -*- coding: utf-8 -*-
-#
-# Andrea Zunino
-# 
-# 
 ##==========================================================
 
 verbose = 0
@@ -20,7 +13,7 @@ useslowfd = false
 """
   Parameters for acoustic wave simulations
 """
-struct InpParam
+struct InpParamAcou
     ntimesteps::Int64
     nx::Int64
     nz::Int64
@@ -28,10 +21,10 @@ struct InpParam
     dh::Float64
     savesnapshot::Bool
     snapevery::Int64
-    boundcound::String
+    boundcond::String
     freeboundtop::Bool
     infoevery::Int64
-v    #InpParam(ntimesteps=1,nx=1,ny=1,dx=1.0,dy=1.0) = new(ntimesteps,nx,ny,dx,dy)
+    #InpParam(ntimesteps=1,nx=1,ny=1,dx=1.0,dy=1.0) = new(ntimesteps,nx,ny,dx,dy)
 end
 
 struct BilinCoeff
@@ -40,7 +33,6 @@ struct BilinCoeff
     coe::Array{Float64,2}
     ##owner::Array{Int64,1}
 end
-
 
 struct CoefPML
     a_x::Array{Float64,1}
@@ -131,28 +123,6 @@ end
 #     #println("$xreq $yreq $xh $yh $i $j $xd $yd")
 #     return intval
 # end
-
-##==============================================
-"""
- Gaussian source time function
-"""
-function gaussource1D( t, t0, f0 )
-    # boh = f0 .* (t-t0)
-    # source = -8.0*boh.*exp( -boh.^2/(4.0*f0)^2 )
-    boh= pi.*f0.*(t.-t0)
-    source = -boh.*exp.( -boh.^2 )    
-    return source
-end
-
-##========================================
-"""
- Ricker source time function
-"""
-function rickersource1D( t,  t0::Real, f0::Real )    
-    b = (pi*f0*(t.-t0)).^2
-    w = (1.0.-2.0.*b).*exp.(.-b)
-    return w
-end   
 
 ##===============================================================================
 ##===============================================================================
@@ -250,7 +220,7 @@ end
 """
   Initialize the CPML absorbing boundaries
 """
-function initCPML(inpar::InpParam,vel_max::Float64,f0::Float64)
+function initCPML(inpar::InpParamAcou,vel_max::Float64,f0::Float64)
     
     dh = inpar.dh
     nx = inpar.nx
@@ -346,7 +316,7 @@ end
 """
   Solver for 2D acoustic wave equation (parameters: velocity only)
 """
-function solveacoustic2D(inpar::InpParam, ijsrcs::Array{Array{Int64,2},1},
+function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
                          vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
                          sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
 
@@ -560,10 +530,10 @@ end
   Solver for computing the gradient of the misfit function for the acoustic 
    wave equation using the adjoint state method
 """
-function adjoint_acoustic2D_CPML(inpar::InpParam, obsrecv::Array{Array{Float64,2},1},recstd::Float64,
-                                 ijsrcs::Array{Array{Int64,2},1},
-                                 vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
-                                 sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
+function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},recstd::Float64,
+                            ijsrcs::Array{Array{Int64,2},1},
+                            vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
+                            sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
   
     ##
     ## The second-order staggered-grid formulation of Madariaga (1976) and Virieux (1986) is used:
@@ -589,7 +559,12 @@ function adjoint_acoustic2D_CPML(inpar::InpParam, obsrecv::Array{Array{Float64,2
     ##
 
     ## Bunks et al., 1995 Geophysics, Multiscale seismic waveform inversion.
-    
+
+    if inpar.boundcond != "PML"
+        error("gradadj_acoustic2D(): Boundary contitions must be PML for gradient computations.")
+    end
+
+
     @assert length(sourcetf)==length(ijsrcs)
     @assert length(sourcetf)==length(ijrecs)
     @assert length(sourcetf)==length(srcdomfreq)

@@ -1,13 +1,4 @@
 
-# -*- coding: utf-8 -*-
-#
-# Andrea Zunino
-# 
-# 
-##==========================================================
-module AcousticWaves
-
-
 ##============================
 module AcousticWaves
 
@@ -18,9 +9,9 @@ using LinearAlgebra
 using DelimitedFiles
 
 
-export InpParam,gaussource1D,rickersource1D
+export InpParamAcou
 export solveacoustic2D
-export adjoint_acoustic2D_CPML
+export gradadj_acoustic2D
 
 include("acousticwaveprop.jl")
 

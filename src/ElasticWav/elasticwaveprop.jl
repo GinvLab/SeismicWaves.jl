@@ -25,24 +25,25 @@
 # -*- coding: utf-8 -*-
 
 ##==========================================================
-module elasticwaveprop
+# module elasticwaveprop
 
 
-export InpParam,RockProperties,gaussource1D,rickersource1D
-export solveelastic2D_reflbound,solveelastic2D_CPML,MomentTensor
+# export InpParam,RockProperties,gaussource1D,rickersource1D
+# export solveelastic2D_reflbound,solveelastic2D_CPML,MomentTensor
 
-using SpecialFunctions
+#using SpecialFunctions
+
 ##===============================================
 
 # immutable, so no further changes after assignment
-immutable RockProperties
+struct RockProperties
     lambda::Array{Float64,2}
     mu::Array{Float64,2}
     rho::Array{Float64,2}
 end
 
 # immutable, so no further changes after assignment
-immutable InpParam
+struct InpParamEla
     ntimesteps::Int64
     nx::Int64
     nz::Int64
@@ -60,7 +61,7 @@ immutable InpParam
 end
 
 ## to pre-calculate coefficients for interpolation at receivers
-type RecInterp
+struct RecInterp
     x::Float64
     z::Float64
     imin::Int64
@@ -70,7 +71,7 @@ type RecInterp
     wind::Array{Float64,2} ## window for sinc interpolation    
 end
 
-type SrcInterp
+struct SrcInterp
     x::Float64
     z::Float64
     imin::Int64
@@ -80,7 +81,7 @@ type SrcInterp
     wind::Array{Float64,2} ## window for sinc interpolation    
 end
 
-immutable MomentTensor
+struct MomentTensor
   Mxx::Float64
   Mzz::Float64
   Mxz::Float64
@@ -89,32 +90,32 @@ end
 ##=====================================================================
 ##=====================================================================
 
-# kaiser window parameterized by alpha
-function kaiser(n::Integer, alpha::Real)
-    pf = 1.0/besseli(0,pi*alpha)
-    kai = [pf*besseli(0, pi*alpha*(sqrt.(1 - (2*k/(n-1) - 1)^2))) for k=0:(n-1)]
-    return kai
-end
+# # kaiser window parameterized by alpha
+# function kaiser(n::Integer, alpha::Real)
+#     pf = 1.0/besseli(0,pi*alpha)
+#     kai = [pf*besseli(0, pi*alpha*(sqrt.(1 - (2*k/(n-1) - 1)^2))) for k=0:(n-1)]
+#     return kai
+# end
 
-##=====================================================================
+# ##=====================================================================
 
-function kaiser(x::Vector, x0::Real, b::Real, r::Real)
-    # Kaiser window function
-    #  r is window half with
-    # Rule of thumb for finite diff.:
-    #   b=4.14  b=6.31
-    #   r = 4.0*dx
-    w=zeros(length(x))
-    for i=1:length(x)
-        if -r<=(x[i]-x0)<=r 
-            den = 1.0/besseli(0,b)
-            w[i] = den*besseli(0, b*(sqrt.(1 -((x[i]-x0)/r)^2)))
-        else
-            w[i] = 0.0
-        end
-    end
-    return w
-end
+# function kaiser(x::Vector, x0::Real, b::Real, r::Real)
+#     # Kaiser window function
+#     #  r is window half with
+#     # Rule of thumb for finite diff.:
+#     #   b=4.14  b=6.31
+#     #   r = 4.0*dx
+#     w=zeros(length(x))
+#     for i=1:length(x)
+#         if -r<=(x[i]-x0)<=r 
+#             den = 1.0/besseli(0,b)
+#             w[i] = den*besseli(0, b*(sqrt.(1 -((x[i]-x0)/r)^2)))
+#         else
+#             w[i] = 0.0
+#         end
+#     end
+#     return w
+# end
 
 ##=====================================================================
 
@@ -375,21 +376,6 @@ end
 #     return intval
 # end
 
-##======================================================
-
-function gaussource1D( t, t0::Float64, f0::Float64 )
-    a = (pi*f0)^2
-    source = - 8.0*a*(t-t0).*exp.( -a.*(t-t0).^2 )    
-    return source
-end
-
-##============================================================
-
-function rickersource1D( t::Array{Float64},  t0::Float64, f0::Float64 )    
-    b = (pi*f0*(t-t0)).^2
-    w = (1.-2.*b).*exp.(-b)
-    return w
-end   
 
 ##==================================================================
 
@@ -421,7 +407,7 @@ end
 
 ##==========================================================================
 
-function solveelastic2D_CPML(inpar, rockprops, srcpos, sourcetf, momtens, srcdomfreq::Real,
+function solveelastic2D_CPML(inpar::InpParamEla, rockprops, srcpos, sourcetf, momtens, srcdomfreq::Real,
                               recpos::Array{Float64,2})
     #  
     # Wave elastic staggered grid 2D solver 
@@ -1368,10 +1354,10 @@ end
 #     end
 # end
 
-##========================================
+###========================================
 
 
-end ## module
-##========================================================
+# end ## module
+###========================================================
 
 
