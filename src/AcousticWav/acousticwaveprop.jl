@@ -1,19 +1,14 @@
 
 ##==========================================================
 
-verbose = 0
+verbose = 1
 useslowfd = false
-
-# type MyType
-#     a::Int64
-#     b::Float64
-# end
-
-# immutable, so no further changes after assignment
+ 
+##======================================================
 """
   Parameters for acoustic wave simulations
 """
-struct InpParamAcou
+Base.@kwdef struct InpParamAcou
     ntimesteps::Int64
     nx::Int64
     nz::Int64
@@ -27,12 +22,16 @@ struct InpParamAcou
     #InpParam(ntimesteps=1,nx=1,ny=1,dx=1.0,dy=1.0) = new(ntimesteps,nx,ny,dx,dy)
 end
 
+##======================================================
+
 struct BilinCoeff
     i::Array{Int64,1}
     j::Array{Int64,1}
     coe::Array{Float64,2}
     ##owner::Array{Int64,1}
 end
+
+##======================================================
 
 struct CoefPML
     a_x::Array{Float64,1}
@@ -53,6 +52,7 @@ struct CoefPML
     jpmlidxs::Array{Int64,1}
 end
 
+##======================================================
 
 struct GaussTaper
     xnptsgau::Int64
@@ -236,7 +236,7 @@ function initCPML(inpar::InpParamAcou,vel_max::Float64,f0::Float64)
         nptspml_z = 21 #convert(Int64,ceil((vel_max/f0)/dh))  
 
         if verbose>0
-            printbln(" Size of PML layers in grid points: $nptspml_x in x and $nptspml_z in z")
+            println(" Size of PML layers in grid points: $nptspml_x in x and $nptspml_z in z")
         end
 
         ##~~~~~~~~~~~~~~~~~
@@ -361,7 +361,7 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
     vel_max = maximum(vel)
     Cou = vel_max*dt*sqrt(1/dh^2+1/dh^2)
     if verbose>0
-        @show Cou
+        println("Courant number: ",Cou)
     end
     @assert  Cou <= 1.0
 
@@ -458,8 +458,11 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
         #####################
         ##  Time loop
         #####################
+        if verbose>0
+            t1=time()
+        end
+
         isnap = 0
-        t1=time()
         for t=1:inpar.ntimesteps
             if verbose>0
                 t%inpar.infoevery==0 && print("\rShot ",s," t: ",t," of ",inpar.ntimesteps)
@@ -510,8 +513,9 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
             end
             
         end ##------- end time loop --------------
-        t2=time()
+
         if verbose>0
+            t2=time()
             println("\nFWD Time loop: ",t2-t1,"\n")
         end
 
@@ -593,12 +597,12 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
 
     maxMEM = 8.0
     if totmem>maxMEM
-        println("Requested mem for pfwdsave: ",totmem," GB, max. allowed ",maxMEM)
+        println(" Requested mem for pfwdsave: ",totmem," GB, max. allowed ",maxMEM)
         error("Drea: Out of memory")
         return
     else
         if verbose>0
-            println("Requested mem for pfwdsave: ",totmem," GB")
+            println(" Requested mem for pfwdsave: ",totmem," GB")
         end
     end
 
@@ -706,10 +710,15 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
         ##      residuals calculation       ##
         ######################################
         #isnap = 0
-        t1=time() 
+        if verbose>0
+            t1=time()
+        end
         ## One more time step!
         ## nt+1 for the fin. diff. derivative w.r.t time in the adjoint !!
         @assert (size(dt2srctf,1)>=inpar.ntimesteps + 1  )
+
+@time begin
+            
         for t=1:inpar.ntimesteps + 1 ## + 1 !!
             if verbose>0
                 t%inpar.infoevery==0 && print("\rShot ",s," t: ",t," of ",inpar.ntimesteps)
@@ -723,16 +732,15 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
             ###   that's why we need to return them (to make that happen)
             if useslowfd
                 pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                    dpdx,dpdz,d2pdx2,d2pdz2,
-                                                    psi_x,psi_z,xi_x,xi_z,
-                                                    cpml,ijsrcs[s],t,inpar.freeboundtop)
+                                                   dpdx,dpdz,d2pdx2,d2pdz2,
+                                                   psi_x,psi_z,xi_x,xi_z,
+                                                   cpml,ijsrcs[s],t,inpar.freeboundtop)
             else
                 pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                dpdx,dpdz,d2pdx2,d2pdz2,
-                                                psi_x,psi_z,xi_x,xi_z,
-                                                cpml,ijsrcs[s],t,inpar.freeboundtop)
+                                               dpdx,dpdz,d2pdx2,d2pdz2,
+                                               psi_x,psi_z,xi_x,xi_z,
+                                               cpml,ijsrcs[s],t,inpar.freeboundtop)
             end
-
             
             ##========================
             ##### receivers
@@ -752,7 +760,11 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
             
         end ##------- end time loop --------------
 
-        # residuals
+println("\n")
+end
+
+        ##========================================
+        ###------- Residuals -------------
         ## ddf = obsrecv - receiv
         ##residuals =  invC_d_onesrc * ddf
         @inbounds for r=1:nrecs
@@ -772,9 +784,9 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
         ##thishotsrctfresid = dt2 .* view(tmpres, size(tmpres,1):-1:1,:)
         #thishotsrctfresid = 1.0 .* view(tmpres, size(tmpres,1):-1:1,:)
 
-        t2=time()
         if verbose>0
-            println("\nresiduals calculation Time loop: ",t2-t1)
+            t2=time()
+            println("\n residuals calculation Time loop: ",t2-t1)
         end
 
 
@@ -804,7 +816,9 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
 
         ##==================================##
         ## time loop
-        t1=time()
+        if verbose>0
+            t1=time()
+        end
         nt = inpar.ntimesteps
         
         # ## compute pressure one step the future for dpcur2dt2
@@ -849,6 +863,7 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
                                                           t,inpar.freeboundtop)
             end
 
+#@time begin
             ##==================================##
             ##          correlate
             ##==================================##
@@ -865,7 +880,7 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
                     curgrad[i,j] = curgrad[i,j] + (adjcur[i,j] * dpcur2dt2[i,j])
                 end
             end
-
+#end
             # if (t%200==0) & s==1
             #     println("\n\n REMOVE using PyPlot at the top of the file! \n\n")
             #     figure(figsize=(12,9))
@@ -897,10 +912,10 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
         ## scale gradient
         grad .= grad .+ 2.0 ./ vel.^3 .* curgrad
         
-
-        t2=time()
+        
         if verbose>0
-            println("\nAdjoint calculation time loop: ",t2-t1)
+            t2=time()
+            println("\n Adjoint calculation time loop: ",t2-t1)
         end
 
         
