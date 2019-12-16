@@ -21,10 +21,13 @@ export AcouWavProb,ElaWavProb
 
 ## create the problem type for traveltime tomography
 Base.@kwdef struct AcouWavProb
-    mstart::Vector{Float64} # required
+    inpars::InpParamAcou
+    ijsrcs::Vector{Array{Int64,2}}
+    vel::Array{Float64,2}
+    ijrecs::Vector{Array{Int64,2}}
+    sourcetf::Vector{Array{Float64,2}}
+    srcdomfreq::Vector{Float64}
     dobs::Array{Float64,2}
-    coordsrc::Array{Int64,2}
-    coordrec::Array{Int64,2}
     ## ???
 end
 
@@ -42,6 +45,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
         ## compute the logdensity value for vecvel ##
         #############################################
 
+        
 
         return misval
         

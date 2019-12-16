@@ -11,7 +11,7 @@ using DelimitedFiles
 
 export InpParamAcou
 export solveacoustic2D
-export gradadj_acoustic2D
+export gradacoustic2D
 
 include("acousticwaveprop.jl")
 

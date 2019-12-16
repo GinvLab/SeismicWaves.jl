@@ -1,9 +1,11 @@
 
 ##==========================================================
 
-verbose = 1
+verbose = 0
 useslowfd = false
  
+##using PyPlot
+
 ##======================================================
 """
   Parameters for acoustic wave simulations
@@ -227,88 +229,84 @@ function initCPML(inpar::InpParamAcou,vel_max::Float64,f0::Float64)
     nz = inpar.nz
     dt = inpar.dt
 
-    if inpar.boundcond=="PML"
+    @assert inpar.boundcond=="PML"
 
-        ##############################
-        #   Parameters for PML
-        ##############################
-        nptspml_x = 21 #convert(Int64,ceil((vel_max/f0)/dh))  
-        nptspml_z = 21 #convert(Int64,ceil((vel_max/f0)/dh))  
+    ##############################
+    #   Parameters for PML
+    ##############################
+    nptspml_x = 21 # N = 20  R = 0.0001  #convert(Int64,ceil((vel_max/f0)/dh))  
+    nptspml_z = 21 # N = 20  R = 0.0001  #convert(Int64,ceil((vel_max/f0)/dh))  
 
-        if verbose>0
-            println(" Size of PML layers in grid points: $nptspml_x in x and $nptspml_z in z")
-        end
-
-        ##~~~~~~~~~~~~~~~~~
-        Npower = 2.0 #2.0    
-        K_max_pml = 1.0 # #1.0
-        ## reflection coefficient (INRIA report section 6.1)
-        ## http://hal.inria.fr/docs/00/07/32/19/PDF/RR-3471.pdf
-        ## Collino 2001, refl. coeff for N PML layers (nodes...):
-        # N = 5   R = 0.01
-        # N = 10  R = 0.001
-        # N = 20  R = 0.0001
-
-        Rcoef = 0.0001  #0.001 for a PML thickness of 10 nodes
- 
-        @assert Npower>=1
-        @assert K_max_pml>=1.0
-        
-        alpha_max_pml = 2.0*pi*(f0/2.0) #2.0*pi*(f0/2.0)
-
-        # thickness of the PML layer in meters
-        thickness_pml_x = (nptspml_x-1) * dh
-        thickness_pml_z = (nptspml_z-1) * dh
-        
-        # compute d0 from INRIA report section 6.1 http://hal.inria.fr/docs/00/07/32/19/PDF/RR-3471.pdf
-        d0_x = - (Npower + 1) * vel_max * log(Rcoef) / (2.0 * thickness_pml_x)
-        d0_z = - (Npower + 1) * vel_max * log(Rcoef) / (2.0 * thickness_pml_z)
-
-        ##############################
-        #   Damping parameters
-        ##############################    
-        # --- damping in the x direction ---
-        # assuming the number of grid points for PML is the same on 
-        #    both sides    
-        # damping profile at the grid points
-        K_x,a_x,b_x = calc_Kab_CPML(nx,nptspml_x,dh,dt,Npower,d0_x,alpha_max_pml,K_max_pml,"ongrd")
-        K_x_half,a_x_half,b_x_half = calc_Kab_CPML(nx,nptspml_x,dh,dt,Npower,d0_x,alpha_max_pml,K_max_pml,"halfgrd")
-        
-        # --- damping in the z direction ---
-        # assuming the number of grid points for PML is the same on
-        # both sides    
-        # damping profile at the grid points
-        K_z,a_z,b_z = calc_Kab_CPML(nz,nptspml_z,dh,dt,Npower,d0_z,alpha_max_pml,K_max_pml,"ongrd")
-        K_z_half,a_z_half,b_z_half = calc_Kab_CPML(nz,nptspml_z,dh,dt,Npower,d0_z,alpha_max_pml,K_max_pml,"halfgrd")
-        #### important \/ \/ \/
-        if inpar.freeboundtop==true
-            K_z[1:nptspml_z] .= 1.0
-            a_z[1:nptspml_z] .= 0.0
-            b_z[1:nptspml_z] .= 1.0
-            K_z_half[1:nptspml_z] .= 1.0
-            a_z_half[1:nptspml_z] .= 0.0
-            b_z_half[1:nptspml_z] .= 1.0
-        end
-
-        ## struct of PML coefficients
-        # ipmlidxs = append!(collect(2:nptspml_x), collect(nx-nptspml_x+1:nx-1))
-        # jpmlidxs = append!(collect(2:nptspml_z), collect(nz-nptspml_z+1:nz-1))
-        ipmlidxs = [2, nptspml_x, nx-nptspml_x+1, nx-1]
-        jpmlidxs = [2, nptspml_z, nz-nptspml_z+1, nz-1]
-        cpml = CoefPML(a_x,b_x,a_z,b_z,K_x,K_z, a_x_half,b_x_half,a_z_half,b_z_half,
-                       K_x_half,K_z_half,nptspml_x,nptspml_z,ipmlidxs,jpmlidxs)
-         
-        ###########################
-
-        # println(">>> WRITING PML COEFFICIENTS TO FILE!!! <<<")
-        # writedlm("pml_coeff_X_julia.dat",[cpml.K_x cpml.a_x cpml.b_x cpml.K_x_half cpml.a_x_half cpml.b_x_half])
-        # writedlm("pml_coeff_Z_julia.dat",[cpml.K_z cpml.a_z cpml.b_z cpml.K_z_half cpml.a_z_half cpml.b_z_half]) 
-
-    else
-        error("initCPML(): Expected inpar.boundcond==\"PML\" ")
+    if verbose>0
+        println(" Size of PML layers in grid points: $nptspml_x in x and $nptspml_z in z")
     end
 
-    return  nptspml_x, nptspml_z,cpml #K_x,K_z,a_x,a_z,b_x,b_z
+    ##~~~~~~~~~~~~~~~~~
+    Npower = 2.0 #2.0    
+    K_max_pml = 1.0 # #1.0
+    ## reflection coefficient (INRIA report section 6.1)
+    ## http://hal.inria.fr/docs/00/07/32/19/PDF/RR-3471.pdf
+    ## Collino 2001, refl. coeff for N PML layers (nodes...):
+    # N = 5   R = 0.01
+    # N = 10  R = 0.001
+    # N = 20  R = 0.0001
+
+    Rcoef = 0.0001  #0.001 for a PML thickness of 10 nodes
+    
+    @assert Npower>=1
+    @assert K_max_pml>=1.0
+    
+    alpha_max_pml = 2.0*pi*(f0/2.0) #2.0*pi*(f0/2.0)
+
+    # thickness of the PML layer in meters
+    thickness_pml_x = (nptspml_x-1) * dh
+    thickness_pml_z = (nptspml_z-1) * dh
+    
+    # compute d0 from INRIA report section 6.1 http://hal.inria.fr/docs/00/07/32/19/PDF/RR-3471.pdf
+    d0_x = - (Npower + 1) * vel_max * log(Rcoef) / (2.0 * thickness_pml_x)
+    d0_z = - (Npower + 1) * vel_max * log(Rcoef) / (2.0 * thickness_pml_z)
+
+    ##############################
+    #   Damping parameters
+    ##############################    
+    # --- damping in the x direction ---
+    # assuming the number of grid points for PML is the same on 
+    #    both sides    
+    # damping profile at the grid points
+    K_x,a_x,b_x = calc_Kab_CPML(nx,nptspml_x,dh,dt,Npower,d0_x,alpha_max_pml,K_max_pml,"ongrd")
+    K_x_half,a_x_half,b_x_half = calc_Kab_CPML(nx,nptspml_x,dh,dt,Npower,d0_x,alpha_max_pml,K_max_pml,"halfgrd")
+    
+    # --- damping in the z direction ---
+    # assuming the number of grid points for PML is the same on
+    # both sides    
+    # damping profile at the grid points
+    K_z,a_z,b_z = calc_Kab_CPML(nz,nptspml_z,dh,dt,Npower,d0_z,alpha_max_pml,K_max_pml,"ongrd")
+    K_z_half,a_z_half,b_z_half = calc_Kab_CPML(nz,nptspml_z,dh,dt,Npower,d0_z,alpha_max_pml,K_max_pml,"halfgrd")
+    #### important \/ \/ \/
+    if inpar.freeboundtop==true
+        K_z[1:nptspml_z] .= 1.0
+        a_z[1:nptspml_z] .= 0.0
+        b_z[1:nptspml_z] .= 1.0
+        K_z_half[1:nptspml_z] .= 1.0
+        a_z_half[1:nptspml_z] .= 0.0
+        b_z_half[1:nptspml_z] .= 1.0
+    end
+
+    ## struct of PML coefficients
+    # ipmlidxs = append!(collect(2:nptspml_x), collect(nx-nptspml_x+1:nx-1))
+    # jpmlidxs = append!(collect(2:nptspml_z), collect(nz-nptspml_z+1:nz-1))
+    ipmlidxs = [2, nptspml_x, nx-nptspml_x+1, nx-1]
+    jpmlidxs = [2, nptspml_z, nz-nptspml_z+1, nz-1]
+    cpml = CoefPML(a_x,b_x,a_z,b_z,K_x,K_z, a_x_half,b_x_half,a_z_half,b_z_half,
+                   K_x_half,K_z_half,nptspml_x,nptspml_z,ipmlidxs,jpmlidxs)
+    
+    ###########################
+
+    # println(">>> WRITING PML COEFFICIENTS TO FILE!!! <<<")
+    # writedlm("pml_coeff_X_julia.dat",[cpml.K_x cpml.a_x cpml.b_x cpml.K_x_half cpml.a_x_half cpml.b_x_half])
+    # writedlm("pml_coeff_Z_julia.dat",[cpml.K_z cpml.a_z cpml.b_z cpml.K_z_half cpml.a_z_half cpml.b_z_half]) 
+
+    return cpml #K_x,K_z,a_x,a_z,b_x,b_z
 end
 
 ##=======================================================================##
@@ -343,7 +341,6 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
     ##            \/ z
     ##
 
-
     @assert length(sourcetf)==length(ijsrcs)
     @assert length(sourcetf)==length(ijrecs)
     @assert length(sourcetf)==length(srcdomfreq)
@@ -356,7 +353,7 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
     if verbose>0
         @show length(ijsrcs)
     end
-    
+ 
     ## Check Courant condition
     vel_max = maximum(vel)
     Cou = vel_max*dt*sqrt(1/dh^2+1/dh^2)
@@ -403,6 +400,7 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
     ##############################
     for s=1:nshots
 
+        @assert size(ijsrcs[s],1)==size(sourcetf[s],2)
         ## ensure at least 10 pts per wavelengh  ????
         @assert dh <= vel_max/(10.0 * srcdomfreq[s])
 
@@ -412,7 +410,28 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
         if inpar.boundcond=="PML"
             
             f0 = srcdomfreq[s]
-            nptspml_x, nptspml_z, cpml = initCPML(inpar,vel_max,f0)
+            cpml = initCPML(inpar,vel_max,f0)
+
+            ##-----------------------------------------------------------
+            ## Check that source and receivers are inside the PML layers
+            for i=1:size(ijsrcs[s],1)
+                if cpml.nptspml_x>=ijsrcs[s][i,1]>(nx-cpml.nptspml_x)
+                    error("ijsrcs[$(s)][$(i),1] inside PML layers along x")
+                end
+                if cpml.nptspml_z>=ijsrcs[s][i,2]>(nz-cpml.nptspml_z)
+                    error("ijsrcs[$(s)][$(i),1] inside PML layers along z")
+                end
+            end
+            for i=1:size(ijrecs[s],1)
+                if cpml.nptspml_x>=ijrecs[s][i,1]>(nx-cpml.nptspml_x)
+                    error("ijrecs[$(s)][$(i),1] inside PML layers along x")
+                end
+                if !inpar.freeboundtop && cpml.nptspml_z>=ijrecs[s][i,2]
+                    error("ijrecs[$(s)][$(i),1] inside PML layers along z")
+                elseif ijrecs[s][i,2]>(nz-cpml.nptspml_z)
+                    error("ijrecs[$(s)][$(i),1] inside PML layers along z")
+                end
+            end
 
             #@show cpml.ipmlidxs,cpml.jpmlidxs
 
@@ -421,6 +440,7 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
             # Arrays with size of PML areas would be sufficient and save memory,
             #   however allocating arrays with same size than model simplifies
             #   the code in the loops
+            # Zeroed at every shot
             dpdx[:,:] .= 0.0
             dpdz[:,:] .= 0.0
             d2pdx2[:,:] .= 0.0
@@ -478,16 +498,16 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
                     pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
                                                        dpdx,dpdz,d2pdx2,d2pdz2,
                                                        psi_x,psi_z,xi_x,xi_z,
-                                                       cpml,ijsrcs[s],t,inpar.freeboundtop)
+                                                       cpml,ijsrcs[s],t)
                 else
                     pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
                                                    dpdx,dpdz,d2pdx2,d2pdz2,
                                                    psi_x,psi_z,xi_x,xi_z,
-                                                   cpml,ijsrcs[s],t,inpar.freeboundtop)  
+                                                   cpml,ijsrcs[s],t)
                 end
                 
             elseif inpar.boundcond=="GauTap"
-                oneiter_GAUSTAP!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
+                oneiter_GAUSSTAP!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
                                  ijsrcs[s],t,gaubc,inpar.freeboundtop)
                 
             else
@@ -511,7 +531,7 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
                 isnap+=1
                 psave[:,:,isnap,s] = pcur 
             end
-            
+       
         end ##------- end time loop --------------
 
         if verbose>0
@@ -534,10 +554,11 @@ end
   Solver for computing the gradient of the misfit function for the acoustic 
    wave equation using the adjoint state method
 """
-function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},recstd::Float64,
-                            ijsrcs::Array{Array{Int64,2},1},
-                            vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
-                            sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
+function gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
+                        invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}}, #recstd::Float64,
+                        ijsrcs::Array{Array{Int64,2},1},
+                        vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
+                        sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
   
     ##
     ## The second-order staggered-grid formulation of Madariaga (1976) and Virieux (1986) is used:
@@ -563,6 +584,10 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
     ##
 
     ## Bunks et al., 1995 Geophysics, Multiscale seismic waveform inversion.
+
+    if verbose>0
+        tstart=time()
+    end
 
     if inpar.boundcond != "PML"
         error("gradadj_acoustic2D(): Boundary contitions must be PML for gradient computations.")
@@ -649,6 +674,13 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
     grad = zeros(nx,nz)
     dpcur2dt2 = zeros(nx,nz)
     
+    ## tmp arrays 
+    tmpdifcalobs = zeros(inpar.ntimesteps)
+    tmpresid = zeros(inpar.ntimesteps)
+
+    if verbose>0
+        t0=time()
+    end
     ##############################
     #   Loop on shots
     ##############################
@@ -662,13 +694,35 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
         #   Parameters CPML
         ##############################
         f0 = srcdomfreq[s]
-        nptspml_x, nptspml_z, cpml = initCPML(inpar,vel_max,f0)
+        cpml = initCPML(inpar,vel_max,f0)
+
+        ##-----------------------------------------------------------
+        ## Check that source and receivers are inside the PML layers
+        for i=1:size(ijsrcs[s],1)
+            if cpml.nptspml_x>=ijsrcs[s][i,1]>(nx-cpml.nptspml_x)
+                error("ijsrcs[$(s)][$(i),1] inside PML layers along x")
+            end
+            if cpml.nptspml_z>=ijsrcs[s][i,2]>(nz-cpml.nptspml_z)
+                error("ijsrcs[$(s)][$(i),1] inside PML layers along z")
+            end
+        end
+        for i=1:size(ijrecs[s],1)
+            if cpml.nptspml_x>=ijrecs[s][i,1]>(nx-cpml.nptspml_x)
+                error("ijrecs[$(s)][$(i),1] inside PML layers along x")
+            end
+            if !inpar.freeboundtop && cpml.nptspml_z>=ijrecs[s][i,2]
+                error("ijrecs[$(s)][$(i),1] inside PML layers along z")
+            elseif ijrecs[s][i,2]>(nz-cpml.nptspml_z)
+                error("ijrecs[$(s)][$(i),1] inside PML layers along z")
+            end
+        end
         
         ##################################
         # PML arrays
         # Arrays with size of PML areas would be sufficient and save memory,
         #   however allocating arrays with same size than model simplifies
         #   the code in the loops
+        # Zeroed at every shot
         dpdx[:,:] .= 0.0
         dpdz[:,:] .= 0.0 
         d2pdx2[:,:] .= 0.0
@@ -684,6 +738,7 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
         pcur[:,:] .= 0.0
         pnew[:,:] .= 0.0
 
+        ##################################
         ## seismograms
         nrecs = size(ijrecs[s],1)
         receiv[s] = zeros(Float64,inpar.ntimesteps,nrecs)
@@ -696,29 +751,30 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
         ##dt2srctf =  dt2 .* sourcetf[s][:,:]  ## <<<===== ????? v^2 ????? =====##
         # Each srctf has to be scaled with the velocity at same coordinates
         for isr=1:size(sourcetf[s],2)
-            dt2srctf[:,isr] = vel[ijsrcs[s][isr,1],ijsrcs[s][isr,2]].^2 .* dt2srctf[:,1]
+            dt2srctf[:,isr] .= vel[ijsrcs[s][isr,1],ijsrcs[s][isr,2]].^2 .* dt2srctf[:,1]
         end      
 
-        # current sources
-        thishotijsrcs = ijsrcs[s]
+        # current sources for forward and adjoint calculations
+        thishotijsrcs_fwd = ijsrcs[s]
         thishotijsrcs_adj = ijrecs[s]
 
         ntobs = size(obsrecv[s],1)
-        thishotsrctfresid = Array{Float64}(undef,ntobs,nrecs)
-        
+        ### ntobs+1 to mach the adjoint field time step
+        thishotsrctfresid = Array{Float64}(undef,ntobs+1,nrecs)
+        thishotsrctfresid[end,:] .= 0.0 ### ntobs+1 to mach the adjoint field time step
+
         ######################################
         ##      residuals calculation       ##
         ######################################
         #isnap = 0
         if verbose>0
             t1=time()
+            println(" t1-t0: $(t1-t0)")
         end
         ## One more time step!
         ## nt+1 for the fin. diff. derivative w.r.t time in the adjoint !!
         @assert (size(dt2srctf,1)>=inpar.ntimesteps + 1  )
 
-@time begin
-            
         for t=1:inpar.ntimesteps + 1 ## + 1 !!
             if verbose>0
                 t%inpar.infoevery==0 && print("\rShot ",s," t: ",t," of ",inpar.ntimesteps)
@@ -734,12 +790,12 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
                 pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
                                                    dpdx,dpdz,d2pdx2,d2pdz2,
                                                    psi_x,psi_z,xi_x,xi_z,
-                                                   cpml,ijsrcs[s],t,inpar.freeboundtop)
+                                                   cpml,thishotijsrcs_fwd,t)
             else
                 pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
                                                dpdx,dpdz,d2pdx2,d2pdz2,
                                                psi_x,psi_z,xi_x,xi_z,
-                                               cpml,ijsrcs[s],t,inpar.freeboundtop)
+                                               cpml,thishotijsrcs_fwd,t)
             end
             
             ##========================
@@ -756,28 +812,40 @@ function gradadj_acoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2}
             ##========================
             ## save forward run
             ## t+1 because the first is zeros in the past, for adjoint
-            pfwdsave[:,:,t+1] .= pcur
-            
-        end ##------- end time loop --------------
+            @inbounds pfwdsave[:,:,t+1] .= pcur
 
-println("\n")
-end
+       end ##------- end time loop --------------
 
-        ##========================================
+        if verbose>0
+            t2=time()
+        end
+
+        ##============= ===========================
         ###------- Residuals -------------
         ## ddf = obsrecv - receiv
         ##residuals =  invC_d_onesrc * ddf
         @inbounds for r=1:nrecs
-            residuals[s][:,r] .= (receiv[s][:,r].-obsrecv[s][:,r]) ./ recstd.^2
+            ##OLD: residuals[s][:,r] .= (receiv[s][:,r].-obsrecv[s][:,r]) ./ recstd.^2
+
+            tmpdifcalobs .= receiv[s][:,r].-obsrecv[s][:,r]
+            ## The followind line works but it allocates
+            ##  residuals[s][:,r] .= invCovds[s] * tmpdifcalobs
+            ## The next line produces zeros as output?!? Why??
+            ##  mul!(residuals[s][:,r], invCovds[s], tmpdifcalobs)
+            ## So using a second temporary array "tmpresid" to hold the
+            ##    results and still avoid allocating...
+            mul!(tmpresid, invCovds[s], tmpdifcalobs)
+            residuals[s][:,r] .= tmpresid
+
             ## Source time function for adjoint
             ##   (NO SCALING of srctf (i.e., dt2 .* srctf) for adjoint...? See eq. 18
             ##      Bunks et al., 1995 Geophysics, Multiscale seismic waveform inversion.
-            ## FLIP residuals in time
-            thishotsrctfresid[:,:] .= residuals[s][end:-1:1,r]
+            ## REVERSE residuals in time
+            ## last row of thishotsrctfresid must be already zero!
+            #thishotsrctfresid[1:end-1,:] .= residuals[s][end:-1:1,r]
+            thishotsrctfresid[1:end-1,r] .= residuals[s][end:-1:1,r]
         end    
-        ##    ??? add a row of zeros to match time step adjoint (nt+1)
-        thishotsrctfresid = [thishotsrctfresid; zeros(1,size(thishotsrctfresid,2))]
-        
+  
         ## source time function for adjoint
         ##thishotsrctfresid = dt2 .* residuals[s][:,:]
         #tmpres = residuals[s][:,:]
@@ -785,8 +853,10 @@ end
         #thishotsrctfresid = 1.0 .* view(tmpres, size(tmpres,1):-1:1,:)
 
         if verbose>0
-            t2=time()
-            println("\n residuals calculation Time loop: ",t2-t1)
+            t3=time()
+            println("\n Forward calculation Time loop: ",t2-t1)
+            println(" Residuals calculation Time loop: ",t3-t2)
+            println(" Total residuals calculation Time loop: ",t3-t1)
         end
 
 
@@ -804,6 +874,9 @@ end
         adjcur[:,:] .= 0.0
         adjnew[:,:] .= 0.0
 
+        # gradient for 1 shot
+        curgrad .= 0.0
+
         ## PML arrays
         dpdx[:,:] .= 0.0
         dpdz[:,:] .= 0.0
@@ -817,23 +890,19 @@ end
         ##==================================##
         ## time loop
         if verbose>0
-            t1=time()
+            t4=time()
         end
         nt = inpar.ntimesteps
         
         # ## compute pressure one step the future for dpcur2dt2
         # tpres = 1
-        # oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,
-
-
-        # gradient for 1 shot
-        curgrad .= 0.0
-
+       
         ## Adjoint actually going backward in time
         @assert (size(thishotsrctfresid,1)>=nt-1 )
         for t = 1:nt
             if verbose>0
                 t%inpar.infoevery==0 && print("\rShot ",s," t: ",t," of ",inpar.ntimesteps)
+                t5 = time()
             end
             
             # ##==================================##
@@ -849,26 +918,29 @@ end
             ##==================================##            
             if useslowfd
                 adjold,adjcur,adjnew = oneiter_CPML!slow(nx,nz,fact,adjnew,adjold,
-                                                          adjcur,thishotsrctfresid,
-                                                          dpdx,dpdz,d2pdx2,d2pdz2,
-                                                          psi_x,psi_z,xi_x,xi_z,
-                                                          cpml,thishotijsrcs_adj,
-                                                          t,inpar.freeboundtop)
+                                                         adjcur,thishotsrctfresid,
+                                                         dpdx,dpdz,d2pdx2,d2pdz2,
+                                                         psi_x,psi_z,xi_x,xi_z,
+                                                         cpml,thishotijsrcs_adj,t)
+                
             else
                 adjold,adjcur,adjnew = oneiter_CPML!(nx,nz,fact,adjnew,adjold,
-                                                          adjcur,thishotsrctfresid,
-                                                          dpdx,dpdz,d2pdx2,d2pdz2,
-                                                          psi_x,psi_z,xi_x,xi_z,
-                                                          cpml,thishotijsrcs_adj,
-                                                          t,inpar.freeboundtop)
+                                                     adjcur,thishotsrctfresid,
+                                                     dpdx,dpdz,d2pdx2,d2pdz2,
+                                                     psi_x,psi_z,xi_x,xi_z,
+                                                     cpml,thishotijsrcs_adj,t)
+            end
+                        
+            if verbose>1
+                t6=time()
+                println("\n Adjoint calculations: ",t6-t5)
             end
 
-#@time begin
             ##==================================##
             ##          correlate
             ##==================================##
             ## p is shifted into future, so pcur is p at t+1
-            #dpcur2dt2[:,:] .=  (pcur .- 2.0.*pold .+ pveryold) ./ dt2
+            ##dpcur2dt2[:,:] .=  (pcur .- 2.0.*pold .+ pveryold) ./ dt2
             @inbounds for j=1:nz
                 @inbounds for i=1:nx
                     # dpcur2dt2[i,j] = (pfwdsave[i,j,nt-t] - 2.0 * pfwdsave[i,j,nt-t+1] +
@@ -879,48 +951,69 @@ end
                     ## pointwise multiplication, integration in time...
                     curgrad[i,j] = curgrad[i,j] + (adjcur[i,j] * dpcur2dt2[i,j])
                 end
+            end 
+
+            if verbose>1
+                t7=time()
+                println(" Correlating: ",t7-t6)
             end
-#end
-            # if (t%200==0) & s==1
-            #     println("\n\n REMOVE using PyPlot at the top of the file! \n\n")
+
+
+            # if ((t%20==0) && t<300) || t==1499 #& s==1
+            #     println("\n REMOVE using PyPlot at the top of the file! \n")
             #     figure(figsize=(12,9))
             #     subplot(221)
-            #     title(string("pressure  time ", nt-t))
+            #     title(string("Shot $s, pressure  time ", nt-t))
             #     gvmax = maximum(abs.(pfwdsave[:,:,nt-t]))
             #     imshow(permutedims(pfwdsave[:,:,nt-t]),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu"))
             #     colorbar()
             #     subplot(222)
-            #     title(string("adjoint time ",t))
+            #     title(string("Shot $s, adjoint time ",t))
             #     gvmax = maximum(abs.(adjcur))
             #     imshow(permutedims(adjcur),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
             #     colorbar()
             #     subplot(223)
-            #     title("(adjcur .* dpcur2dt2)") #dpcur2dt2")
-            #     gvmax = maximum(abs.(adjcur .* dpcur2dt2))
-            #     imshow(permutedims(adjcur .* dpcur2dt2),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
-            #     colorbar()
+            #     title("thishotsrctfresid")
+            #     plot(thishotsrctfresid)
+            #     # title("(adjcur .* dpcur2dt2)") #dpcur2dt2")
+            #     # gvmax = maximum(abs.(adjcur .* dpcur2dt2))
+            #     # imshow(permutedims(adjcur .* dpcur2dt2),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
+            #     # colorbar()
             #     subplot(224)
             #     title("gradient")
             #     gvmax = maximum(abs.(curgrad))
             #     imshow(permutedims(curgrad),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
             #     colorbar()
+            #     tight_layout()
             #     #show(block=true)
             # end
 
         end ##------- end time loop --------------
 
+        if verbose>0
+            t8=time()
+        end
+
         ## scale gradient
         grad .= grad .+ 2.0 ./ vel.^3 .* curgrad
         
-        
         if verbose>0
-            t2=time()
-            println("\n Adjoint calculation time loop: ",t2-t1)
+            t9=time()
+            println("\n Scale gradient: ",t9-t8)
+            println(" Adjoint loop: ",t8-t4)
+            println(" Total adjoint solver time for 1 shot: ",t9-t4)
         end
 
         
     end ##------- for ishot=1:... --------------
     ##===========================================================##
+
+    if verbose>0
+        t10 = time()
+        println(" Init etc. : ",t0-tstart)
+        
+        println(" Total gradient calculation time for 1 shot: ",t10-tstart)
+    end
 
     ## scale gradient
     #grad = - 2.0 ./ vel.^3 .* curgrad
@@ -1021,8 +1114,8 @@ function oneiter_GAUSSTAP!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
 
     ## Apply Gaussian taper damping as boundary condition
     pnew[1:gaubc.xnptsgau,:]          .*= gaubc.leftdp 
-    pnew[end-gaubc.xnptsgau+1:end,:]  .*= gaubc.rightdp 
-    pnew[:,end-gaubc.ynptsgau+1:end]  .*= gaubc.bottomdp
+    pnew[end-gaubc.xnptsgau+1:end,:]  .*= gaubc.rightdp
+    pnew[:,end-gaubc.ynptsgau+1:end]  .*= reshape(gaubc.bottomdp,1,:)
     
     
     # inject source(s)
@@ -1052,8 +1145,7 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
                         d2pdx2::Array{Float64,2},d2pdz2::Array{Float64,2},
                         psi_x::Array{Float64,2},psi_z::Array{Float64,2},
                         xi_x::Array{Float64,2},xi_z::Array{Float64,2},
-                        cpml::CoefPML,
-                        ijsrcs::Array{Int64,2},t::Int64,freeboundtop::Bool)
+                        cpml::CoefPML,ijsrcs::Array{Int64,2},t::Int64)
                        
 
     #
@@ -1170,7 +1262,7 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
             ## EXCLUDE CORNERS, because already visited in the previous X-borders loop!
             ##  (It would lead to wrong accumulation of pnew[i,j], etc. otherwise...)
             ##--------------------------------------------------------------------------
-            @inbounds  for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[4]-1
+            @inbounds  for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1
                 
                 d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]            
                 d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -1183,14 +1275,14 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
                 damp = fact[i,j] * (dpsidx + dpsidz + xi_x[i,j] + xi_z[i,j])
 
                 # update pressure
-                pnew[i,j] = 2.0*pcur[i,j] -pold[i,j] +
-                    fact[i,j]*(d2pdx2 + d2pdz2) + damp
+                pnew[i,j] = 2.0*pcur[i,j] -pold[i,j] + fact[i,j]*(d2pdx2 + d2pdz2) + damp
 
             end
         end
     end
 
-    ## Calculate internal part
+    ##----------------------------------------------------------
+    ## Calculate stuff in the internal part of the model
     @inbounds for j = cpml.jpmlidxs[2]+1:cpml.jpmlidxs[3]-1    #2:nz-1 
         @inbounds for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1   #2:nx-1 
 
@@ -1246,7 +1338,7 @@ function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
                         psi_x::Array{Float64,2},psi_z::Array{Float64,2},
                         xi_x::Array{Float64,2},xi_z::Array{Float64,2},
                         cpml::CoefPML,
-                        ijsrcs::Array{Int64,2},t::Int64,freeboundtop::Bool)
+                        ijsrcs::Array{Int64,2},t::Int64)
 
 
     ##-------------------------------------------
@@ -1274,7 +1366,7 @@ function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
             dpsidz = psi_z[i,j] - psi_z[i,j-1]
 
             xi_x[i,j] = cpml.b_x[i] / cpml.K_x_half[i] * xi_x[i,j] + cpml.a_x[i] * (d2pdx2 + dpsidx)
-            xi_z[i,j] = cpml.b_z[j] / cpml.K_z_half[i] * xi_z[i,j] + cpml.a_z[j] * (d2pdz2 + dpsidz)
+            xi_z[i,j] = cpml.b_z[j] / cpml.K_z_half[j] * xi_z[i,j] + cpml.a_z[j] * (d2pdz2 + dpsidz)
             
             damp = fact[i,j] * (dpsidx + dpsidz + xi_x[i,j] + xi_z[i,j])
 
