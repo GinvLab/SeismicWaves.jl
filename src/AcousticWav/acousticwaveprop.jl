@@ -129,6 +129,29 @@ end
 ##===============================================================================
 ##===============================================================================
 
+function acoumisfitfunc(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
+                        vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
+                        sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1},
+                        obsrecv::Array{Array{Float64,2},1},
+                        invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}})
+
+    seismrecv = solveacoustic2D(inpar, ijsrcs, refvel, ijrecs, sourcetf,srcdomfreq )
+
+    misf = 0.0
+    nshots = length(ijsrcs)
+    tmp1 = zeros(size(obsrecv[s],1))
+    difcalobs = zeros(size(obsrecv[s],1))
+    for s=1:nshots
+        difcalobs .= seismrecv[s][:,r].-obsrecv[s][:,r]
+        mul!(tmp1, invCovds[s], difcalobs)
+        misf += dot(difcalobs,tmp1)  
+    end
+
+    return misf
+end
+
+##===============================================================================
+
 """
  Compute coefficients for Gaussian taper
 """
@@ -1018,7 +1041,7 @@ function gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
     ## scale gradient
     #grad = - 2.0 ./ vel.^3 .* curgrad
         
-    return grad,residuals
+    return grad ##,residuals
 end
 
 
@@ -1397,4 +1420,3 @@ function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
 end
 
 ##======================================
-

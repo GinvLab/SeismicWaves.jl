@@ -23,12 +23,11 @@ export AcouWavProb,ElaWavProb
 Base.@kwdef struct AcouWavProb
     inpars::InpParamAcou
     ijsrcs::Vector{Array{Int64,2}}
-    vel::Array{Float64,2}
     ijrecs::Vector{Array{Int64,2}}
     sourcetf::Vector{Array{Float64,2}}
     srcdomfreq::Vector{Float64}
     dobs::Array{Float64,2}
-    ## ???
+    invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}}
 end
 
 ## use  x.T * C^-1 * x  = ||L^-1 * x ||^2 ?
@@ -37,16 +36,16 @@ end
 function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
 
     # reshape vector to 2D array
-    velnd = reshape(vecvel,eikprob.grd.nx,eikprob.grd.ny)
-
+    vel2d = reshape(vecvel,acouprob.inpars.nx,acouprob.inpars.nz)
 
     if kind=="nlogpdf"
         #############################################
         ## compute the logdensity value for vecvel ##
         #############################################
-
+        misval = acoumisfitfunc(acouprob.inpar, acouprob.ijsrcs, vel2d, acouprob.ijrecs,
+                                acouprob.sourcetf, acouprob.srcdomfreq,
+                                acouprob.dobs, acouprob.invCovds)
         
-
         return misval
         
 
@@ -55,14 +54,14 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
         ## compute the gradient of the misfit function ##
         #################################################
 
-
-        # flatten array
-
+        grad = gradacoustic2D(acouprob.inpar,acouprob.dobs,acouprob.invCovds,
+                              acouprob.ijsrcs,vel2d,acouprob.ijrecs,
+                              acouprob.sourcetf,acouprob.srcdomfreq)
         # return flattened gradient
-        return  vecgrad
+        return  vec(grad)
         
     else
-        error("Wrong argument 'kind'...")
+        error("acouprob::AcouWavProb(): Wrong argument 'kind'...")
     end
 end
 
