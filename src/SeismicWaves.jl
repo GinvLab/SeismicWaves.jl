@@ -17,4 +17,8 @@ using .ElasticWaves
 #
 include("utils.jl")
 
+# wrapper for HMCtomo
+include("HMCseiswaves.jl")
+using .HMCseiswaves
+
 end # module

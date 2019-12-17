@@ -12,7 +12,9 @@ A convenience module to facilitate the use of `SeismicWaves` within the framewor
 """
 module HMCseiswaves
 
-using SeismicWaves
+using SeismicWaves.AcousticWaves
+using SeismicWaves.ElasticWaves
+using LinearAlgebra
 
 export AcouWavProb,ElaWavProb
 
