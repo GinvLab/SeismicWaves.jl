@@ -135,16 +135,20 @@ function acoumisfitfunc(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
                         obsrecv::Array{Array{Float64,2},1},
                         invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}})
 
-    seismrecv = solveacoustic2D(inpar, ijsrcs, refvel, ijrecs, sourcetf,srcdomfreq )
+    seismrecv = solveacoustic2D(inpar, ijsrcs, vel, ijrecs, sourcetf,srcdomfreq )
 
     misf = 0.0
     nshots = length(ijsrcs)
-    tmp1 = zeros(size(obsrecv[s],1))
-    difcalobs = zeros(size(obsrecv[s],1))
+    nptsseismogram = size(obsrecv[1],1)
+    tmp1 = zeros(nptsseismogram)
+    difcalobs = zeros(nptsseismogram)
+    nrec = size(ijrecs,1)
     for s=1:nshots
-        difcalobs .= seismrecv[s][:,r].-obsrecv[s][:,r]
-        mul!(tmp1, invCovds[s], difcalobs)
-        misf += dot(difcalobs,tmp1)  
+        for r=1:nrec
+            difcalobs .= seismrecv[s][:,r].-obsrecv[s][:,r]
+            mul!(tmp1, invCovds[s], difcalobs)
+            misf += dot(difcalobs,tmp1)
+        end
     end
 
     return misf
@@ -1018,7 +1022,7 @@ function gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
         end
 
         ## scale gradient
-        grad .= grad .+ 2.0 ./ vel.^3 .* curgrad
+        grad .= grad .+ (2.0 ./ vel.^3) .* curgrad
         
         if verbose>0
             t9=time()
