@@ -427,6 +427,8 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
     ##############################
     for s=1:nshots
 
+#@time begin
+
         @assert size(ijsrcs[s],1)==size(sourcetf[s],2)
         ## ensure at least 10 pts per wavelengh  ????
         @assert dh <= vel_max/(10.0 * srcdomfreq[s])
@@ -483,7 +485,7 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
             gaubc = initGausboundcon()
 
         end
-        
+
         ##################################
         # memory arrays
         pold[:,:] .= 0.0
@@ -501,7 +503,7 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
         for isr=1:size(sourcetf[s],2)
             dt2srctf[:,isr] = vel[ijsrcs[s][isr,1],ijsrcs[s][isr,2]].^2 .* dt2srctf[:,1]
         end
-            
+
         #####################
         ##  Time loop
         #####################
@@ -566,6 +568,8 @@ function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
             println("\nFWD Time loop: ",t2-t1,"\n")
         end
 
+#end  ##<<<<<<<==================================<<<<<<<<<
+        
     end ##------- for ishot=1:... --------------
 
     if inpar.savesnapshot==true
@@ -713,6 +717,7 @@ function gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
     ##############################
     for s=1:nshots
 
+#t000=time() 
         @assert size(ijsrcs[s],1)==size(sourcetf[s],2)
         ## ensure at least 10 pts per wavelengh ????
         @assert dh <= vel_max/(10.0 * srcdomfreq[s])
@@ -1030,7 +1035,8 @@ function gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
             println(" Adjoint loop: ",t8-t4)
             println(" Total adjoint solver time for 1 shot: ",t9-t4)
         end
-
+#t999=time()
+#println(" Total adjoint solver time for 1 shot: ",t999-t000)
         
     end ##------- for ishot=1:... --------------
     ##===========================================================##

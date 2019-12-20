@@ -76,7 +76,7 @@ function para_solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
     wks = workers()
     grptask = distribwork(nshots,numwks)
     nchu = size(grptask,1)
-    @show nshots,grptask
+    #@show nshots,grptask
     
     ##############################
     #   Loop on shots
@@ -90,7 +90,7 @@ function para_solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
     else        
         @sync for w=1:nchu
             sts = grptask[w,1]:grptask[w,2]            
-            @async  receiv[sts] = remotecall_fetch(groupshot_acoustic2D,wks[w],inpar,ijsrcs[sts],
+            @async receiv[sts] = remotecall_fetch(groupshot_acoustic2D,wks[w],inpar,ijsrcs[sts],
                                                    vel,ijrecs[sts],sourcetf[sts],srcdomfreq[sts])
         end        
     end
@@ -103,13 +103,12 @@ function para_solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
     end
 end
 
-####################################################################################################3
+####################################################################################################
 
 function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
                               vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
                               sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
 
-    
     @assert length(sourcetf)==length(ijsrcs)
     @assert length(sourcetf)==length(ijrecs)
     @assert length(sourcetf)==length(srcdomfreq)
@@ -158,11 +157,13 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
     pcur = zeros(nx,nz)
     pnew = zeros(nx,nz)
 
+
     ##############################
     #   Loop on shots
     ##############################
     for s=1:nshots
-
+#@time begin
+#t000=time() 
         @assert size(ijsrcs[s],1)==size(sourcetf[s],2)
         ## ensure at least 10 pts per wavelengh  ????
         @assert dh <= vel_max/(10.0 * srcdomfreq[s])
@@ -219,7 +220,7 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
             gaubc = initGausboundcon()
 
         end
-        
+
         ##################################
         # memory arrays
         pold[:,:] .= 0.0
@@ -237,7 +238,7 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
         for isr=1:size(sourcetf[s],2)
             dt2srctf[:,isr] = vel[ijsrcs[s][isr,1],ijsrcs[s][isr,2]].^2 .* dt2srctf[:,1]
         end
-            
+
         #####################
         ##  Time loop
         #####################
@@ -257,17 +258,17 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
             if inpar.boundcond=="PML"
 
                 ### arrays are swapped bofore being returned from oneiter_CPML!()
-                if useslowfd
-                    pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                       dpdx,dpdz,d2pdx2,d2pdz2,
-                                                       psi_x,psi_z,xi_x,xi_z,
-                                                       cpml,ijsrcs[s],t)
-                else
+                # if useslowfd
+                    # pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
+                    #                                    dpdx,dpdz,d2pdx2,d2pdz2,
+                    #                                    psi_x,psi_z,xi_x,xi_z,
+                    #                                    cpml,ijsrcs[s],t)
+                # else
                     pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
                                                    dpdx,dpdz,d2pdx2,d2pdz2,
                                                    psi_x,psi_z,xi_x,xi_z,
                                                    cpml,ijsrcs[s],t)
-                end
+                # end
                 
             elseif inpar.boundcond=="GauTap"
                 oneiter_GAUSSTAP!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
@@ -301,7 +302,9 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
             t2=time()
             println("\nFWD Time loop: ",t2-t1,"\n")
         end
-
+# t999=time()
+# println(s," Total forward solver time for 1 shot: ",t999-t000)
+#end ##<<<<<<<<<<<<<<<<============================<<<<<<<<<<<           
     end ##----------- end -- for i=1:nshots ----------------
 
 
@@ -389,7 +392,7 @@ function para_gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2
     wks = workers()
     grptask = distribwork(nshots,numwks)
     nchu = size(grptask,1)
-    @show nshots,grptask
+    #@show nshots,grptask
     
     ##############################
     #   Loop on shots
@@ -398,7 +401,7 @@ function para_gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2
     @sync for w=1:nchu
         sts = grptask[w,1]:grptask[w,2]            
         @async  tmpgrad[:,:,w] = remotecall_fetch(groupshot_gradacou2D,wks[w],inpar,obsrecv[sts],invCovds[sts],
-                                           ijsrcs[sts],vel,ijrecs[sts],sourcetf[sts],srcdomfreq[sts])
+                                                  ijsrcs[sts],vel,ijrecs[sts],sourcetf[sts],srcdomfreq[sts])
     end        
     grad = sum(tmpgrad,dims=3)[:,:]
     ##------------------------------
@@ -422,7 +425,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
                               ijsrcs::Array{Array{Int64,2},1},
                               vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
                               sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
-   
+  
     if verbose>0
         tstart=time()
     end
@@ -520,7 +523,8 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
     #   Loop on shots
     ##############################
     for s=1:nshots
-
+#begin
+#t000=time() 
         @assert size(ijsrcs[s],1)==size(sourcetf[s],2)
         ## ensure at least 10 pts per wavelengh ????
         @assert dh <= vel_max/(10.0 * srcdomfreq[s])
@@ -649,12 +653,13 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             ## t+1 because the first is zeros in the past, for adjoint
             @inbounds pfwdsave[:,:,t+1] .= pcur
 
-       end ##------- end time loop --------------
+        end ##------- end time loop --------------
 
         if verbose>0
             t2=time()
         end
-
+#t005=time()
+#println(" pressure calculations ",t005-t000)
         ##============= ===========================
         ###------- Residuals -------------
         ## ddf = obsrecv - receiv
@@ -694,7 +699,9 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             println(" Total residuals calculation Time loop: ",t3-t1)
         end
 
-
+#t010=time()
+#println(" FWD calculations ",t010-t000)
+    
         ######################################
         ##      adjoint calculation         ##
         ######################################
@@ -793,36 +800,6 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
                 println(" Correlating: ",t7-t6)
             end
 
-
-            # if ((t%20==0) && t<300) || t==1499 #& s==1
-            #     println("\n REMOVE using PyPlot at the top of the file! \n")
-            #     figure(figsize=(12,9))
-            #     subplot(221)
-            #     title(string("Shot $s, pressure  time ", nt-t))
-            #     gvmax = maximum(abs.(pfwdsave[:,:,nt-t]))
-            #     imshow(permutedims(pfwdsave[:,:,nt-t]),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu"))
-            #     colorbar()
-            #     subplot(222)
-            #     title(string("Shot $s, adjoint time ",t))
-            #     gvmax = maximum(abs.(adjcur))
-            #     imshow(permutedims(adjcur),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
-            #     colorbar()
-            #     subplot(223)
-            #     title("thishotsrctfresid")
-            #     plot(thishotsrctfresid)
-            #     # title("(adjcur .* dpcur2dt2)") #dpcur2dt2")
-            #     # gvmax = maximum(abs.(adjcur .* dpcur2dt2))
-            #     # imshow(permutedims(adjcur .* dpcur2dt2),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
-            #     # colorbar()
-            #     subplot(224)
-            #     title("gradient")
-            #     gvmax = maximum(abs.(curgrad))
-            #     imshow(permutedims(curgrad),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
-            #     colorbar()
-            #     tight_layout()
-            #     #show(block=true)
-            # end
-
         end ##------- end time loop --------------
 
         if verbose>0
@@ -839,7 +816,10 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             println(" Total adjoint solver time for 1 shot: ",t9-t4)
         end
 
-        
+#t999=time()        
+#println(" ADJ calculations ",t999-t010)
+#println(s," Total adjoint solver time for 1 shot: ",t999-t000)
+#end        
     end ##------- for ishot=1:... --------------
     ##===========================================================##
 
