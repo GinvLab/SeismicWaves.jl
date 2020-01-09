@@ -133,25 +133,36 @@ function acoumisfitfunc(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
                         vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
                         sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1},
                         obsrecv::Array{Array{Float64,2},1},
-                        invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}})
+                        invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}};
+                        runparallel::Bool=false)
 
-    seismrecv = solveacoustic2D(inpar, ijsrcs, vel, ijrecs, sourcetf,srcdomfreq )
+    # compute synthetic data
+    seismrecv = solveacoustic2D(inpar, ijsrcs, vel, ijrecs, sourcetf,srcdomfreq,
+                                runparallel=runparallel)
 
+    
+    # compute misfit
     misf = 0.0
-    nshots = length(ijsrcs)
+    nshots = length(ijsrcs) # length, not size because array of arrays
     nptsseismogram = size(obsrecv[1],1)
     tmp1 = zeros(nptsseismogram)
     difcalobs = zeros(nptsseismogram)
-    nrec = size(ijrecs,1)
     for s=1:nshots
+        nrec = size(ijrecs[s],1) # nrec for each shot
         for r=1:nrec
             difcalobs .= seismrecv[s][:,r].-obsrecv[s][:,r]
             mul!(tmp1, invCovds[s], difcalobs)
             misf += dot(difcalobs,tmp1)
+            # @show dot(difcalobs,tmp1)
+            # var = 0.0005.^2 ## 1.0/invCovds[s][1,1]
+            # @show var
+            # @show sum(difcalobs.^2)./var
+            # misf += sum(difcalobs.^2)./var
         end
     end
+    misf = 0.5 * misf
 
-    return misf
+    return  misf
 end
 
 ##===============================================================================
@@ -339,11 +350,12 @@ end
 ##=======================================================================##
 
 """
-  Solver for 2D acoustic wave equation (parameters: velocity only)
+  Solver for 2D acoustic wave equation (parameters: velocity only). 
+  Serial version.
 """
-function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
-                         vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
-                         sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
+function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
+                                vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
+                                sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
 
     ##
     ## The second-order staggered-grid formulation of Madariaga (1976) and Virieux (1986) is used:
@@ -585,11 +597,11 @@ end
   Solver for computing the gradient of the misfit function for the acoustic 
    wave equation using the adjoint state method
 """
-function gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
-                        invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}}, #recstd::Float64,
-                        ijsrcs::Array{Array{Int64,2},1},
-                        vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
-                        sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
+function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
+                               invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}}, #recstd::Float64,
+                               ijsrcs::Array{Array{Int64,2},1},
+                               vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
+                               sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
   
     ##
     ## The second-order staggered-grid formulation of Madariaga (1976) and Virieux (1986) is used:

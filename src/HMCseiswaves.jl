@@ -28,7 +28,7 @@ Base.@kwdef struct AcouWavProb
     ijrecs::Vector{Array{Int64,2}}
     sourcetf::Vector{Array{Float64,2}}
     srcdomfreq::Vector{Float64}
-    dobs::Array{Float64,2}
+    dobs::Vector{Array{Float64,2}}
     invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}}
 end
 
@@ -44,26 +44,25 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
         #############################################
         ## compute the logdensity value for vecvel ##
         #############################################
-        misval = acoumisfitfunc(acouprob.inpar, acouprob.ijsrcs, vel2d, acouprob.ijrecs,
+        misval = acoumisfitfunc(acouprob.inpars, acouprob.ijsrcs, vel2d, acouprob.ijrecs,
                                 acouprob.sourcetf, acouprob.srcdomfreq,
-                                acouprob.dobs, acouprob.invCovds)
-        
-        return misval
-        
+                                acouprob.dobs, acouprob.invCovds,
+                                runparallel=true)
+        return misval        
 
-    elseif kind=="ngradlogpdf"
+    elseif kind=="gradnlogpdf"
         #################################################
         ## compute the gradient of the misfit function ##
         #################################################
-
-        grad = gradacoustic2D(acouprob.inpar,acouprob.dobs,acouprob.invCovds,
+        grad = gradacoustic2D(acouprob.inpars,acouprob.dobs,acouprob.invCovds,
                               acouprob.ijsrcs,vel2d,acouprob.ijrecs,
-                              acouprob.sourcetf,acouprob.srcdomfreq)
+                              acouprob.sourcetf,acouprob.srcdomfreq,
+                              runparallel=true)
         # return flattened gradient
-        return  vec(grad)
+        return vec(grad)
         
     else
-        error("acouprob::AcouWavProb(): Wrong argument 'kind'...")
+        error("acouprob::AcouWavProb(): Wrong argument 'kind': $kind...")
     end
 end
 

@@ -20,5 +20,6 @@ include("utils.jl")
 # wrapper for HMCtomo
 include("HMCseiswaves.jl")
 using .HMCseiswaves
+export AcouWavProb
 
 end # module

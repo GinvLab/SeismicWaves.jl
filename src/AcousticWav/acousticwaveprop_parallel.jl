@@ -5,9 +5,9 @@
 """
   Solver for 2D acoustic wave equation (parameters: velocity only)
 """
-function para_solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
-                              vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
-                              sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
+function solveacoustic2D_parallel(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
+                                  vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
+                                  sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
 
     ##
     ## The second-order staggered-grid formulation of Madariaga (1976) and Virieux (1986) is used:
@@ -322,11 +322,11 @@ end
   Solver for computing the gradient of the misfit function for the acoustic 
    wave equation using the adjoint state method
 """
-function para_gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
-                        invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}}, #recstd::Float64,
-                        ijsrcs::Array{Array{Int64,2},1},
-                        vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
-                        sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
+function gradacoustic2D_parallel(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
+                                 invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}}, #recstd::Float64,
+                                 ijsrcs::Array{Array{Int64,2},1},
+                                 vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
+                                 sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
   
     ##
     ## The second-order staggered-grid formulation of Madariaga (1976) and Virieux (1986) is used:
@@ -675,22 +675,20 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             ## So using a second temporary array "tmpresid" to hold the
             ##    results and still avoid allocating...
             mul!(tmpresid, invCovds[s], tmpdifcalobs)
-            residuals[s][:,r] .= tmpresid
+            residuals[s][:,r] .= tmpresid 
+
 
             ## Source time function for adjoint
             ##   (NO SCALING of srctf (i.e., dt2 .* srctf) for adjoint...? See eq. 18
             ##      Bunks et al., 1995 Geophysics, Multiscale seismic waveform inversion.
             ## REVERSE residuals in time
             ## last row of thishotsrctfresid must be already zero!
-            #thishotsrctfresid[1:end-1,:] .= residuals[s][end:-1:1,r]
             thishotsrctfresid[1:end-1,r] .= residuals[s][end:-1:1,r]
         end    
   
         ## source time function for adjoint
-        ##thishotsrctfresid = dt2 .* residuals[s][:,:]
-        #tmpres = residuals[s][:,:]
-        ##thishotsrctfresid = dt2 .* view(tmpres, size(tmpres,1):-1:1,:)
-        #thishotsrctfresid = 1.0 .* view(tmpres, size(tmpres,1):-1:1,:)
+        ##thishotsrctfresid = residuals[s][:,:]
+        #thishotsrctfresid  = view(tmpres, size(tmpres,1):-1:1,:)
 
         if verbose>0
             t3=time()
@@ -785,8 +783,9 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             ##dpcur2dt2[:,:] .=  (pcur .- 2.0.*pold .+ pveryold) ./ dt2
             @inbounds for j=1:nz
                 @inbounds for i=1:nx
-                    # dpcur2dt2[i,j] = (pfwdsave[i,j,nt-t] - 2.0 * pfwdsave[i,j,nt-t+1] +
-                    #                    pfwdsave[i,j,nt-t+2]) / dt2
+                    ## dpcur2dt2[i,j] = (pfwdsave[i,j,nt-t] - 2.0 * pfwdsave[i,j,nt-t+1] +
+                    ##                    pfwdsave[i,j,nt-t+2]) / dt2
+                    ## current approach
                     dpcur2dt2[i,j] = (pfwdsave[i,j,nt-t+1] - 2.0 * pfwdsave[i,j,nt-t+2] +
                                       pfwdsave[i,j,nt-t+3]) / dt2
                     ## sum in time!
@@ -831,7 +830,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
     end
 
     ## scale gradient
-    #grad = - 2.0 ./ vel.^3 .* curgrad
+    #grad = - 2.0 ./ vel.^3 .* grad
         
     return grad ##,residuals
 end
