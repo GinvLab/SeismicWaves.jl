@@ -59,7 +59,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
                               acouprob.sourcetf,acouprob.srcdomfreq,
                               runparallel=true)
         # return flattened gradient
-        return vec(grad)
+        return  vec(grad)
         
     else
         error("acouprob::AcouWavProb(): Wrong argument 'kind': $kind...")

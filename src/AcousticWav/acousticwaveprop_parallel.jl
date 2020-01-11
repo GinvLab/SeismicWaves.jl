@@ -35,7 +35,8 @@ function solveacoustic2D_parallel(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,
     @assert length(sourcetf)==length(ijsrcs)
     @assert length(sourcetf)==length(ijrecs)
     @assert length(sourcetf)==length(srcdomfreq)
-
+    @assert all(vel.>0.0)
+    
     dh = inpar.dh
     nx = inpar.nx #nxy[1] 
     nz = inpar.nz #nxy[2] 
@@ -109,10 +110,11 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
                               vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
                               sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1} )
 
-    @assert length(sourcetf)==length(ijsrcs)
-    @assert length(sourcetf)==length(ijrecs)
-    @assert length(sourcetf)==length(srcdomfreq)
-
+    # @assert length(sourcetf)==length(ijsrcs)
+    # @assert length(sourcetf)==length(ijrecs)
+    # @assert length(sourcetf)==length(srcdomfreq)
+    # @assert all(vel.>0.0)
+    
     dh = inpar.dh
     nx = inpar.nx #nxy[1] 
     nz = inpar.nz #nxy[2] 
@@ -162,8 +164,7 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
     #   Loop on shots
     ##############################
     for s=1:nshots
-#@time begin
-#t000=time() 
+
         @assert size(ijsrcs[s],1)==size(sourcetf[s],2)
         ## ensure at least 10 pts per wavelengh  ????
         @assert dh <= vel_max/(10.0 * srcdomfreq[s])
@@ -258,17 +259,17 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
             if inpar.boundcond=="PML"
 
                 ### arrays are swapped bofore being returned from oneiter_CPML!()
-                # if useslowfd
-                    # pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                    #                                    dpdx,dpdz,d2pdx2,d2pdz2,
-                    #                                    psi_x,psi_z,xi_x,xi_z,
-                    #                                    cpml,ijsrcs[s],t)
-                # else
+                if useslowfd
+                    pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
+                                                       dpdx,dpdz,d2pdx2,d2pdz2,
+                                                       psi_x,psi_z,xi_x,xi_z,
+                                                       cpml,ijsrcs[s],t)
+                else
                     pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
                                                    dpdx,dpdz,d2pdx2,d2pdz2,
                                                    psi_x,psi_z,xi_x,xi_z,
                                                    cpml,ijsrcs[s],t)
-                # end
+                end
                 
             elseif inpar.boundcond=="GauTap"
                 oneiter_GAUSSTAP!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
@@ -302,9 +303,7 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
             t2=time()
             println("\nFWD Time loop: ",t2-t1,"\n")
         end
-# t999=time()
-# println(s," Total forward solver time for 1 shot: ",t999-t000)
-#end ##<<<<<<<<<<<<<<<<============================<<<<<<<<<<<           
+
     end ##----------- end -- for i=1:nshots ----------------
 
 
@@ -364,7 +363,8 @@ function gradacoustic2D_parallel(inpar::InpParamAcou, obsrecv::Array{Array{Float
     @assert length(sourcetf)==length(ijsrcs)
     @assert length(sourcetf)==length(ijrecs)
     @assert length(sourcetf)==length(srcdomfreq)
-
+    @assert all(vel.>0.0)
+    
     dh = inpar.dh
     nx = inpar.nx #nxy[1] 
     nz = inpar.nz #nxy[2] 
@@ -400,8 +400,8 @@ function gradacoustic2D_parallel(inpar::InpParamAcou, obsrecv::Array{Array{Float
     tmpgrad = zeros(nx,nz,nchu)
     @sync for w=1:nchu
         sts = grptask[w,1]:grptask[w,2]            
-        @async  tmpgrad[:,:,w] = remotecall_fetch(groupshot_gradacou2D,wks[w],inpar,obsrecv[sts],invCovds[sts],
-                                                  ijsrcs[sts],vel,ijrecs[sts],sourcetf[sts],srcdomfreq[sts])
+        @async tmpgrad[:,:,w] = remotecall_fetch(groupshot_gradacou2D,wks[w],inpar,obsrecv[sts],invCovds[sts],
+                                                 ijsrcs[sts],vel,ijrecs[sts],sourcetf[sts],srcdomfreq[sts])
     end        
     grad = sum(tmpgrad,dims=3)[:,:]
     ##------------------------------
@@ -411,10 +411,7 @@ function gradacoustic2D_parallel(inpar::InpParamAcou, obsrecv::Array{Array{Float
         println("## Total gradient calculation time for all shots: ",t2-t1)
     end
 
-    ## scale gradient
-    #grad = - 2.0 ./ vel.^3 .* curgrad
-        
-    return grad ##,residuals
+    return grad 
 end
 
 
@@ -434,10 +431,11 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
         error("gradadj_acoustic2D(): Boundary contitions must be PML for gradient computations.")
     end
 
-    @assert length(sourcetf)==length(ijsrcs)
-    @assert length(sourcetf)==length(ijrecs)
-    @assert length(sourcetf)==length(srcdomfreq)
-
+    # @assert length(sourcetf)==length(ijsrcs)
+    # @assert length(sourcetf)==length(ijrecs)
+    # @assert length(sourcetf)==length(srcdomfreq)
+    # @assert all(vel.>0.0)
+    
     dh = inpar.dh
     nx = inpar.nx #nxy[1] 
     nz = inpar.nz #nxy[2] 
@@ -482,6 +480,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
     ## factor for loops
     fact = vel.^2 .* (dt^2/dh^2)
     dt2 = dt^2
+    vel3 = vel.^3
     
     # PML arrays
     # Arrays with size of PML areas would be sufficient and save memory,
@@ -510,7 +509,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
     # init gradient
     curgrad = zeros(nx,nz)
     grad = zeros(nx,nz)
-    dpcur2dt2 = zeros(nx,nz)
+    #dpcur2dt2 = zeros(nx,nz)
     
     ## tmp arrays 
     tmpdifcalobs = zeros(inpar.ntimesteps)
@@ -523,8 +522,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
     #   Loop on shots
     ##############################
     for s=1:nshots
-#begin
-#t000=time() 
+
         @assert size(ijsrcs[s],1)==size(sourcetf[s],2)
         ## ensure at least 10 pts per wavelengh ????
         @assert dh <= vel_max/(10.0 * srcdomfreq[s])
@@ -582,7 +580,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
         nrecs = size(ijrecs[s],1)
         receiv[s] = zeros(Float64,inpar.ntimesteps,nrecs)
         ## residuals for adjoint
-        residuals[s] = zeros(inpar.ntimesteps,nrecs)
+        ## residuals[s] = zeros(inpar.ntimesteps,nrecs)
         
         ## Pre-scale source time function
         ##    ??? add 2 rows of zeros to match time step adjoint (0 and nt+1)
@@ -590,7 +588,8 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
         ##dt2srctf =  dt2 .* sourcetf[s][:,:]  ## <<<===== ????? v^2 ????? =====##
         # Each srctf has to be scaled with the velocity at same coordinates
         for isr=1:size(sourcetf[s],2)
-            dt2srctf[:,isr] .= vel[ijsrcs[s][isr,1],ijsrcs[s][isr,2]].^2 .* dt2srctf[:,1]
+## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            dt2srctf[:,isr] .= vel[ijsrcs[s][isr,1],ijsrcs[s][isr,2]].^2 .* dt2srctf[:,isr] ##dt2srctf[:,1]
         end      
 
         # current sources for forward and adjoint calculations
@@ -599,8 +598,8 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
 
         ntobs = size(obsrecv[s],1)
         ### ntobs+1 to mach the adjoint field time step
-        thishotsrctfresid = Array{Float64}(undef,ntobs+1,nrecs)
-        thishotsrctfresid[end,:] .= 0.0 ### ntobs+1 to mach the adjoint field time step
+        thishotsrctf_adj = Array{Float64}(undef,ntobs+1,nrecs)
+        thishotsrctf_adj[end,:] .= 0.0 ### ntobs+1 to mach the adjoint field time step
 
         ######################################
         ##      residuals calculation       ##
@@ -658,9 +657,8 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
         if verbose>0
             t2=time()
         end
-#t005=time()
-#println(" pressure calculations ",t005-t000)
-        ##============= ===========================
+ 
+        ##=======================================
         ###------- Residuals -------------
         ## ddf = obsrecv - receiv
         ##residuals =  invC_d_onesrc * ddf
@@ -675,21 +673,24 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             ## So using a second temporary array "tmpresid" to hold the
             ##    results and still avoid allocating...
             mul!(tmpresid, invCovds[s], tmpdifcalobs)
-            residuals[s][:,r] .= tmpresid 
-
+            ## residuals[s][:,r] .= tmpresid 
 
             ## Source time function for adjoint
-            ##   (NO SCALING of srctf (i.e., dt2 .* srctf) for adjoint...? See eq. 18
+            ##   (NO SCALING of srctf (i.e., dt2 .* srctf) for adjoint...???? See eq. 18
             ##      Bunks et al., 1995 Geophysics, Multiscale seismic waveform inversion.
             ## REVERSE residuals in time
-            ## last row of thishotsrctfresid must be already zero!
-            thishotsrctfresid[1:end-1,r] .= residuals[s][end:-1:1,r]
+            ## last row of thishotsrctf_adj must be already zero!
+            thishotsrctf_adj[1:end-1,r] .= tmpresid[end:-1:1] # residuals[s][end:-1:1,r]
         end    
   
-        ## source time function for adjoint
-        ##thishotsrctfresid = residuals[s][:,:]
-        #thishotsrctfresid  = view(tmpres, size(tmpres,1):-1:1,:)
+## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        ## Scale the source time function for adjoint calculations
+        for isr=1:size(thishotsrctf_adj,2)
+            thishotsrctf_adj[:,isr] .= thishotsrctf_adj[:,isr] * vel[thishotijsrcs_adj[isr,1],thishotijsrcs_adj[isr,2]].^2 .* dt2
+        end 
+## <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+      
         if verbose>0
             t3=time()
             println("\n Forward calculation Time loop: ",t2-t1)
@@ -697,9 +698,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             println(" Total residuals calculation Time loop: ",t3-t1)
         end
 
-#t010=time()
-#println(" FWD calculations ",t010-t000)
-    
+
         ######################################
         ##      adjoint calculation         ##
         ######################################
@@ -715,7 +714,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
         adjnew[:,:] .= 0.0
 
         # gradient for 1 shot
-        curgrad .= 0.0
+        curgrad[:,:] .= 0.0
 
         ## PML arrays
         dpdx[:,:] .= 0.0
@@ -738,8 +737,9 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
         # tpres = 1
        
         ## Adjoint actually going backward in time
-        @assert (size(thishotsrctfresid,1)>=nt-1 )
+        @assert (size(thishotsrctf_adj,1)>=nt-1 )
         for t = 1:nt
+            
             if verbose>0
                 t%inpar.infoevery==0 && print("\rShot ",s," t: ",t," of ",inpar.ntimesteps)
                 t5 = time()
@@ -758,14 +758,14 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             ##==================================##            
             if useslowfd
                 adjold,adjcur,adjnew = oneiter_CPML!slow(nx,nz,fact,adjnew,adjold,
-                                                         adjcur,thishotsrctfresid,
+                                                         adjcur,thishotsrctf_adj,
                                                          dpdx,dpdz,d2pdx2,d2pdz2,
                                                          psi_x,psi_z,xi_x,xi_z,
                                                          cpml,thishotijsrcs_adj,t)
                 
             else
                 adjold,adjcur,adjnew = oneiter_CPML!(nx,nz,fact,adjnew,adjold,
-                                                     adjcur,thishotsrctfresid,
+                                                     adjcur,thishotsrctf_adj,
                                                      dpdx,dpdz,d2pdx2,d2pdz2,
                                                      psi_x,psi_z,xi_x,xi_z,
                                                      cpml,thishotijsrcs_adj,t)
@@ -774,8 +774,8 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             if verbose>1
                 t6=time()
                 println("\n Adjoint calculations: ",t6-t5)
-            end
-
+            end          
+ 
             ##==================================##
             ##          correlate
             ##==================================##
@@ -783,14 +783,16 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             ##dpcur2dt2[:,:] .=  (pcur .- 2.0.*pold .+ pveryold) ./ dt2
             @inbounds for j=1:nz
                 @inbounds for i=1:nx
-                    ## dpcur2dt2[i,j] = (pfwdsave[i,j,nt-t] - 2.0 * pfwdsave[i,j,nt-t+1] +
-                    ##                    pfwdsave[i,j,nt-t+2]) / dt2
-                    ## current approach
-                    dpcur2dt2[i,j] = (pfwdsave[i,j,nt-t+1] - 2.0 * pfwdsave[i,j,nt-t+2] +
-                                      pfwdsave[i,j,nt-t+3]) / dt2
+     
+                    dpcur2dt2 = (pfwdsave[i,j,nt-t+1] - 2.0 * pfwdsave[i,j,nt-t+2] +
+                                 pfwdsave[i,j,nt-t+3]) / dt2
+               
+                    ## ## current approach
+                    ## dpcur2dt2 = (pfwdsave[i,j,nt-t+1] - 2.0 * pfwdsave[i,j,nt-t+2] +
+                    ##              pfwdsave[i,j,nt-t+3]) / dt2
                     ## sum in time!
                     ## pointwise multiplication, integration in time...
-                    curgrad[i,j] = curgrad[i,j] + (adjcur[i,j] * dpcur2dt2[i,j])
+                    curgrad[i,j] = curgrad[i,j] + (adjcur[i,j] * dpcur2dt2) 
                 end
             end 
 
@@ -801,38 +803,29 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
 
         end ##------- end time loop --------------
 
-        if verbose>0
-            t8=time()
-        end
-
-        ## scale gradient
-        grad .= grad .+ (2.0 ./ vel.^3) .* curgrad
+        ## tot gradient
+        grad .= grad .+ curgrad
         
         if verbose>0
             t9=time()
-            println("\n Scale gradient: ",t9-t8)
-            println(" Adjoint loop: ",t8-t4)
+             println(" Adjoint loop: ",t8-t4)
             println(" Total adjoint solver time for 1 shot: ",t9-t4)
         end
 
-#t999=time()        
-#println(" ADJ calculations ",t999-t010)
-#println(s," Total adjoint solver time for 1 shot: ",t999-t000)
-#end        
     end ##------- for ishot=1:... --------------
     ##===========================================================##
 
+    ## scale gradient
+    grad .= (2.0 ./ vel3) .* grad
+
+
     if verbose>0
         t10 = time()
-        println(" Init etc. : ",t0-tstart)
-        
+        println(" Init etc. : ",t0-tstart)        
         println(" Total gradient calculation time for 1 shot: ",t10-tstart)
     end
-
-    ## scale gradient
-    #grad = - 2.0 ./ vel.^3 .* grad
         
-    return grad ##,residuals
+    return grad 
 end
 
 #######################################################################################
