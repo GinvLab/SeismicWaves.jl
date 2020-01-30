@@ -155,11 +155,6 @@ function acoumisfitfunc(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
             difcalobs .= seismrecv[s][:,r].-obsrecv[s][:,r]
             mul!(tmp1, invCovds[s], difcalobs)
             misf += dot(difcalobs,tmp1)
-            # @show dot(difcalobs,tmp1)
-            # var = 0.0005.^2 ## 1.0/invCovds[s][1,1]
-            # @show var
-            # @show sum(difcalobs.^2)./var
-            # misf += sum(difcalobs.^2)./var
         end
     end
     misf = 0.5 * misf
@@ -173,9 +168,9 @@ end
   Solver for 2D acoustic wave equation (parameters: velocity only). 
 """
 function solveacoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
-                          vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
-                          sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1};
-                          runparallel::Bool=false)
+                         vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
+                         sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1};
+                         runparallel::Bool=false)
 
     if runparallel
         output = solveacoustic2D_parallel(inpar,ijsrcs,vel,ijrecs,sourcetf,srcdomfreq)
@@ -208,10 +203,17 @@ function gradacoustic2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,2},1},
                         ijsrcs::Array{Array{Int64,2},1},
                         vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
                         sourcetf::Array{Array{Float64,2},1}, srcdomfreq::Array{Float64,1};
-                        runparallel::Bool=false)
+                        runparallel::Bool=false, 
+                        calcpenergy::Bool=false)
 
     if runparallel
-        grad = gradacoustic2D_parallel(inpar,obsrecv,invCovds,ijsrcs,vel,ijrecs,sourcetf,srcdomfreq)
+        if calcpenergy
+            grad,penergy = gradacoustic2D_parallel(inpar,obsrecv,invCovds,ijsrcs,vel,ijrecs,sourcetf,srcdomfreq,
+                                                   calcpenergy=true)
+            return grad,penergy
+        else
+            grad = gradacoustic2D_parallel(inpar,obsrecv,invCovds,ijsrcs,vel,ijrecs,sourcetf,srcdomfreq)
+        end
     else
         grad = gradacoustic2D_serial(inpar,obsrecv,invCovds,ijsrcs,vel,ijrecs,sourcetf,srcdomfreq)
     end

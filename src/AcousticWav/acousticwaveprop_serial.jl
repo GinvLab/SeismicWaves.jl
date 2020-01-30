@@ -71,7 +71,7 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
     
     ## factor for loops
     fact = vel.^2 .* (dt^2/dh^2)
-   
+    
     # PML arrays
     dpdx = zeros(nx,nz)
     dpdz = zeros(nx,nz)
@@ -91,8 +91,6 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
     #   Loop on shots
     ##############################
     for s=1:nshots
-
-#@time begin
 
         @assert size(ijsrcs[s],1)==size(sourcetf[s],2)
         ## ensure at least 10 pts per wavelengh  ????
@@ -126,8 +124,6 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
                     error("ijrecs[$(s)][$(i),1] inside PML layers along z")
                 end
             end
-
-            #@show cpml.ipmlidxs,cpml.jpmlidxs
 
             ##################################
             # PML arrays
@@ -163,8 +159,10 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
 
         ## pre-scale source time function
 ##----------------
-        dt2srctf = similar(sourcetf[s])  
+        dt2srctf = copy(sourcetf[s])  
         for isr=1:size(sourcetf[s],2)
+            # Each srctf has to be scaled with the velocity at
+            #  same coordinates, etc.: vel^2*(dt^2/dh^2)
             dt2srctf[:,isr] .= fact[ijsrcs[s][isr,1],ijsrcs[s][isr,2]] .* dt2srctf[:,isr]
         end
 ##----------------
@@ -342,7 +340,10 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
     fact = vel.^2 .* (dt^2/dh^2)
     dt2 = dt^2
     vel3 = vel.^3
-    
+
+    ## factor for source time functions
+    vel2dt2 = vel.^2 .* dt2
+
     # PML arrays
     # Arrays with size of PML areas would be sufficient and save memory,
     #  however allocating arrays with same size than model simplifies
@@ -442,14 +443,15 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
         receiv[s] = zeros(Float64,inpar.ntimesteps,nrecs)
         ## residuals for adjoint
         ##residuals[s] = zeros(inpar.ntimesteps,nrecs)
-        
+
         ## Pre-scale source time function
         ##    ??? add 2 rows of zeros to match time step adjoint (0 and nt+1)
         dt2srctf = [sourcetf[s][:,:]; zeros(size(sourcetf[s],2))]
 ##----------------
-        dt2srctf = similar(sourcetf[s])  
         for isr=1:size(sourcetf[s],2)
-            dt2srctf[:,isr] .= fact[ijsrcs[s][isr,1],ijsrcs[s][isr,2]] .* sourcetf[s][:,isr]
+            # Each srctf has to be scaled with the velocity at
+            #  same coordinates, etc.: vel^2*(dt^2/dh^2)
+            dt2srctf[:,isr] .= fact[ijsrcs[s][isr,1],ijsrcs[s][isr,2]] .* dt2srctf[:,isr]
         end
 ##----------------
 
@@ -459,8 +461,8 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
 
         ntobs = size(obsrecv[s],1)
         ### ntobs+1 to mach the adjoint field time step
-        thishotsrctfresid = Array{Float64}(undef,ntobs+1,nrecs)
-        thishotsrctfresid[end,:] .= 0.0 ### ntobs+1 to mach the adjoint field time step
+        thishotsrctf_adj = Array{Float64}(undef,ntobs+1,nrecs)
+        thishotsrctf_adj[end,:] .= 0.0 ### ntobs+1 to mach the adjoint field time step
 
         ######################################
         ##      residuals calculation       ##
@@ -537,26 +539,18 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             ##residuals[s][:,r] .= tmpresid
 
             ## Source time function for adjoint
-            ##   (NO SCALING of srctf (i.e., dt2 .* srctf) for adjoint...??? See eq. 18
-            ##      Bunks et al., 1995 Geophysics, Multiscale seismic waveform inversion.
             ## REVERSE residuals in time
             ## last row of thishotsrctfresid must be already zero!
             #thishotsrctfresid[1:end-1,:] .= residuals[s][end:-1:1,r]
-            thishotsrctfresid[1:end-1,r] .= tmpresid[end:-1:1] ##residuals[s][end:-1:1,r]
+            thishotsrctf_adj[1:end-1,r] .= tmpresid[end:-1:1] 
         end    
   
 ##----------------
         for isr=1:size(thishotsrctf_adj,2)
-            thishotsrctf_adj[:,isr] .= thishotsrctf_adj[:,isr] .* fact[thishotijsrcs_adj[isr,1],thishotijsrcs_adj[isr,2]] 
+            ## The adjoint source is *scaled only* by vel^2*dt^2 instead of vel^2*(dt^2/dh^2)
+            thishotsrctf_adj[:,isr] .= thishotsrctf_adj[:,isr] .* vel2dt2[thishotijsrcs_adj[isr,1],thishotijsrcs_adj[isr,2]]
         end
 ##----------------
-
-
-        ## source time function for adjoint
-        ##thishotsrctfresid = dt2 .* residuals[s][:,:]
-        #tmpres = residuals[s][:,:]
-        ##thishotsrctfresid = dt2 .* view(tmpres, size(tmpres,1):-1:1,:)
-        #thishotsrctfresid = 1.0 .* view(tmpres, size(tmpres,1):-1:1,:)
 
         if verbose>0
             t3=time()
@@ -565,15 +559,9 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             println(" Total residuals calculation Time loop: ",t3-t1)
         end
 
-
         ######################################
         ##      adjoint calculation         ##
         ######################################
-        ## pold[:,:] .= 0.0
-        ## pcur[:,:] .= 0.0
-        ## pnew[:,:] .= 0.0
-        ## pveryold[:,:] .= 0.0
-        # pveryold[:,:] .= pold
 
         ## adjoint arrays
         adjold[:,:] .= 0.0
@@ -601,7 +589,7 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
         nt = inpar.ntimesteps
         
         ## Adjoint actually going backward in time
-        @assert (size(thishotsrctfresid,1)>=nt-1 )
+        @assert (size(thishotsrctf_adj,1)>=nt-1 )
         for t = 1:nt
             if verbose>0
                 t%inpar.infoevery==0 && print("\rShot ",s," t: ",t," of ",inpar.ntimesteps)
@@ -613,14 +601,14 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             ##==================================##            
             if useslowfd
                 adjold,adjcur,adjnew = oneiter_CPML!slow(nx,nz,fact,adjnew,adjold,
-                                                         adjcur,thishotsrctfresid,
+                                                         adjcur,thishotsrctf_adj,
                                                          dpdx,dpdz,d2pdx2,d2pdz2,
                                                          psi_x,psi_z,xi_x,xi_z,
                                                          cpml,thishotijsrcs_adj,t)
                 
             else
                 adjold,adjcur,adjnew = oneiter_CPML!(nx,nz,fact,adjnew,adjold,
-                                                     adjcur,thishotsrctfresid,
+                                                     adjcur,thishotsrctf_adj,
                                                      dpdx,dpdz,d2pdx2,d2pdz2,
                                                      psi_x,psi_z,xi_x,xi_z,
                                                      cpml,thishotijsrcs_adj,t)
@@ -649,56 +637,23 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             if verbose>1
                 t7=time()
                 println(" Correlating: ",t7-t6)
-            end
-
-
-            # if ((t%20==0) && t<300) || t==1499 #& s==1
-            #     println("\n REMOVE using PyPlot at the top of the file! \n")
-            #     figure(figsize=(12,9))
-            #     subplot(221)
-            #     title(string("Shot $s, pressure  time ", nt-t))
-            #     gvmax = maximum(abs.(pfwdsave[:,:,nt-t]))
-            #     imshow(permutedims(pfwdsave[:,:,nt-t]),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu"))
-            #     colorbar()
-            #     subplot(222)
-            #     title(string("Shot $s, adjoint time ",t))
-            #     gvmax = maximum(abs.(adjcur))
-            #     imshow(permutedims(adjcur),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
-            #     colorbar()
-            #     subplot(223)
-            #     title("thishotsrctfresid")
-            #     plot(thishotsrctfresid)
-            #     # title("(adjcur .* dpcur2dt2)") #dpcur2dt2")
-            #     # gvmax = maximum(abs.(adjcur .* dpcur2dt2))
-            #     # imshow(permutedims(adjcur .* dpcur2dt2),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
-            #     # colorbar()
-            #     subplot(224)
-            #     title("gradient")
-            #     gvmax = maximum(abs.(curgrad))
-            #     imshow(permutedims(curgrad),vmin=-gvmax,vmax=gvmax,cmap=get_cmap("RdBu")) 
-            #     colorbar()
-            #     tight_layout()
-            #     #show(block=true)
-            # end
+            end   
 
         end ##------- end time loop --------------
 
-        if verbose>0
-            t8=time()
-        end
+        ## tot gradient
+        grad .= grad .+ curgrad
 
-        ## scale gradient
-        grad .= grad .+ (2.0 ./ vel3) .* curgrad
-        
         if verbose>0
             t9=time()
-            println("\n Scale gradient: ",t9-t8)
-            println(" Adjoint loop: ",t8-t4)
             println(" Total adjoint solver time for 1 shot: ",t9-t4)
         end
         
     end ##------- for ishot=1:... --------------
     ##===========================================================##
+
+    ## scale gradient
+    grad .= (2.0 ./ vel3) .* grad
 
     if verbose>0
         t10 = time()
@@ -706,9 +661,6 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
         
         println(" Total gradient calculation time for 1 shot: ",t10-tstart)
     end
-
-    ## scale gradient
-    #grad = - 2.0 ./ vel.^3 .* curgrad
         
     return grad ##,residuals
 end
