@@ -30,6 +30,7 @@ Base.@kwdef struct AcouWavProb
     srcdomfreq::Vector{Float64}
     dobs::Vector{Array{Float64,2}}
     invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}}
+    runparallel::Bool
 end
 
 ## use  x.T * C^-1 * x  = ||L^-1 * x ||^2 ?
@@ -47,7 +48,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
         misval = acoumisfitfunc(acouprob.inpars, acouprob.ijsrcs, vel2d, acouprob.ijrecs,
                                 acouprob.sourcetf, acouprob.srcdomfreq,
                                 acouprob.dobs, acouprob.invCovds,
-                                runparallel=true)
+                                runparallel=acouprob.runparallel)
         return misval        
 
     elseif kind=="gradnlogpdf"
@@ -57,7 +58,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
         grad = gradacoustic2D(acouprob.inpars,acouprob.dobs,acouprob.invCovds,
                               acouprob.ijsrcs,vel2d,acouprob.ijrecs,
                               acouprob.sourcetf,acouprob.srcdomfreq,
-                              runparallel=true)
+                              runparallel=acouprob.runparallel)
         # return flattened gradient
         return  vec(grad)
         
