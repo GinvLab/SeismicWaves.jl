@@ -35,6 +35,7 @@ end
 
 ## use  x.T * C^-1 * x  = ||L^-1 * x ||^2 ?
 
+############################################################
 ## make the type callable
 function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
 
