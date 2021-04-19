@@ -29,7 +29,7 @@ Base.@kwdef struct AcouWavProb
     sourcetf::Vector{Array{Float64,2}}
     srcdomfreq::Vector{Float64}
     dobs::Vector{Array{Float64,2}}
-    invCovds::Union{Vector{Matrix{Float64}},Vector{Diagonal{Float64}}}
+    invCovds::Vector{<:AbstractMatrix{Float64}}
     runparallel::Bool
 end
 
@@ -41,7 +41,6 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
 
     # reshape vector to 2D array
     vel2d = reshape(vecvel,acouprob.inpars.nx,acouprob.inpars.nz)
-
     if kind=="nlogpdf"
         #############################################
         ## compute the logdensity value for vecvel ##
@@ -62,7 +61,17 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
                               runparallel=acouprob.runparallel)
         # return flattened gradient
         return  vec(grad)
+
         
+    elseif kind=="calcforw"
+        ####################################################
+        ## compute calculated data (solve forward problem ##
+        ####################################################
+        dcalc = solveacoustic2D(acouprob.inpars, acouprob.ijsrcs, vel2d, acouprob.ijrecs,
+                                acouprob.sourcetf, acouprob.srcdomfreq,
+                                runparallel=acouprob.runparallel)
+        return dcalc
+
     else
         error("acouprob::AcouWavProb(): Wrong argument 'kind': $kind...")
     end

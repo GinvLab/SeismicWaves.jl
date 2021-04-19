@@ -2,6 +2,7 @@
 
 module SeismicWaves
 
+using Reexport
 
 export gaussource1D,rickersource1D
 

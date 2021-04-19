@@ -316,7 +316,7 @@ end
 """
   Initialize the CPML absorbing boundaries
 """
-function initCPML(inpar::InpParamAcou,vel_max::Float64,f0::Float64)
+function initCPML(inpar::InpParamAcou,vel_max::Union{Float64,Nothing},f0::Union{Float64,Nothing})
     
     dh = inpar.dh
     nx = inpar.nx
@@ -330,6 +330,15 @@ function initCPML(inpar::InpParamAcou,vel_max::Float64,f0::Float64)
     ##############################
     nptspml_x = 21 # N = 20  R = 0.0001  #convert(Int64,ceil((vel_max/f0)/dh))  
     nptspml_z = 21 # N = 20  R = 0.0001  #convert(Int64,ceil((vel_max/f0)/dh))  
+
+    # ipmlidxs = append!(collect(2:nptspml_x), collect(nx-nptspml_x+1:nx-1))
+    # jpmlidxs = append!(collect(2:nptspml_z), collect(nz-nptspml_z+1:nz-1))
+    ipmlidxs = [2, nptspml_x, nx-nptspml_x+1, nx-1]
+    jpmlidxs = [2, nptspml_z, nz-nptspml_z+1, nz-1]
+    
+    if vel_max==nothing && f0==nothing
+        return ipmlidxs,jpmlidxs
+    end
 
     if verbose>0
         println(" Size of PML layers in grid points: $nptspml_x in x and $nptspml_z in z")
@@ -387,10 +396,6 @@ function initCPML(inpar::InpParamAcou,vel_max::Float64,f0::Float64)
     end
 
     ## struct of PML coefficients
-    # ipmlidxs = append!(collect(2:nptspml_x), collect(nx-nptspml_x+1:nx-1))
-    # jpmlidxs = append!(collect(2:nptspml_z), collect(nz-nptspml_z+1:nz-1))
-    ipmlidxs = [2, nptspml_x, nx-nptspml_x+1, nx-1]
-    jpmlidxs = [2, nptspml_z, nz-nptspml_z+1, nz-1]
     cpml = CoefPML(a_x,b_x,a_z,b_z,K_x,K_z, a_x_half,b_x_half,a_z_half,b_z_half,
                    K_x_half,K_z_half,nptspml_x,nptspml_z,ipmlidxs,jpmlidxs)
     
@@ -432,12 +437,12 @@ function oneiter_reflbound!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arr
     @inbounds for j = 2:nz-1
         @inbounds for i = 2:nx-1
             ## second derivative stencil
-            d2pdx2u = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]
-            d2pdz2u = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
+            d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]
+            d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
 
             # update pressure
             pnew[i,j] = 2.0*pcur[i,j] -pold[i,j] +
-                fact[i,j]*(d2pdx2u) + fact[i,j]*(d2pdz2u) 
+                fact[i,j]*(d2pdx2) + fact[i,j]*(d2pdz2) 
         end
     end
 
@@ -484,12 +489,12 @@ function oneiter_GAUSSTAP!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
     @inbounds for j = 2:nz-1
         @inbounds for i = 2:nx-1
             ## second derivative stencil
-            d2pdx2u = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]
-            d2pdz2u = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
+            d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]
+            d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
 
             # update pressure
             pnew[i,j] = 2.0*pcur[i,j] -pold[i,j] +
-                fact[i,j]*(d2pdx2u) + fact[i,j]*(d2pdz2u) 
+                fact[i,j]*(d2pdx2) + fact[i,j]*(d2pdz2) 
         end
     end
 
@@ -521,13 +526,13 @@ end
    equation with CPML absorbing boundary conditions
 """
 function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Float64,2},
-                        pold::Array{Float64,2},pcur::Array{Float64,2},dt2srctf::Array{Float64,2},
-                        dpdx::Array{Float64,2},dpdz::Array{Float64,2},
-                        d2pdx2::Array{Float64,2},d2pdz2::Array{Float64,2},
-                        psi_x::Array{Float64,2},psi_z::Array{Float64,2},
-                        xi_x::Array{Float64,2},xi_z::Array{Float64,2},
-                        cpml::CoefPML,ijsrcs::Array{Int64,2},t::Int64)
-                       
+                       pold::Array{Float64,2},pcur::Array{Float64,2},dt2srctf::Array{Float64,2},
+                       #dpdx::Array{Float64,2},dpdz::Array{Float64,2},
+                       #d2pdx2::Array{Float64,2},d2pdz2::Array{Float64,2},
+                       psi_x::Array{Float64,2},psi_z::Array{Float64,2},
+                       xi_x::Array{Float64,2},xi_z::Array{Float64,2},
+                       cpml::CoefPML,ijsrcs::Array{Int64,2},t::Int64)
+    
 
     #
     # see seismic_CPML Fortran codes
@@ -569,7 +574,7 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     # @inbounds  for j = 2:nz-1 # 3:nz-2
     #      @inbounds for i = 2:nx-1 # 3:nx-2
 
-             #(-f[i-2]+16*f[i-1]-30*f[i]+16*f[i+1]-1*f[i+2])/(12*1.0*h**2)
+            ###(-f[i-2]+16*f[i-1]-30*f[i]+16*f[i+1]-1*f[i+2])/(12*1.0*h**2)
 
              ## 4th order
              # d2pdx2 = ( -pcur[i-2,j]+16*pcur[i-1,j]-30*pcur[i,j]+16*pcur[i+1,j]-pcur[i+2,j] )/12
@@ -592,9 +597,9 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     ## X
     @inbounds for ii=(1,3)
         @inbounds  for j = 1:nz # 1:nz !!
-            @inbounds for i = cpml.ipmlidxs[ii]:cpml.ipmlidxs[ii+1]
-                dpdx[i,j] = pcur[i+1,j]-pcur[i,j] 
-                psi_x[i,j] = cpml.b_x_half[i] / cpml.K_x_half[i] * psi_x[i,j] + cpml.a_x_half[i] * dpdx[i,j]
+            @inbounds  @simd for i = cpml.ipmlidxs[ii]:cpml.ipmlidxs[ii+1]
+                dpdx = pcur[i+1,j]-pcur[i,j] 
+                psi_x[i,j] = cpml.b_x_half[i] / cpml.K_x_half[i] * psi_x[i,j] + cpml.a_x_half[i] * dpdx
             end
         end
     end
@@ -602,9 +607,9 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     ## Z
     @inbounds for jj=(1,3)
         @inbounds for j = cpml.jpmlidxs[jj]:cpml.jpmlidxs[jj+1]
-            @inbounds  for i = 1:nx # 1:nx !!
-                dpdz[i,j] = pcur[i,j+1]-pcur[i,j]  
-                psi_z[i,j] = cpml.b_z_half[j] / cpml.K_z_half[j] * psi_z[i,j] + cpml.a_z_half[j] * dpdz[i,j]
+            @inbounds  @simd for i = 1:nx # 1:nx !!
+                dpdz = pcur[i,j+1]-pcur[i,j]  
+                psi_z[i,j] = cpml.b_z_half[j] / cpml.K_z_half[j] * psi_z[i,j] + cpml.a_z_half[j] * dpdz
             end
         end
     end
@@ -614,7 +619,7 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     ## X borders
     @inbounds for ii=(1,3)
         @inbounds  for j = 2:nz-1 # 2:nz-1 !!
-            @inbounds for i = cpml.ipmlidxs[ii]:cpml.ipmlidxs[ii+1]
+            @inbounds  @simd for i = cpml.ipmlidxs[ii]:cpml.ipmlidxs[ii+1]
                 
                 d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]            
                 d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -623,7 +628,7 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
                 
                 xi_x[i,j] = cpml.b_x[i] / cpml.K_x_half[i] * xi_x[i,j] + cpml.a_x[i] * (d2pdx2 + dpsidx)
                 xi_z[i,j] = cpml.b_z[j] / cpml.K_z_half[j] * xi_z[i,j] + cpml.a_z[j] * (d2pdz2 + dpsidz)
-                
+                            
                 damp = fact[i,j] * (dpsidx + dpsidz + xi_x[i,j] + xi_z[i,j])
 
                 # update pressure
@@ -642,7 +647,7 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
             ## EXCLUDE CORNERS, because already visited in the previous X-borders loop!
             ##  (It would lead to wrong accumulation of pnew[i,j], etc. otherwise...)
             ##--------------------------------------------------------------------------
-            @inbounds  for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1
+            @inbounds  @simd for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1
                 
                 d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]            
                 d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -664,7 +669,7 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     ##----------------------------------------------------------
     ## Calculate stuff in the internal part of the model
     @inbounds for j = cpml.jpmlidxs[2]+1:cpml.jpmlidxs[3]-1    #2:nz-1 
-        @inbounds for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1   #2:nx-1 
+        @inbounds @simd for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1   #2:nx-1 
 
             d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]            
             d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -711,13 +716,13 @@ end
 
 
 function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Float64,2},
-                        pold::Array{Float64,2},pcur::Array{Float64,2},dt2srctf::Array{Float64,2},
-                        dpdx::Array{Float64,2},dpdz::Array{Float64,2},
-                        d2pdx2::Array{Float64,2},d2pdz2::Array{Float64,2},
-                        psi_x::Array{Float64,2},psi_z::Array{Float64,2},
-                        xi_x::Array{Float64,2},xi_z::Array{Float64,2},
-                        cpml::CoefPML,
-                        ijsrcs::Array{Int64,2},t::Int64)
+                           pold::Array{Float64,2},pcur::Array{Float64,2},dt2srctf::Array{Float64,2},
+                           #dpdx::Array{Float64,2},dpdz::Array{Float64,2},
+                           #d2pdx2::Array{Float64,2},d2pdz2::Array{Float64,2},
+                           psi_x::Array{Float64,2},psi_z::Array{Float64,2},
+                           xi_x::Array{Float64,2},xi_z::Array{Float64,2},
+                           cpml::CoefPML,
+                           ijsrcs::Array{Int64,2},t::Int64)
 
 
     ##-------------------------------------------
@@ -728,10 +733,10 @@ function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
     ## compute current psi_x and psi_z first (need derivatives next)
     @inbounds  for j = 2:nz-1 # 3:nz-2
         @inbounds for i = 2:nx-1 # 3:nx-2
-            dpdx[i,j] = pcur[i+1,j]-pcur[i,j] 
-            dpdz[i,j] = pcur[i,j+1]-pcur[i,j]
-            psi_x[i,j] = cpml.b_x_half[i] / cpml.K_x_half[i] * psi_x[i,j] + cpml.a_x_half[i] * dpdx[i,j]
-            psi_z[i,j] = cpml.b_z_half[j] / cpml.K_z_half[j] * psi_z[i,j] + cpml.a_z_half[j] * dpdz[i,j]
+            dpdx = pcur[i+1,j]-pcur[i,j] 
+            dpdz = pcur[i,j+1]-pcur[i,j]
+            psi_x[i,j] = cpml.b_x_half[i] / cpml.K_x_half[i] * psi_x[i,j] + cpml.a_x_half[i] * dpdx
+            psi_z[i,j] = cpml.b_z_half[j] / cpml.K_z_half[j] * psi_z[i,j] + cpml.a_z_half[j] * dpdz
         end
     end
 

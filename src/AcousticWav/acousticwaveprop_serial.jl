@@ -73,10 +73,10 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
     fact = vel.^2 .* (dt^2/dh^2)
     
     # PML arrays
-    dpdx = zeros(nx,nz)
-    dpdz = zeros(nx,nz)
-    d2pdx2 = zeros(nx,nz)
-    d2pdz2 = zeros(nx,nz)
+    # dpdx = zeros(nx,nz)
+    # dpdz = zeros(nx,nz)
+    #d2pdx2 = zeros(nx,nz)
+    #d2pdz2 = zeros(nx,nz)
     psi_x = zeros(nx,nz)
     psi_z = zeros(nx,nz)
     xi_x  = zeros(nx,nz)
@@ -131,10 +131,10 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
             #   however allocating arrays with same size than model simplifies
             #   the code in the loops
             # Zeroed at every shot
-            dpdx[:,:] .= 0.0
-            dpdz[:,:] .= 0.0
-            d2pdx2[:,:] .= 0.0
-            d2pdz2[:,:] .= 0.0
+            # dpdx[:,:] .= 0.0
+            # dpdz[:,:] .= 0.0
+            #d2pdx2[:,:] .= 0.0
+            #d2pdz2[:,:] .= 0.0
             psi_x[:,:] .= 0.0
             psi_z[:,:] .= 0.0
             xi_x[:,:] .= 0.0
@@ -187,13 +187,15 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
 
                 ### arrays are swapped bofore being returned from oneiter_CPML!()
                 if useslowfd
-                    pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                       dpdx,dpdz,d2pdx2,d2pdz2,
+                     pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
+                                                       #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                        psi_x,psi_z,xi_x,xi_z,
                                                        cpml,ijsrcs[s],t)
+
+                    
                 else
                     pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                   dpdx,dpdz,d2pdx2,d2pdz2,
+                                                   #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                    psi_x,psi_z,xi_x,xi_z,
                                                    cpml,ijsrcs[s],t)
                 end
@@ -313,12 +315,12 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
  
 
     ## Check memory requirements to store fwd field
-    totmem = nx*nz*nt*8/1000/1000/1000
-
+    totmem = nx*nz*nt*8/1000/1000/1000  ## GB
     maxMEM = 8.0
     if totmem>maxMEM
         println(" Requested mem for pfwdsave: ",totmem," GB, max. allowed ",maxMEM)
-        error("Drea: Out of memory")
+        println(" To allow higher threshold change the parameter 'maxMEM' in function gradacoustic2D_serial()")
+        error("Required memory exceeds set threshold.")
         return
     else
         if verbose>0
@@ -348,10 +350,10 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
     # Arrays with size of PML areas would be sufficient and save memory,
     #  however allocating arrays with same size than model simplifies
     #  the code in the loops
-    dpdx = zeros(nx,nz)
-    dpdz = zeros(nx,nz)
-    d2pdx2 = zeros(nx,nz)
-    d2pdz2 = zeros(nx,nz)
+    # dpdx = zeros(nx,nz)
+    # dpdz = zeros(nx,nz)
+    # d2pdx2 = zeros(nx,nz)
+    # d2pdz2 = zeros(nx,nz)
     psi_x = zeros(nx,nz)
     psi_z = zeros(nx,nz)
     xi_x = zeros(nx,nz)
@@ -422,10 +424,10 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
         #   however allocating arrays with same size than model simplifies
         #   the code in the loops
         # Zeroed at every shot
-        dpdx[:,:] .= 0.0
-        dpdz[:,:] .= 0.0 
-        d2pdx2[:,:] .= 0.0
-        d2pdz2[:,:] .= 0.0
+        # dpdx[:,:] .= 0.0
+        # dpdz[:,:] .= 0.0 
+        # d2pdx2[:,:] .= 0.0
+        # d2pdz2[:,:] .= 0.0
         psi_x[:,:] .= 0.0
         psi_z[:,:] .= 0.0
         xi_x[:,:] .= 0.0
@@ -489,12 +491,12 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             ###   that's why we need to return them (to make that happen)
             if useslowfd
                 pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                   dpdx,dpdz,d2pdx2,d2pdz2,
+                                                   #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                    psi_x,psi_z,xi_x,xi_z,
                                                    cpml,thishotijsrcs_fwd,t)
             else
                 pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                               dpdx,dpdz,d2pdx2,d2pdz2,
+                                               #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                psi_x,psi_z,xi_x,xi_z,
                                                cpml,thishotijsrcs_fwd,t)
             end
@@ -572,10 +574,10 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
         curgrad .= 0.0
 
         ## PML arrays
-        dpdx[:,:] .= 0.0
-        dpdz[:,:] .= 0.0
-        d2pdx2[:,:] .= 0.0
-        d2pdz2[:,:] .= 0.0
+        # dpdx[:,:] .= 0.0
+        # dpdz[:,:] .= 0.0
+        # d2pdx2[:,:] .= 0.0
+        # d2pdz2[:,:] .= 0.0
         psi_x[:,:] .= 0.0
         psi_z[:,:] .= 0.0
         xi_x[:,:] .= 0.0
@@ -602,14 +604,14 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             if useslowfd
                 adjold,adjcur,adjnew = oneiter_CPML!slow(nx,nz,fact,adjnew,adjold,
                                                          adjcur,thishotsrctf_adj,
-                                                         dpdx,dpdz,d2pdx2,d2pdz2,
+                                                         #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                          psi_x,psi_z,xi_x,xi_z,
                                                          cpml,thishotijsrcs_adj,t)
                 
             else
                 adjold,adjcur,adjnew = oneiter_CPML!(nx,nz,fact,adjnew,adjold,
                                                      adjcur,thishotsrctf_adj,
-                                                     dpdx,dpdz,d2pdx2,d2pdz2,
+                                                     #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                      psi_x,psi_z,xi_x,xi_z,
                                                      cpml,thishotijsrcs_adj,t)
             end
