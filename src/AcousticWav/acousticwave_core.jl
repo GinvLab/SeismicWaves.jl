@@ -63,7 +63,7 @@ struct GaussTaper
     ynptsgau::Int64
     leftdp::Array{Float64,1}
     rightdp::Array{Float64,1}
-    bottomdp::Array{Float64,1}
+    bottomdp::Array{Float64,2}  ## 2 because it's a row vector
 end
 
 
@@ -141,7 +141,6 @@ function acoumisfitfunc(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
     # compute synthetic data
     seismrecv = solveacoustic2D(inpar, ijsrcs, vel, ijrecs, sourcetf,srcdomfreq,
                                 runparallel=runparallel)
-
     
     # compute misfit
     misf = 0.0
@@ -226,21 +225,25 @@ end
 """
  Compute coefficients for Gaussian taper
 """
-function initGausboundcon( ; decay::Float64=0.015)
+function initGausboundcon(; npad=21 ) #; decay::Float64=0.015)  # 0.015
+
+    ## keep the lowest value to 0.85
+    ## 0.85 = exp( -(decay*npad)^2 )
+    decay = 0.42/npad
 
     ## Damping region size in grid points
-    xnptsgau = 21
-    ynptsgau = 21
+    xnptsgau = npad
+    ynptsgau = npad
 
     xdist = collect(Float64,1:xnptsgau)
     ydist = collect(Float64,1:ynptsgau)
 
-    xdamp = exp.( -((decay.*(xnptsgau .- xdist)).^2))
-    ydamp = exp.( -((decay.*(ynptsgau .- ydist)).^2))
+    xdamp = exp.( -( (decay.*(xnptsgau .- xdist)).^2))
+    ydamp = exp.( -( (decay.*(ynptsgau .- ydist)).^2))
 
     leftdp   = copy(xdamp)
     rightdp  = xdamp[end:-1:1] 
-    bottomdp = ydamp[end:-1:1] 
+    bottomdp = reshape(ydamp[end:-1:1],1,:)
     
     gaubc = GaussTaper(xnptsgau,ynptsgau,leftdp,rightdp,bottomdp)
     return gaubc
@@ -417,7 +420,7 @@ end
 """
 function oneiter_reflbound!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Float64,2},
                             pold::Array{Float64,2},pcur::Array{Float64,2},dt2srctf::Array{Float64,2},
-                            ijsrcs::Array{Int64,2},t::Int64,freeboundtop::Bool)
+                            ijsrcs::Array{Int64,2},t::Int64) #,freeboundtop::Bool)
     
     # if freeboundtop==true
     #     ##----------------------------------
@@ -468,9 +471,8 @@ end
 """
 function oneiter_GAUSSTAP!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Float64,2},
                             pold::Array{Float64,2},pcur::Array{Float64,2},dt2srctf::Array{Float64,2},
-                            ijsrcs::Array{Int64,2},t::Int64,gaubc::GaussTaper,freeboundtop::Bool)
+                            ijsrcs::Array{Int64,2},t::Int64,gaubc::GaussTaper) #,freeboundtop::Bool)
     
-
     # if freeboundtop==true
     #     ##----------------------------------
     #     ## free surface boundary cond.
@@ -485,6 +487,7 @@ function oneiter_GAUSSTAP!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
     #     end
     # end  ##----------------------------------
 
+
     ## space loop excluding boundaries
     @inbounds for j = 2:nz-1
         @inbounds for i = 2:nx-1
@@ -494,15 +497,22 @@ function oneiter_GAUSSTAP!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
 
             # update pressure
             pnew[i,j] = 2.0*pcur[i,j] -pold[i,j] +
-                fact[i,j]*(d2pdx2) + fact[i,j]*(d2pdz2) 
+                fact[i,j]*(d2pdx2 + d2pdz2) 
         end
     end
 
     ## Apply Gaussian taper damping as boundary condition
-    pnew[1:gaubc.xnptsgau,:]          .*= gaubc.leftdp 
-    pnew[end-gaubc.xnptsgau+1:end,:]  .*= gaubc.rightdp
-    pnew[:,end-gaubc.ynptsgau+1:end]  .*= reshape(gaubc.bottomdp,1,:)
+    @inbounds pnew[1:gaubc.xnptsgau,:]         .*= gaubc.leftdp 
+    @inbounds pnew[end-gaubc.xnptsgau+1:end,:] .*= gaubc.rightdp
+    @inbounds pnew[:,end-gaubc.ynptsgau+1:end] .*= gaubc.bottomdp
     
+    @inbounds pold[1:gaubc.xnptsgau,:]          .*= gaubc.leftdp 
+    @inbounds pold[end-gaubc.xnptsgau+1:end,:]  .*= gaubc.rightdp
+    @inbounds pold[:,end-gaubc.ynptsgau+1:end]  .*= gaubc.bottomdp
+
+    @inbounds pcur[1:gaubc.xnptsgau,:]          .*= gaubc.leftdp 
+    @inbounds pcur[end-gaubc.xnptsgau+1:end,:]  .*= gaubc.rightdp
+    @inbounds pcur[:,end-gaubc.ynptsgau+1:end]  .*= gaubc.bottomdp
     
     # inject source(s)
     @inbounds for l=1:size(dt2srctf,2)
@@ -511,10 +521,15 @@ function oneiter_GAUSSTAP!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
         pnew[isrc,jsrc] = pnew[isrc,jsrc] + dt2srctf[t,l]
     end
 
-    # assign the new pold and pcur
-    @inbounds pold .= pcur
-    @inbounds pcur .= pnew
-    return
+    # # assign the new pold and pcur
+    # @inbounds pold .= pcur
+    # @inbounds pcur .= pnew
+  
+    ## kind of swapping array pointers, so NEED TO RETURN NEW BINDINGS,
+    ##  otherwise the exchange is lost!
+    pold,pcur,pnew = pcur,pnew,pold
+    
+    return pold,pcur,pnew
 end
 
 ##########################################################################
@@ -781,3 +796,41 @@ function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
 end
 
 ##======================================
+
+
+########################################################################
+
+function smoothgradient1shot!(grad::AbstractArray,ijsrcs::Array{Int64,2} ;
+                              radiuspx::Integer=5)
+
+    isr = ijsrcs[1]
+    jsr = ijsrcs[2]
+    nx,ny = size(grad)
+
+    rmax = radiuspx
+    imin = isr-radiuspx
+    imax = isr+radiuspx
+    jmin = jsr-radiuspx
+    jmax = jsr+radiuspx
+
+    for j=jmin:jmax
+        for i=imin:imax
+            # deal with the borders
+            if i<1 || i>nx || j<1 || j>ny
+                continue
+            else
+                # inverse of geometrical spreading
+                r = sqrt(float(i-isr)^2+float(j-jsr)^2)
+                if r<=rmax
+                    # normalized inverse of geometrical spreading
+                    att = r/rmax
+                    grad[i,j] *= att
+                end
+            end
+        end
+    end
+
+    return 
+end
+
+####################################################################
