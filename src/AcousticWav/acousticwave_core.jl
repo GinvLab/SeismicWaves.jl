@@ -23,6 +23,7 @@ Base.@kwdef struct InpParamAcou
     boundcond::String
     freeboundtop::Bool
     infoevery::Int64
+    smoothgrad::Bool
     #InpParam(ntimesteps=1,nx=1,ny=1,dx=1.0,dy=1.0) = new(ntimesteps,nx,ny,dx,dy)
 end
 

@@ -37,11 +37,11 @@ end
 
 ############################################################
 ## make the type callable
-function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
+function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::Symbol)
 
     # reshape vector to 2D array
     vel2d = reshape(vecvel,acouprob.inpars.nx,acouprob.inpars.nz)
-    if kind=="nlogpdf"
+    if kind==:nlogpdf
         #############################################
         ## compute the logdensity value for vecvel ##
         #############################################
@@ -51,7 +51,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
                                 runparallel=acouprob.runparallel)
         return misval        
 
-    elseif kind=="gradnlogpdf"
+    elseif kind==:gradnlogpdf
         #################################################
         ## compute the gradient of the misfit function ##
         #################################################
@@ -63,7 +63,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64},kind::String)
         return  vec(grad)
 
         
-    elseif kind=="calcforw"
+    elseif kind==:calcforw
         ####################################################
         ## compute calculated data (solve forward problem ##
         ####################################################
