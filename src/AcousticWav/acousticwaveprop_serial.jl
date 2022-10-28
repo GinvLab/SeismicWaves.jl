@@ -73,10 +73,6 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
     fact = vel.^2 .* (dt^2/dh^2)
     
     # PML arrays
-    # dpdx = zeros(nx,nz)
-    # dpdz = zeros(nx,nz)
-    #d2pdx2 = zeros(nx,nz)
-    #d2pdz2 = zeros(nx,nz)
     psi_x = zeros(nx,nz)
     psi_z = zeros(nx,nz)
     xi_x  = zeros(nx,nz)
@@ -131,10 +127,6 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
             #   however allocating arrays with same size than model simplifies
             #   the code in the loops
             # Zeroed at every shot
-            # dpdx[:,:] .= 0.0
-            # dpdz[:,:] .= 0.0
-            #d2pdx2[:,:] .= 0.0
-            #d2pdz2[:,:] .= 0.0
             psi_x[:,:] .= 0.0
             psi_z[:,:] .= 0.0
             xi_x[:,:] .= 0.0
@@ -187,22 +179,20 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
 
                 ### arrays are swapped bofore being returned from oneiter_CPML!()
                 if useslowfd
-                     pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                       #dpdx,dpdz,#d2pdx2,d2pdz2,
+                    pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
                                                        psi_x,psi_z,xi_x,xi_z,
                                                        cpml,ijsrcs[s],t)
 
                     
                 else
                     pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                   #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                    psi_x,psi_z,xi_x,xi_z,
                                                    cpml,ijsrcs[s],t)
                 end
                 
             elseif inpar.boundcond=="GauTap"
                 oneiter_GAUSSTAP!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                 ijsrcs[s],t,gaubc,inpar.freeboundtop)
+                                  ijsrcs[s],t,gaubc,inpar.freeboundtop)
                 
             else
                 oneiter_reflbound!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
@@ -225,7 +215,7 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
                 isnap+=1
                 psave[:,:,isnap,s] = pcur 
             end
-       
+            
         end ##------- end time loop --------------
 
         if verbose>0
@@ -233,8 +223,6 @@ function solveacoustic2D_serial(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2}
             println("\nFWD Time loop: ",t2-t1,"\n")
         end
 
-#end  ##<<<<<<<==================================<<<<<<<<<
-        
     end ##------- for ishot=1:... --------------
 
     if inpar.savesnapshot==true
@@ -350,10 +338,6 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
     # Arrays with size of PML areas would be sufficient and save memory,
     #  however allocating arrays with same size than model simplifies
     #  the code in the loops
-    # dpdx = zeros(nx,nz)
-    # dpdz = zeros(nx,nz)
-    # d2pdx2 = zeros(nx,nz)
-    # d2pdz2 = zeros(nx,nz)
     psi_x = zeros(nx,nz)
     psi_z = zeros(nx,nz)
     xi_x = zeros(nx,nz)
@@ -424,10 +408,6 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
         #   however allocating arrays with same size than model simplifies
         #   the code in the loops
         # Zeroed at every shot
-        # dpdx[:,:] .= 0.0
-        # dpdz[:,:] .= 0.0 
-        # d2pdx2[:,:] .= 0.0
-        # d2pdz2[:,:] .= 0.0
         psi_x[:,:] .= 0.0
         psi_z[:,:] .= 0.0
         xi_x[:,:] .= 0.0
@@ -505,7 +485,7 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             ##### receivers
             ## skip the additional time step for receivers
             if t<=inpar.ntimesteps 
-                @inbounds for r=1:nrecs
+                for r=1:nrecs
                     ir = ijrecs[s][r,1]
                     jr = ijrecs[s][r,2]
                     receiv[s][t,r] = pcur[ir,jr]
@@ -515,9 +495,9 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             ##========================
             ## save forward run
             ## t+1 because the first is zeros in the past, for adjoint
-            @inbounds pfwdsave[:,:,t+1] .= pcur
+            pfwdsave[:,:,t+1] .= pcur
 
-       end ##------- end time loop --------------
+        end ##------- end time loop --------------
 
         if verbose>0
             t2=time()
@@ -527,7 +507,7 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
         ###------- Residuals -------------
         ## ddf = obsrecv - receiv
         ##residuals =  invC_d_onesrc * ddf
-        @inbounds for r=1:nrecs
+        for r=1:nrecs
             ##OLD: residuals[s][:,r] .= (receiv[s][:,r].-obsrecv[s][:,r]) ./ recstd.^2
 
             tmpdifcalobs .= receiv[s][:,r].-obsrecv[s][:,r]
@@ -546,13 +526,13 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             #thishotsrctfresid[1:end-1,:] .= residuals[s][end:-1:1,r]
             thishotsrctf_adj[1:end-1,r] .= tmpresid[end:-1:1] 
         end    
-  
-##----------------
+        
+        ##----------------
         for isr=1:size(thishotsrctf_adj,2)
             ## The adjoint source is *scaled only* by vel^2*dt^2 instead of vel^2*(dt^2/dh^2)
             thishotsrctf_adj[:,isr] .= thishotsrctf_adj[:,isr] .* vel2dt2[thishotijsrcs_adj[isr,1],thishotijsrcs_adj[isr,2]]
         end
-##----------------
+        ##----------------
 
         if verbose>0
             t3=time()
@@ -574,10 +554,6 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
         curgrad .= 0.0
 
         ## PML arrays
-        # dpdx[:,:] .= 0.0
-        # dpdz[:,:] .= 0.0
-        # d2pdx2[:,:] .= 0.0
-        # d2pdz2[:,:] .= 0.0
         psi_x[:,:] .= 0.0
         psi_z[:,:] .= 0.0
         xi_x[:,:] .= 0.0
@@ -626,10 +602,10 @@ function gradacoustic2D_serial(inpar::InpParamAcou, obsrecv::Array{Array{Float64
             ##==================================##
             ## p is shifted into future, so pcur is p at t+1
             ##dpcur2dt2[:,:] .=  (pcur .- 2.0.*pold .+ pveryold) ./ dt2
-            @inbounds for j=1:nz
-                @inbounds for i=1:nx
+            for j=1:nz
+                for i=1:nx
                     dpcur2dt2 = (pfwdsave[i,j,nt-t+1] - 2.0 * pfwdsave[i,j,nt-t+2] +
-                                 pfwdsave[i,j,nt-t+3]) / dt2
+                        pfwdsave[i,j,nt-t+3]) / dt2
                     ## sum in time!
                     ## pointwise multiplication, integration in time...
                     curgrad[i,j] = curgrad[i,j] + (adjcur[i,j] * dpcur2dt2)

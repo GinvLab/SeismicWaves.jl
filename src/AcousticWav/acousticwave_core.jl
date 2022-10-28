@@ -1,14 +1,13 @@
 
-##==========================================================
+###################################################################
 
-verbose = 0
-useslowfd = false
+const verbose = 0
+const useslowfd = false
 if useslowfd
     println("\n useslowfd = $useslowfd \n")
 end
-##using PyPlot
 
-##======================================================
+###################################################################
 """
   Parameters for acoustic wave simulations
 """
@@ -27,7 +26,7 @@ Base.@kwdef struct InpParamAcou
     #InpParam(ntimesteps=1,nx=1,ny=1,dx=1.0,dy=1.0) = new(ntimesteps,nx,ny,dx,dy)
 end
 
-##======================================================
+###################################################################
 
 struct BilinCoeff
     i::Array{Int64,1}
@@ -36,7 +35,7 @@ struct BilinCoeff
     ##owner::Array{Int64,1}
 end
 
-##======================================================
+###################################################################
 
 struct CoefPML
     a_x::Array{Float64,1}
@@ -57,7 +56,7 @@ struct CoefPML
     jpmlidxs::Array{Int64,1}
 end
 
-##======================================================
+###################################################################
 
 struct GaussTaper
     xnptsgau::Int64
@@ -67,70 +66,7 @@ struct GaussTaper
     bottomdp::Array{Float64,2}  ## 2 because it's a row vector
 end
 
-
-##========================================
-
-# function bilinearcoeff(hgrid::Float64, pts::Array{Float64,2})
-#     ###idxsdarr::Array,pids::Array(Int64,1})
-    
-#     npt = size(pts,1)
-#     iv = zeros(npt)
-#     jv = zeros(npt)
-#     coev = zeros(npt,4)
-
-#     for p=1:npt
-#         xreq=pts[p,1] # index starts from 1
-#         yreq=pts[p,2]
-#         xh=xreq/hgrid
-#         yh=yreq/hgrid
-#         i=floor(Int64,xh+1) # indices starts from 1
-#         j=floor(Int64,yh+1) # indices starts from 1
-#         #println("i,j $i $j   yh $yh   yreq $yreq   hgrid*j $(hgrid*j)")
-#         xd=xh-(i-1) # indices starts from 1
-#         yd=yh-(j-1) # indices starts from 1
-        
-#         iv[p] = i
-#         jv[p] = j
-#         coev[p,:] = [(1.0-xd)*(1.0-yd),  (1.0-yd)*xd,  (1.0-xd)*yd,  xd*yd]
-
-#         # ## get the owner...
-#         # npid = length(idxarr)
-#         # for pr=1:npid
-#         #     if (i in ra[pr][1]) & (j in ra[pr][2]) 
-#         #         idxs[p] = pids[pr]
-#         #     end
-#         # end
-#     end
-    
-#     bilin = BilinCoeff(iv,jv,coev)
-    
-#     # f[i,j]
-#     # f[i+1,j]
-#     # f[i,j+1]
-#     # f[i+1,j+1]
-#     return bilin
-# end
-
-##========================================
-
-# function bilinear_interp(f::Union{DArray{Float64,2},Array{Float64,2}},
-#                          hgrid::Float64, pt::Array{Float64,1})
-#     xreq=pt[1] # index starts from 1
-#     yreq=pt[2]
-#     xh=xreq/hgrid
-#     yh=yreq/hgrid
-#     i=floor(Int64,xh+1) # indices starts from 1
-#     j=floor(Int64,yh+1) # indices starts from 1
-#     #println("i,j $i $j   yh $yh   yreq $yreq   hgrid*j $(hgrid*j)")
-#     xd=xh-(i-1) # indices starts from 1
-#     yd=yh-(j-1) # indices starts from 1
-#     intval=f[i,j]*(1.0-xd)*(1.0-yd)+f[i+1,j]*(1.0-yd)*xd+f[i,j+1]*(1.0-xd)*yd+f[i+1,j+1]*xd*yd
-#     #println("$xreq $yreq $xh $yh $i $j $xd $yd")
-#     return intval
-# end
-
-##===============================================================================
-##===============================================================================
+###################################################################
 
 function acoumisfitfunc(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1},
                         vel::Array{Float64,2}, ijrecs::Array{Array{Int64,2},1},
@@ -270,10 +206,6 @@ function calc_Kab_CPML(Ngrdpts::Integer,nptspml::Integer,gridspacing::Float64,dt
     #     x = collect(range(gridspacing/2.0,step=gridspacing,length=nptspml))
     # end
 
-    #Ngrdpts = 500
-    #onwhere="halfgrd"
-
-
     K  = ones(Ngrdpts)
     b  = ones(Ngrdpts) #zeros(nx)
     a  = zeros(Ngrdpts)
@@ -403,13 +335,7 @@ function initCPML(inpar::InpParamAcou,vel_max::Union{Float64,Nothing},f0::Union{
     cpml = CoefPML(a_x,b_x,a_z,b_z,K_x,K_z, a_x_half,b_x_half,a_z_half,b_z_half,
                    K_x_half,K_z_half,nptspml_x,nptspml_z,ipmlidxs,jpmlidxs)
     
-    ###########################
-
-    # println(">>> WRITING PML COEFFICIENTS TO FILE!!! <<<")
-    # writedlm("pml_coeff_X_julia.dat",[cpml.K_x cpml.a_x cpml.b_x cpml.K_x_half cpml.a_x_half cpml.b_x_half])
-    # writedlm("pml_coeff_Z_julia.dat",[cpml.K_z cpml.a_z cpml.b_z cpml.K_z_half cpml.a_z_half cpml.b_z_half]) 
-
-    return cpml #K_x,K_z,a_x,a_z,b_x,b_z
+    return cpml 
 end
 
 ##########################################################################
@@ -428,7 +354,7 @@ function oneiter_reflbound!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arr
     #     ## free surface boundary cond.
     #     j=1
     #     pcur[:,j] .= 0.0
-    #     @inbounds for i = 2:nx-1
+    #      for i = 2:nx-1
     #         dpdx = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]
     #         dpdz = pcur[i,j+1]-2.0*pcur[i,j]+ 0.0 #pcur[i,j-1]
     #         # update pressure
@@ -438,8 +364,8 @@ function oneiter_reflbound!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arr
     # end  ##----------------------------------
 
     ## space loop excluding boundaries
-    @inbounds for j = 2:nz-1
-        @inbounds for i = 2:nx-1
+     for j = 2:nz-1
+         for i = 2:nx-1
             ## second derivative stencil
             d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]
             d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -451,15 +377,15 @@ function oneiter_reflbound!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arr
     end
 
     # inject source(s)
-    @inbounds for l=1:size(dt2srctf,2)
+    for l=1:size(dt2srctf,2)
         isrc = ijsrcs[l,1]
         jsrc = ijsrcs[l,2]
         pnew[isrc,jsrc] = pnew[isrc,jsrc] + dt2srctf[t,l]
     end
 
     # assign the new pold and pcur
-    @inbounds pold .= pcur
-    @inbounds pcur .= pnew
+    pold .= pcur
+    pcur .= pnew
     return
 end
 
@@ -479,7 +405,7 @@ function oneiter_GAUSSTAP!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
     #     ## free surface boundary cond.
     #     j=1
     #     pcur[:,j] .= 0.0
-    #     @inbounds for i = 2:nx-1
+    #      for i = 2:nx-1
     #         dpdx = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]
     #         dpdz = pcur[i,j+1]-2.0*pcur[i,j]+ 0.0 #pcur[i,j-1]
     #         # update pressure
@@ -490,8 +416,8 @@ function oneiter_GAUSSTAP!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
 
 
     ## space loop excluding boundaries
-    @inbounds for j = 2:nz-1
-        @inbounds for i = 2:nx-1
+     for j = 2:nz-1
+         for i = 2:nx-1
             ## second derivative stencil
             d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]
             d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -503,29 +429,25 @@ function oneiter_GAUSSTAP!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
     end
 
     ## Apply Gaussian taper damping as boundary condition
-    @inbounds pnew[1:gaubc.xnptsgau,:]         .*= gaubc.leftdp 
-    @inbounds pnew[end-gaubc.xnptsgau+1:end,:] .*= gaubc.rightdp
-    @inbounds pnew[:,end-gaubc.ynptsgau+1:end] .*= gaubc.bottomdp
+    pnew[1:gaubc.xnptsgau,:]         .*= gaubc.leftdp 
+    pnew[end-gaubc.xnptsgau+1:end,:] .*= gaubc.rightdp
+    pnew[:,end-gaubc.ynptsgau+1:end] .*= gaubc.bottomdp
     
-    @inbounds pold[1:gaubc.xnptsgau,:]          .*= gaubc.leftdp 
-    @inbounds pold[end-gaubc.xnptsgau+1:end,:]  .*= gaubc.rightdp
-    @inbounds pold[:,end-gaubc.ynptsgau+1:end]  .*= gaubc.bottomdp
+    pold[1:gaubc.xnptsgau,:]          .*= gaubc.leftdp 
+    pold[end-gaubc.xnptsgau+1:end,:]  .*= gaubc.rightdp
+    pold[:,end-gaubc.ynptsgau+1:end]  .*= gaubc.bottomdp
 
-    @inbounds pcur[1:gaubc.xnptsgau,:]          .*= gaubc.leftdp 
-    @inbounds pcur[end-gaubc.xnptsgau+1:end,:]  .*= gaubc.rightdp
-    @inbounds pcur[:,end-gaubc.ynptsgau+1:end]  .*= gaubc.bottomdp
+    pcur[1:gaubc.xnptsgau,:]          .*= gaubc.leftdp 
+    pcur[end-gaubc.xnptsgau+1:end,:]  .*= gaubc.rightdp
+    pcur[:,end-gaubc.ynptsgau+1:end]  .*= gaubc.bottomdp
     
     # inject source(s)
-    @inbounds for l=1:size(dt2srctf,2)
+    for l=1:size(dt2srctf,2)
         isrc = ijsrcs[l,1]
         jsrc = ijsrcs[l,2]
         pnew[isrc,jsrc] = pnew[isrc,jsrc] + dt2srctf[t,l]
     end
-
-    # # assign the new pold and pcur
-    # @inbounds pold .= pcur
-    # @inbounds pcur .= pnew
-  
+ 
     ## kind of swapping array pointers, so NEED TO RETURN NEW BINDINGS,
     ##  otherwise the exchange is lost!
     pold,pcur,pnew = pcur,pnew,pold
@@ -543,8 +465,6 @@ end
 """
 function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Float64,2},
                        pold::Array{Float64,2},pcur::Array{Float64,2},dt2srctf::Array{Float64,2},
-                       #dpdx::Array{Float64,2},dpdz::Array{Float64,2},
-                       #d2pdx2::Array{Float64,2},d2pdz2::Array{Float64,2},
                        psi_x::Array{Float64,2},psi_z::Array{Float64,2},
                        xi_x::Array{Float64,2},xi_z::Array{Float64,2},
                        cpml::CoefPML,ijsrcs::Array{Int64,2},t::Int64)
@@ -569,7 +489,7 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     #     ## free surface boundary cond.
     #     j=1
     #     #pcur[:,j] .= 0.0  ## ??
-    #     @inbounds for i = 2:nx-1
+    #      for i = 2:nx-1
     #         dpdx[i,j] = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j] ## ==0.0??
     #         dpdz[i,j] = pcur[i,j+1]-2.0*pcur[i,j]+ 0.0 #pcur[i,j-1]
     #         # update pressure
@@ -587,8 +507,8 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     ##====================================================
     
     # ## space loop excluding boundaries
-    # @inbounds  for j = 2:nz-1 # 3:nz-2
-    #      @inbounds for i = 2:nx-1 # 3:nx-2
+    #   for j = 2:nz-1 # 3:nz-2
+    #       for i = 2:nx-1 # 3:nx-2
 
             ###(-f[i-2]+16*f[i-1]-30*f[i]+16*f[i+1]-1*f[i+2])/(12*1.0*h**2)
 
@@ -611,9 +531,9 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     # jpmlidxs = [2, nptspml_z, nz-nptspml_z+1, nz-1]
     
     ## X
-    @inbounds for ii=(1,3)
-        @inbounds  for j = 1:nz # 1:nz !!
-            @inbounds  @simd for i = cpml.ipmlidxs[ii]:cpml.ipmlidxs[ii+1]
+     for ii=(1,3)
+          for j = 1:nz # 1:nz !!
+               for i = cpml.ipmlidxs[ii]:cpml.ipmlidxs[ii+1]
                 dpdx = pcur[i+1,j]-pcur[i,j] 
                 psi_x[i,j] = cpml.b_x_half[i] / cpml.K_x_half[i] * psi_x[i,j] + cpml.a_x_half[i] * dpdx
             end
@@ -621,9 +541,9 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     end
 
     ## Z
-    @inbounds for jj=(1,3)
-        @inbounds for j = cpml.jpmlidxs[jj]:cpml.jpmlidxs[jj+1]
-            @inbounds  @simd for i = 1:nx # 1:nx !!
+     for jj=(1,3)
+         for j = cpml.jpmlidxs[jj]:cpml.jpmlidxs[jj+1]
+               for i = 1:nx # 1:nx !!
                 dpdz = pcur[i,j+1]-pcur[i,j]  
                 psi_z[i,j] = cpml.b_z_half[j] / cpml.K_z_half[j] * psi_z[i,j] + cpml.a_z_half[j] * dpdz
             end
@@ -633,9 +553,9 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     ##====================================================
     ## Calculate PML stuff only on the borders...
     ## X borders
-    @inbounds for ii=(1,3)
-        @inbounds  for j = 2:nz-1 # 2:nz-1 !!
-            @inbounds  @simd for i = cpml.ipmlidxs[ii]:cpml.ipmlidxs[ii+1]
+     for ii=(1,3)
+          for j = 2:nz-1 # 2:nz-1 !!
+               for i = cpml.ipmlidxs[ii]:cpml.ipmlidxs[ii+1]
                 
                 d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]            
                 d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -656,14 +576,14 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
 
     ## Calculate PML stuff only on the borders...
     ## Z borders
-    @inbounds for jj=(1,3)
-        @inbounds for j = cpml.jpmlidxs[jj]:cpml.jpmlidxs[jj+1]
-            #@inbounds  for i = 2:nx-1 # 2:nx-1 !!
+     for jj=(1,3)
+         for j = cpml.jpmlidxs[jj]:cpml.jpmlidxs[jj+1]
+            #  for i = 2:nx-1 # 2:nx-1 !!
             ##--------------------------------------------------------------------------
             ## EXCLUDE CORNERS, because already visited in the previous X-borders loop!
             ##  (It would lead to wrong accumulation of pnew[i,j], etc. otherwise...)
             ##--------------------------------------------------------------------------
-            @inbounds  @simd for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1
+               for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1
                 
                 d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]            
                 d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -684,8 +604,8 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
 
     ##----------------------------------------------------------
     ## Calculate stuff in the internal part of the model
-    @inbounds for j = cpml.jpmlidxs[2]+1:cpml.jpmlidxs[3]-1    #2:nz-1 
-        @inbounds @simd for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1   #2:nx-1 
+     for j = cpml.jpmlidxs[2]+1:cpml.jpmlidxs[3]-1    #2:nz-1 
+          for i = cpml.ipmlidxs[2]+1:cpml.ipmlidxs[3]-1   #2:nx-1 
 
             d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]            
             d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -695,22 +615,13 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     end
 
     
-    ##====================================================
-    
+    ##====================================================    
     # inject source(s)
-    @inbounds for l=1:size(dt2srctf,2)
+     for l=1:size(dt2srctf,2)
         isrc = ijsrcs[l,1]
         jsrc = ijsrcs[l,2]
         pnew[isrc,jsrc] = pnew[isrc,jsrc] + dt2srctf[t,l]
     end
-
-    # assign the new pold and pcur
-    # po = pointer_from_objref(pold)
-    # pc = pointer_from_objref(pcur)
-    # pn = pointer_from_objref(pnew)    
-    # pold = unsafe_pointer_to_objref(pc) ## pointers exchange???
-    # pcur = unsafe_pointer_to_objref(pn)
-    # pnew = unsafe_pointer_to_objref(po)
     
     # assign the new pold and pcur
     ## https://discourse.julialang.org/t/swap-array-contents/7774/7
@@ -719,8 +630,8 @@ function oneiter_CPML!(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Fl
     pold,pcur,pnew = pcur,pnew,pold
 
     ### this is slower
-    # @inbounds pold .= pcur 
-    # @inbounds pcur .= pnew
+    #  pold .= pcur 
+    #  pcur .= pnew
 
     return pold,pcur,pnew
 end
@@ -733,22 +644,18 @@ end
 
 function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Array{Float64,2},
                            pold::Array{Float64,2},pcur::Array{Float64,2},dt2srctf::Array{Float64,2},
-                           #dpdx::Array{Float64,2},dpdz::Array{Float64,2},
-                           #d2pdx2::Array{Float64,2},d2pdz2::Array{Float64,2},
                            psi_x::Array{Float64,2},psi_z::Array{Float64,2},
                            xi_x::Array{Float64,2},xi_z::Array{Float64,2},
-                           cpml::CoefPML,
-                           ijsrcs::Array{Int64,2},t::Int64)
+                           cpml::CoefPML,ijsrcs::Array{Int64,2},t::Int64)
 
 
-    ##-------------------------------------------
     ###############################
     ### SLOW but simple VERSION
     ###############################
 
     ## compute current psi_x and psi_z first (need derivatives next)
-    @inbounds  for j = 2:nz-1 # 3:nz-2
-        @inbounds for i = 2:nx-1 # 3:nx-2
+    for j = 2:nz-1 # 3:nz-2
+        for i = 2:nx-1 # 3:nx-2
             dpdx = pcur[i+1,j]-pcur[i,j] 
             dpdz = pcur[i,j+1]-pcur[i,j]
             psi_x[i,j] = cpml.b_x_half[i] / cpml.K_x_half[i] * psi_x[i,j] + cpml.a_x_half[i] * dpdx
@@ -756,8 +663,8 @@ function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
         end
     end
 
-    @inbounds  for j = 2:nz-1 # 3:nz-2
-        @inbounds for i = 2:nx-1 # 3:nx-2
+    for j = 2:nz-1 # 3:nz-2
+        for i = 2:nx-1 # 3:nx-2
 
             d2pdx2 = pcur[i+1,j]-2.0*pcur[i,j]+pcur[i-1,j]            
             d2pdz2 = pcur[i,j+1]-2.0*pcur[i,j]+pcur[i,j-1]
@@ -777,11 +684,9 @@ function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
         end
     end
 
-    ###############################
-    ##====================================================
-    
+    ##====================================================    
     # inject source(s)
-    @inbounds for l=1:size(dt2srctf,2)
+    for l=1:size(dt2srctf,2)
         isrc = ijsrcs[l,1]
         jsrc = ijsrcs[l,2]
         pnew[isrc,jsrc] = pnew[isrc,jsrc] + dt2srctf[t,l] 
@@ -795,8 +700,6 @@ function oneiter_CPML!slow(nx::Int64,nz::Int64,fact::Array{Float64,2},pnew::Arra
 
     return pold,pcur,pnew
 end
-
-##======================================
 
 
 ########################################################################

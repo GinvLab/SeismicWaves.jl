@@ -150,10 +150,6 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
 
     if inpar.boundcond=="PML"
         # PML arrays
-        # dpdx = zeros(nx,nz)
-        # dpdz = zeros(nx,nz)
-        # d2pdx2 = zeros(nx,nz)
-        # d2pdz2 = zeros(nx,nz)
         psi_x = zeros(nx,nz)
         psi_z = zeros(nx,nz)
         xi_x  = zeros(nx,nz)
@@ -210,11 +206,7 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
             #   however allocating arrays with same size than model simplifies
             #   the code in the loops
             # Zeroed at every shot
-            @inbounds for j=1:nz, i=1:nx
-                # dpdx[i,j] = 0.0
-                # dpdz[i,j] = 0.0
-                # d2pdx2[i,j] = 0.0
-                # d2pdz2[i,j] = 0.0
+             for j=1:nz, i=1:nx
                 psi_x[i,j] = 0.0
                 psi_z[i,j] = 0.0
                 xi_x[i,j] = 0.0
@@ -271,12 +263,10 @@ function groupshot_acoustic2D(inpar::InpParamAcou,ijsrcs::Array{Array{Int64,2},1
                 ### arrays are swapped bofore being returned from oneiter_CPML!()
                 if useslowfd
                     pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                       #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                        psi_x,psi_z,xi_x,xi_z,
                                                        cpml,ijsrcs[s],t)
                 else
                     pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                   #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                    psi_x,psi_z,xi_x,xi_z,
                                                    cpml,ijsrcs[s],t)
                 end
@@ -412,8 +402,8 @@ function gradacoustic2D_parallel(inpar::InpParamAcou, obsrecv::Array{Array{Float
         @sync for w=1:nchu
             sts = grptask[w,1]:grptask[w,2]            
             @async tmpgrad[:,:,w],penergy[:,:,w] = remotecall_fetch(groupshot_gradacou2D,wks[w],inpar,obsrecv[sts],invCovds[sts],
-                                                     ijsrcs[sts],vel,ijrecs[sts],sourcetf[sts],srcdomfreq[sts],
-                                                     calcpenergy=calcpenergy)
+                                                                    ijsrcs[sts],vel,ijrecs[sts],sourcetf[sts],srcdomfreq[sts],
+                                                                    calcpenergy=calcpenergy)
         end        
         grad = sum(tmpgrad,dims=3)[:,:]
         penergy = sum(penergy,dims=3)[:,:]
@@ -514,10 +504,6 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
         # Arrays with size of PML areas would be sufficient and save memory,
         #  however allocating arrays with same size than model simplifies
         #  the code in the loops
-        # dpdx = zeros(nx,nz)
-        # dpdz = zeros(nx,nz)
-        # d2pdx2 = zeros(nx,nz)
-        # d2pdz2 = zeros(nx,nz)
         psi_x = zeros(nx,nz)
         psi_z = zeros(nx,nz)
         xi_x = zeros(nx,nz)
@@ -590,17 +576,13 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
                 end
             end
 
-            @inbounds for j=1:nz,  i=1:nx            
+            for j=1:nz,  i=1:nx            
                 ##################################
                 # PML arrays
                 # Arrays with size of PML areas would be sufficient and save memory,
                 #   however allocating arrays with same size than model simplifies
                 #   the code in the loops
                 # Zeroed at every shot
-                # dpdx[i,j] = 0.0
-                # dpdz[i,j] = 0.0 
-                # d2pdx2[i,j] = 0.0
-                # d2pdz2[i,j] = 0.0
                 psi_x[i,j] = 0.0
                 psi_z[i,j] = 0.0
                 xi_x[i,j] = 0.0
@@ -620,7 +602,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             gaubc = initGausboundcon()
 
             ##################################
-            @inbounds for j=1:nz,  i=1:nx
+            for j=1:nz,  i=1:nx
                 # memory arrays
                 pold[i,j] = 0.0
                 pcur[i,j] = 0.0
@@ -629,7 +611,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
 
         end
 
-    
+        
         ##################################
         ## seismograms
         nrecs = size(ijrecs[s],1)
@@ -681,12 +663,10 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
                 ###   that's why we need to return them (to make that happen)
                 if useslowfd
                     pold,pcur,pnew = oneiter_CPML!slow(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                       #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                        psi_x,psi_z,xi_x,xi_z,
                                                        cpml,thishotijsrcs_fwd,t)
                 else
                     pold,pcur,pnew = oneiter_CPML!(nx,nz,fact,pnew,pold,pcur,dt2srctf,
-                                                   #dpdx,dpdz,#d2pdx2,d2pdz2,
                                                    psi_x,psi_z,xi_x,xi_z,
                                                    cpml,thishotijsrcs_fwd,t)
                 end
@@ -703,7 +683,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             ##### receivers
             ## skip the additional time step for receivers
             if t<=inpar.ntimesteps 
-                @inbounds for r=1:nrecs
+                for r=1:nrecs
                     ir = ijrecs[s][r,1]
                     jr = ijrecs[s][r,2]
                     receiv[s][t,r] = pcur[ir,jr]
@@ -713,7 +693,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             ##========================
             ## save forward run
             ## t+1 because the first is zeros in the past, for adjoint
-            @inbounds pfwdsave[:,:,t+1] .= pcur
+            pfwdsave[:,:,t+1] .= pcur
             
             ##========================
             ## energy for pre-conditioning
@@ -731,7 +711,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
         ###------- Residuals -------------
         ## ddf = obsrecv - receiv
         ##residuals =  invC_d_onesrc * ddf
-        @inbounds for r=1:nrecs
+         for r=1:nrecs
             ##OLD: residuals[s][:,r] .= (receiv[s][:,r].-obsrecv[s][:,r]) ./ recstd.^2
 
             tmpdifcalobs .= receiv[s][:,r].-obsrecv[s][:,r]
@@ -770,7 +750,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
         ######################################
         if inpar.boundcond=="PML"
 
-            @inbounds for j=1:nz,  i=1:nx 
+             for j=1:nz,  i=1:nx 
                 ## adjoint arrays
                 adjold[i,j] = 0.0
                 adjcur[i,j] = 0.0
@@ -792,7 +772,7 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
 
         elseif inpar.boundcond=="GauTap"
             
-            @inbounds for j=1:nz,  i=1:nx 
+             for j=1:nz,  i=1:nx 
                 ## adjoint arrays
                 adjold[i,j] = 0.0
                 adjcur[i,j] = 0.0
@@ -855,10 +835,10 @@ function groupshot_gradacou2D(inpar::InpParamAcou, obsrecv::Array{Array{Float64,
             ##==================================##
             ## p is shifted into future, so pcur is p at t+1
             ##dpcur2dt2[:,:] .=  (pcur .- 2.0.*pold .+ pveryold) ./ dt2
-            @inbounds for j=1:nz
-                @inbounds for i=1:nx
+            for j=1:nz
+                for i=1:nx
                     dpcur2dt2 = (pfwdsave[i,j,nt-t+1] - 2.0 * pfwdsave[i,j,nt-t+2] +
-                                 pfwdsave[i,j,nt-t+3]) / dt2
+                        pfwdsave[i,j,nt-t+3]) / dt2
                     ## sum in time!
                     ## pointwise multiplication, integration in time...
                     curgrad[i,j] = curgrad[i,j] + (adjcur[i,j] * dpcur2dt2) 
