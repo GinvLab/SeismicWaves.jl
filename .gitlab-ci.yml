@@ -24,7 +24,7 @@
   script:
     # Let's run the tests. Substitute `coverage = false` below, if you do not
     # want coverage results.
-    - julia -e 'using Pkg; Pkg.clone(pwd()); Pkg.build("SeismicWaves"); Pkg.test("SeismicWaves"; coverage = false)'
+    - julia -e 'import Pkg; Pkg.activate("."); Pkg.test(; coverage = false)'
     # Comment out below if you do not want coverage results.
     # - julia -e 'using Pkg; Pkg.add("Coverage");
     #   import SeismicWaves; cd(joinpath(dirname(pathof(SeismicWaves)), ".."));
