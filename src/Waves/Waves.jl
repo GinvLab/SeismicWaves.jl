@@ -9,4 +9,12 @@ include("traits/kernel.jl")
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
 
+include("sources.jl")
+include("receivers.jl")
+include("forward.jl")
+include("solve.jl")
+
+export Sources, Receivers
+export solve!
+
 end

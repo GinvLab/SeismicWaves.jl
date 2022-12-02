@@ -4,6 +4,8 @@ module SeismicWaves
 
 using Reexport
 
+#
+include("utils.jl")
 export gaussource1D,rickersource1D
 
 include("AcousticWav/AcousticWaves.jl")
@@ -15,11 +17,10 @@ include("ElasticWav/ElasticWaves.jl")
 using .ElasticWaves
 #export f2
 
+
 include("Waves/Waves.jl")
 using .Waves
 
-#
-include("utils.jl")
 
 # wrapper for HMCtomo
 include("HMCseiswaves.jl")
