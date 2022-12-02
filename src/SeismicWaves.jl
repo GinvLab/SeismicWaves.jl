@@ -15,6 +15,9 @@ include("ElasticWav/ElasticWaves.jl")
 using .ElasticWaves
 #export f2
 
+include("Waves/Waves.jl")
+using .Waves
+
 #
 include("utils.jl")
 
