@@ -24,7 +24,7 @@ struct Sources{T<:Real}
         @assert size(positions, 1) == size(tf, 2)
         new(positions, tf, freqdomain)
     end
-
-    # Default type constructor
-    Sources(positions, tf, freqdomain) = Sources{Float64}(positions, tf, freqdomain)
 end
+
+# Default type constructor
+Sources(positions, tf, freqdomain) = Sources{Float64}(positions, tf, freqdomain)

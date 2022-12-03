@@ -15,7 +15,7 @@ struct Receivers{T<:Real}
         seismograms = zeros(T, nt, size(positions, 1))
         new(positions, seismograms)
     end
-
-    # Default type constructor
-    Receivers(positions, nt) = Receivers{Float64}(positions, nt)
 end
+
+# Default type constructor
+Receivers(positions, nt) = Receivers{Float64}(positions, nt)
