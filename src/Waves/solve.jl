@@ -10,7 +10,8 @@ Solve the wave propagation equation specified by `WaveModel` on multiple shots.
     model::WaveModel,
     shots::Vector{Pair{Sources{<:Real}, Receivers{<:Real}}}
 )
-    ## TODO (checks, initializations, ...)
+    check(model)
+    precompute!(model)
 
     ## TODO distribute shots
     for (srcs, recs) in shots

@@ -20,8 +20,8 @@ struct Sources{T<:Real}
         tf::Matrix{<:T},
         freqdomain::T
     ) where {T<:Real}
-        @assert size(positions, 1) > 0
-        @assert size(positions, 1) == size(tf, 2)
+        @assert size(positions, 1) > 0 "There must be at least one source!"
+        @assert size(positions, 1) == size(tf, 2) "Number of sources do not match between positions and time-functions!"
         new(positions, tf, freqdomain)
     end
 end

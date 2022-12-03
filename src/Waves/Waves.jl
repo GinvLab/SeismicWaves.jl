@@ -11,8 +11,13 @@ include("traits/shooting.jl")
 
 include("sources.jl")
 include("receivers.jl")
+include("check.jl")
+include("precompute.jl")
 include("forward.jl")
 include("solve.jl")
+
+include("models/acoustic/check.jl")
+include("models/acoustic/precompute.jl")
 
 export Sources, Receivers
 export solve!
