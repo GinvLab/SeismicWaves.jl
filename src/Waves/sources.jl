@@ -3,7 +3,7 @@ Type representing a multi-source configuration for a wave propagation shot.
 """
 struct Sources{T<:Real}
     position::Matrix{Int}
-    tf::Matrix{Real}
+    tf::Matrix{T}
     freqdomain::Real
 
     @doc """
@@ -17,8 +17,8 @@ struct Sources{T<:Real}
     """
     function Sources{T}(
         positions::Matrix{<:Int},
-        tf::Matrix{<:T},
-        freqdomain::T
+        tf::Matrix{T},
+        freqdomain::Real
     ) where {T<:Real}
         @assert size(positions, 1) > 0 "There must be at least one source!"
         @assert size(positions, 1) == size(tf, 2) "Number of sources do not match between positions and time-functions!"
