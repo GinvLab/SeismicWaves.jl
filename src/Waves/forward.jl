@@ -14,6 +14,7 @@ The result of the computation is saved in the `WaveModel`.
     recs::Receivers{<:Real}
 )
 
-## TODO
+# Checking shot configuration against model
+check_shot(model, srcs, recs)
 
 end
