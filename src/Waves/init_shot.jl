@@ -14,7 +14,7 @@ Initialize the model for a new shot.
 )
     init_bdc!(model, srcs)
     check_shot(model, srcs, recs)
-    ## reset!(model)
+    reset!(model)
     ## allocate_shot!(model, srcs, recs)
     ## precompute_shot!(model, srcs, recs)
 end
@@ -35,4 +35,9 @@ Initialize model boundary conditions for a shot.
 """
 init_bdc!(model::WaveModel, srcs::Sources{<:Real}) = init_bdc!(WaveEquationTrait(model), BoundaryConditionTrait(model), model, srcs)
 
-init_bdc!(::IsotropicAcoustic, ::Reflective, ::WaveModel, ::Sources{<:Real}) = nothing
+init_bdc!(::Acoustic, ::Reflective, ::WaveModel, ::Sources{<:Real}) = nothing
+
+
+reset!(model::WaveModel) = reset!(WaveEquationTrait(model), BoundaryConditionTrait(model), model)
+
+reset!(x::Acoustic, ::BoundaryConditionTrait, model::WaveModel) = reset_pressure!(x, model)

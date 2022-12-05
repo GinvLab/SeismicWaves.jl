@@ -22,6 +22,7 @@ include("solve.jl")
 include("models/acoustic/check.jl")
 include("models/acoustic/precompute.jl")
 include("models/acoustic/models.jl")
+include("models/acoustic/reset.jl")
 
 export Sources, Receivers
 export solve!
