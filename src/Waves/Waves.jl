@@ -9,6 +9,7 @@ include("traits/equation.jl")
 include("traits/kernel.jl")
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
+include("traits/snappable.jl")
 
 include("sources.jl")
 include("receivers.jl")

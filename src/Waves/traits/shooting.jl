@@ -18,4 +18,4 @@ ShootingTrait(x) = ShootingTrait(typeof(x))
 ShootingTrait(x::Type) = error("ShootingTrait not implemented for type $(x)")
 
 # Default constructor for a WaveModel
-ShootingTrait(x::Type{<:WaveModel}) = SequentialShooting()
+ShootingTrait(::Type{<:WaveModel}) = SequentialShooting()
