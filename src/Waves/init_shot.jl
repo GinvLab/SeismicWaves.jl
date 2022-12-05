@@ -22,7 +22,7 @@ end
 """
     check_shot(model::WaveModel, srcs::Sources{<:Real}, recs::Receivers{<:Real})
 
-Check shot configuration againts model based on model traits.
+Check shot configuration for a model.
 """
 check_shot(model::WaveModel, srcs::Sources{<:Real}, recs::Receivers{<:Real}) = check_shot(WaveEquationTrait(model), BoundaryConditionTrait(model), model, srcs, recs)
 
