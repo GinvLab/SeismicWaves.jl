@@ -21,6 +21,7 @@ Also returns snapshots for every shot if the model has snapshotting enabled.
     
     ## TODO distribute shots
     for (srcs, recs) in shots
+        init_shot!(model, srcs, recs)
         forward!(model, srcs, recs)
 
         if snapenabled(model)
