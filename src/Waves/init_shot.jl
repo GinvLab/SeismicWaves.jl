@@ -37,7 +37,11 @@ init_bdc!(model::WaveModel, srcs::Sources{<:Real}) = init_bdc!(WaveEquationTrait
 
 init_bdc!(::Acoustic, ::Reflective, ::WaveModel, ::Sources{<:Real}) = nothing
 
+"""
+    reset!(model::WaveModel)
 
+Resets a model for a new shot.
+"""
 reset!(model::WaveModel) = reset!(WaveEquationTrait(model), BoundaryConditionTrait(model), model)
 
 reset!(x::Acoustic, ::BoundaryConditionTrait, model::WaveModel) = reset_pressure!(x, model)
