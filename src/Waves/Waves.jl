@@ -30,6 +30,13 @@ export solve!
 
 include("models/acoustic/backends/acoustic1D.jl")
 
+using ParallelStencil
+
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic1D_Threads.jl")
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic1D_CUDA.jl")
+
 include("utils.jl")
 export rickersource1D
 
