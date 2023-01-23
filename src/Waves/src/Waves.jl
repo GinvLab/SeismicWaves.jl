@@ -25,7 +25,7 @@ include("models/acoustic/models.jl")
 include("models/acoustic/forward.jl")
 include("models/acoustic/init_CPML_bdc.jl")
 export IsotropicAcousticReflectiveWaveModel1D
-export IsotropicAcousticCPMLWaveModel1D
+export IsotropicAcousticCPMLWaveModel1D, IsotropicAcousticCPMLWaveModel2D, IsotropicAcousticCPMLWaveModel3D
 
 export Sources, Receivers
 export solve!
@@ -38,6 +38,10 @@ ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic1D_Threads.jl")
 ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic1D_CUDA.jl")
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic2D_Threads.jl")
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic2D_CUDA.jl")
 
 include("utils.jl")
 export rickersource1D

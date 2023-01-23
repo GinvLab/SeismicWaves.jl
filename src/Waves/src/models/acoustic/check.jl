@@ -80,9 +80,43 @@ end
     end
 end
 
+@views function check_positions(::ReflectiveBoundaryCondition, model::WaveModel2D, positions::Matrix{<:Real})
+    @assert size(positions, 2) == 2 "Positions matrix do not match the dimension of the model!"
+    for s in 1:size(positions, 1)
+        @assert (0 <= positions[s, 1] <= model.lx &&
+                 0 <= positions[s, 2] <= model.ly ) "Position $(s) is not inside the model!"
+    end
+end
+
+@views function check_positions(::ReflectiveBoundaryCondition, model::WaveModel3D, positions::Matrix{<:Real})
+    @assert size(positions, 2) == 3 "Positions matrix do not match the dimension of the model!"
+    for s in 1:size(positions, 1)
+        @assert (0 <= positions[s, 1] <= model.lx &&
+                 0 <= positions[s, 2] <= model.ly &&
+                 0 <= positions[s, 3] <= model.lz ) "Position $(s) is not inside the model!"
+    end
+end
+
 @views function check_positions(::CPMLBoundaryCondition, model::WaveModel1D, positions::Matrix{<:Real})
     check_positions(ReflectiveBoundaryCondition(), model, positions)
     for s in 1:size(positions, 1)
         @assert model.dx * model.halo <= positions[s, 1] <= model.lx - (model.dx * model.halo) "Position $(s) is inside the CPML region!"
+    end
+end
+
+@views function check_positions(::CPMLBoundaryCondition, model::WaveModel2D, positions::Matrix{<:Real})
+    check_positions(ReflectiveBoundaryCondition(), model, positions)
+    for s in 1:size(positions, 1)
+        @assert (model.dx * model.halo <= positions[s, 1] <= model.lx - (model.dx * model.halo) &&
+                 model.dy * model.halo <= positions[s, 2] <= model.ly - (model.dy * model.halo)) "Position $(s) is inside the CPML region!"
+    end
+end
+
+@views function check_positions(::CPMLBoundaryCondition, model::WaveModel3D, positions::Matrix{<:Real})
+    check_positions(ReflectiveBoundaryCondition(), model, positions)
+    for s in 1:size(positions, 1)
+        @assert (model.dx * model.halo <= positions[s, 1] <= model.lx - (model.dx * model.halo) &&
+                 model.dy * model.halo <= positions[s, 2] <= model.ly - (model.dy * model.halo) &&
+                 model.dz * model.halo <= positions[s, 3] <= model.lz - (model.dz * model.halo)) "Position $(s) is inside the CPML region!"
     end
 end

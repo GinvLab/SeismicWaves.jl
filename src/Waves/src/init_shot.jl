@@ -12,8 +12,11 @@ Initialize the model for a new shot.
     srcs::Sources{<:Real},
     recs::Receivers{<:Real}
 )
-    init_bdc!(model, srcs)
+    # Check shot configuration
     check_shot(model, srcs, recs)
+    # Initialize boundary conditions based on current shot
+    init_bdc!(model, srcs)
+    # Return allocated shot's arrays
     return allocate_shot(model, srcs, recs)
 end
 

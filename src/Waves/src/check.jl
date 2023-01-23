@@ -5,4 +5,7 @@ Check model for possible assertions based on configuration and model traits.
 """
 check(model::WaveModel) = check(WaveEquationTrait(model), model)
 
-check(x::IsotropicAcousticWaveEquation, model::WaveModel) = check_courant_condition(x, model)
+function check(x::IsotropicAcousticWaveEquation, model::WaveModel)
+    @debug "Checking CFL condition"
+    check_courant_condition(x, model)
+end
