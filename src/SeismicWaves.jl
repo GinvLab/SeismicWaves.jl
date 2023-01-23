@@ -18,10 +18,6 @@ using .ElasticWaves
 #export f2
 
 
-include("Waves/Waves.jl")
-using .Waves
-
-
 # wrapper for HMCtomo
 include("HMCseiswaves.jl")
 using .HMCseiswaves
