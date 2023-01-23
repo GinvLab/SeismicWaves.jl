@@ -1,9 +1,9 @@
 """
-    @views reset!(::IsotropicAcoustic, model::WaveModel)
+    @views reset!(::IsotropicAcousticWaveEquation, model::WaveModel)
 
 Resets pressure fields for an isotropic acoustic wave model.
 """
-@views function reset_pressure!(::IsotropicAcoustic, model::WaveModel)
+@views function reset_pressure!(::IsotropicAcousticWaveEquation, model::WaveModel)
     fill!(model.pold, 0)
     fill!(model.pcur, 0)
     fill!(model.pnew, 0)

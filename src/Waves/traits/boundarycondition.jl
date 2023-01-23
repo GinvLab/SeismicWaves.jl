@@ -6,17 +6,17 @@ abstract type BoundaryConditionTrait end
 """
 Trait for a reflective boundary condition.
 """
-struct Reflective <: BoundaryConditionTrait end
+struct ReflectiveBoundaryCondition <: BoundaryConditionTrait end
 
 """
 Trait for a Gaussian taper boundary condition.
 """
-struct GaussianTaper <: BoundaryConditionTrait end
+struct GaussianTaperBoundaryCondition <: BoundaryConditionTrait end
 
 """
 Trait for a CPML condition.
 """
-struct CPML <: BoundaryConditionTrait end
+struct CPMLBoundaryCondition <: BoundaryConditionTrait end
 
 # Trait constuctor
 BoundaryConditionTrait(x) = BoundaryConditionTrait(typeof(x))

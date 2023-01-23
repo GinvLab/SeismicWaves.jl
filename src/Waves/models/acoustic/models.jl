@@ -73,7 +73,7 @@ end
 IsotropicAcousticSerialReflectiveWaveModel2D(nt, dt, dx, dz, vel, snapevery=nothing) = IsotropicAcousticSerialReflectiveWaveModel2D{Float64}(nt, dt, dx, dz, vel, snapevery)
 
 # Tag traits
-WaveEquationTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = IsotropicAcoustic()
+WaveEquationTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = IsotropicAcousticWaveEquation()
 KernelTypeTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = SerialKernel()
-BoundaryConditionTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = Reflective()
+BoundaryConditionTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = ReflectiveBoundaryCondition()
 IsSnappableTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = Snappable()
