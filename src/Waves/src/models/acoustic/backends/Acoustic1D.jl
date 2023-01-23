@@ -113,6 +113,4 @@ end
     return pcur, pnew, pold
 end
 
-export forward_onestep!
-
 end

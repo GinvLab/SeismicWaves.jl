@@ -6,6 +6,4 @@ using ParallelStencil.FiniteDifferences1D
 
 include("shared/Acoustic1D_xPU.jl")
 
-export forward_onestep!
-
 end

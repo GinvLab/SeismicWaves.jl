@@ -1,6 +1,6 @@
 using Plots, Revise
 using Waves
-import Waves.Acoustic1D
+import Waves.Acoustic1D_Threads
 
 using Logging
 debug_logger = ConsoleLogger(stderr, Logging.Debug)
@@ -30,6 +30,6 @@ srctf[:,1] .= rickersource1D.(times, t0, f0)
 srcs = Sources(possrcs, srctf, f0)
 recs = Receivers(posrecs, nt)
 
-res = solve!(model, [srcs => recs], Waves.Acoustic1D)
+res = solve!(model, [srcs => recs], Waves.Acoustic1D_Threads)
 
 display(plot(times, recs.seismograms[:,1]))
