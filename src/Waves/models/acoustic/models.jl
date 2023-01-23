@@ -1,79 +1,70 @@
 """
-Simplest model for isotropic acoustic 2D wave equation modeling with reflective boundaries.
+Simplest model for isotropic acoustic 1D wave equation modeling with reflective boundaries.
 """
-struct IsotropicAcousticSerialReflectiveWaveModel2D{T<:Real} <: WaveModel2D
+struct IsotropicAcousticSerialReflectiveWaveModel1D{T<:Real} <: WaveModel1D
     nt::Integer
     nx::Integer
-    nz::Integer
     dt::Real
     dx::Real
-    dz::Real
-    vel::Matrix{T}
-    fact_x::Matrix{T}
-    fact_z::Matrix{T}
-    pold::Matrix{T}
-    pcur::Matrix{T}
-    pnew::Matrix{T}
+    vel::Vector{T}
+    fact::Vector{T}
+    pold::Vector{T}
+    pcur::Vector{T}
+    pnew::Vector{T}
     snapevery::Union{Integer, Nothing}
-    snapshots::Union{Array{T, 3}, Nothing}
+    snapshots::Union{Matrix{T}, Nothing}
 
     @doc """
-        IsotropicAcousticSerialReflectiveWaveModel2D[{T<:Real = Float64}](
+        IsotropicAcousticSerialReflectiveWaveModel1D[{T<:Real = Float64}](
             nt::Integer,
             dt::Real,
             dx::Real,
-            dz::Real,
-            vel::Matrix{T},
+            vel::Vector{T},
             savesnapshots::Bool = true
         )
     
-    Construct an isotropic acoustic 2D wave equation model with reflective boundaries and serial kernel.
+    Construct an isotropic acoustic 1D wave equation model with reflective boundaries and serial kernel.
 
     # Arguments
     - `nt::Integer`: the number of timesteps.
     - `dt::Real`: the timestep size.
     - `dx::Real`: the size of a grid cell in x-dimension.
-    - `dz::Real`: the size fo a grid cell in z-dimension.
-    - `vel::Matrix{T}`: the velocity model.
+    - `vel::Vector{T}`: the velocity model.
     - `snapevery::Union{Integer, Nothing} = nothing`: if specified, saves pressure field every `snapevery` timesteps into the `snapshots` field.
     """
     function IsotropicAcousticSerialReflectiveWaveModel2D{T}(
         nt::Integer,
         dt::Real,
         dx::Real,
-        dz::Real,
-        vel::Matrix{T},
+        vel::Vector{T},
         snapevery::Union{Integer, Nothing} = nothing
     ) where {T<:Real}
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"
         @assert dt > 0 "Timestep size must be positive!"
         @assert dx > 0 "Cell size in x-direction must be positive!"
-        @assert dz > 0 "Cell size in z-direction must be positive!"
         
         # Check velocity
-        nx, nz = size(vel)
+        nx = length(vel)
         @assert nx >= 3 "Velocity model in x-direction must have at least 3 cells!"
-        @assert nz >= 3 "Velocity model in z-direction must have at least 3 cells!"
         @assert all(vel .> 0.0) "Velocity model must be positive everywhere!"
 
         # Initialize arrays
-        fact_x = zero(vel)
-        fact_z = zero(vel)
+        fact = zero(vel)
         pold = zero(vel)
         pcur = zero(vel)
         pnew = zero(vel)
-        snapshots = (snapevery !== nothing ? zeros(nx, nz, div(nt, snapevery)) : nothing)
+        snapshots = (snapevery !== nothing ? zeros(nx, div(nt, snapevery)) : nothing)
 
-        new(nt, nx, nz, dt, dx, dz, vel, fact_x, fact_z, pold, pcur, pnew, snapevery, snapshots)
+        new(nt, nx, dt, dx, vel, fact, pold, pcur, pnew, snapevery, snapshots)
     end
 end
 
 # Default type parameter constuctor
-IsotropicAcousticSerialReflectiveWaveModel2D(nt, dt, dx, dz, vel, snapevery=nothing) = IsotropicAcousticSerialReflectiveWaveModel2D{Float64}(nt, dt, dx, dz, vel, snapevery)
+IsotropicAcousticSerialReflectiveWaveModel1D(nt, dt, dx, vel, snapevery=nothing) = IsotropicAcousticSerialReflectiveWaveModel1D{Float64}(nt, dt, dx, vel, snapevery)
 
 # Tag traits
-WaveEquationTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = IsotropicAcousticWaveEquation()
-KernelTypeTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = SerialKernel()
-BoundaryConditionTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = ReflectiveBoundaryCondition()
-IsSnappableTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel2D}) = Snappable()
+WaveEquationTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel1D}) = IsotropicAcousticWaveEquation()
+KernelTypeTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel1D}) = SerialKernel()
+BoundaryConditionTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel1D}) = ReflectiveBoundaryCondition()
+IsSnappableTrait(::Type{<:IsotropicAcousticSerialReflectiveWaveModel1D}) = Snappable()
