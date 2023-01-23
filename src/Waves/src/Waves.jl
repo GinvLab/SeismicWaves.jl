@@ -4,9 +4,9 @@ Module for generalized wave propagation solvers.
 module Waves
 
 include("models/wavemodel.jl")
+include("models/cpmlcoeffs.jl")
 
 include("traits/equation.jl")
-include("traits/kernel.jl")
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
 include("traits/snappable.jl")
@@ -23,7 +23,9 @@ include("models/acoustic/check.jl")
 include("models/acoustic/precompute.jl")
 include("models/acoustic/models.jl")
 include("models/acoustic/forward.jl")
-export IsotropicAcousticSerialReflectiveWaveModel1D
+include("models/acoustic/init_CPML_bdc.jl")
+export IsotropicAcousticReflectiveWaveModel1D
+export IsotropicAcousticCPMLWaveModel1D
 
 export Sources, Receivers
 export solve!

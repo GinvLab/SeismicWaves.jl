@@ -73,9 +73,16 @@ Check that the number of points per wavelength is above or equal to the specifie
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
-@views function check_positions(model::WaveModel1D, positions::Matrix{<:Real})
+@views function check_positions(::ReflectiveBoundaryCondition, model::WaveModel1D, positions::Matrix{<:Real})
     @assert size(positions, 2) == 1 "Positions matrix do not match the dimension of the model!"
     for s in 1:size(positions, 1)
         @assert 0 <= positions[s, 1] <= model.lx "Position $(s) is not inside the model!"
+    end
+end
+
+@views function check_positions(::CPMLBoundaryCondition, model::WaveModel1D, positions::Matrix{<:Real})
+    check_positions(ReflectiveBoundaryCondition(), model, positions)
+    for s in 1:size(positions, 1)
+        @assert model.dx * model.halo <= positions[s, 1] <= model.lx - (model.dx * model.halo) "Position $(s) is inside the CPML region!"
     end
 end
