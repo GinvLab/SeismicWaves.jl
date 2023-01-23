@@ -42,6 +42,10 @@ ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic2D_Threads.jl")
 ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic2D_CUDA.jl")
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic3D_Threads.jl")
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic3D_CUDA.jl")
 
 include("utils.jl")
 export rickersource1D

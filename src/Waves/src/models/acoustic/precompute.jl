@@ -64,7 +64,7 @@ end
     # find nearest grid point for each receiver
     posrecs = zeros(Int, size(recs.positions))          # receiver positions (in grid points)
     for r = 1:nrecs
-        posrecs[r,:] .= round.(Int, [recs.positions[r,1] / model.dx + 1, recs.positions[r,2] / model.dy + 1, srcs.positions[s,3] / model.dz + 1], RoundNearestTiesUp)
+        posrecs[r,:] .= round.(Int, [recs.positions[r,1] / model.dx + 1, recs.positions[r,2] / model.dy + 1, recs.positions[r,3] / model.dz + 1], RoundNearestTiesUp)
     end
     
     return possrcs, posrecs, dt2srctf, traces
