@@ -7,10 +7,12 @@ Also returns snapshots for every shot if the model has snapshotting enabled.
     model::WaveModel,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
     backend
-)::Union{Vector{Array}, Nothing}
+    )::Union{Vector{Array}, Nothing}
     # Check model
+    @info "Checking model"
     check(model)
     # Precompute constant values
+    @info "Precomputing constant values"
     precompute!(model)
 
     # Snapshots setup
@@ -19,15 +21,20 @@ Also returns snapshots for every shot if the model has snapshotting enabled.
     end
     
     # Shots loop
-    for (srcs, recs) in shots
+    for (shot, (srcs, recs)) in enumerate(shots)
+        @info "Shot #$(shot)"
         # Initialize shot
+        @info "Initializing shot"
         possrcs, posrecs, srctf, traces = init_shot!(model, srcs, recs)
         # Compute forward solver
+        @info "Computing forward solver"
         forward!(model, possrcs, posrecs, srctf, traces, backend)
         # Save traces in reeivers seismograms
+        @info "Saving receivers seismograms"
         copyto!(recs.seismograms, traces)
         # Save shot's snapshots
         if snapenabled(model)
+            @info "Saving snapshots"
             push!(snapshots_per_shot, copy(model.snapshots))
         end
     end

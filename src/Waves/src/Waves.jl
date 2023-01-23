@@ -3,6 +3,8 @@ Module for generalized wave propagation solvers.
 """
 module Waves
 
+using Printf
+
 include("models/wavemodel.jl")
 include("models/cpmlcoeffs.jl")
 

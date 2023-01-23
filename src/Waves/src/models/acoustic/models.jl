@@ -11,6 +11,7 @@ struct IsotropicAcousticReflectiveWaveModel1D{T<:Real} <: WaveModel1D
     fact::Vector{T}
     snapevery::Union{Integer, Nothing}
     snapshots::Union{Matrix{T}, Nothing}
+    infoevery::Integer
 
     @doc """
     Construct an isotropic acoustic 1D wave equation model with reflective boundaries.
@@ -39,7 +40,7 @@ struct IsotropicAcousticReflectiveWaveModel1D{T<:Real} <: WaveModel1D
         fact = zero(vel)
         snapshots = (snapevery !== nothing ? zeros(nx, div(nt, snapevery)) : nothing)
 
-        new(nt, nx, lx, dt, dx, vel, fact, snapevery, snapshots)
+        new(nt, nx, lx, dt, dx, vel, fact, snapevery, snapshots, 100)
     end
 end
 
@@ -67,6 +68,7 @@ struct IsotropicAcousticCPMLWaveModel1D{T<:Real} <: WaveModel1D
     cpmlcoeffs::CPMLCoefficients
     snapevery::Union{Integer, Nothing}
     snapshots::Union{Matrix{T}, Nothing}
+    infoevery::Integer
 
     @doc """
     Construct an isotropic acoustic 1D wave equation model with CPML boundaries.
@@ -99,7 +101,7 @@ struct IsotropicAcousticCPMLWaveModel1D{T<:Real} <: WaveModel1D
         # Create CPML coefficients
         cpmlcoeffs = CPMLCoefficients(halo)
 
-        new(nt, nx, lx, dt, dx, vel, fact, halo, rcoef, cpmlcoeffs, snapevery, snapshots)
+        new(nt, nx, lx, dt, dx, vel, fact, halo, rcoef, cpmlcoeffs, snapevery, snapshots, 100)
     end
 end
 
@@ -133,6 +135,7 @@ struct IsotropicAcousticCPMLWaveModel2D{T<:Real} <: WaveModel2D
     freetop::Bool
     snapevery::Union{Integer, Nothing}
     snapshots::Union{Array{T, 3}, Nothing}
+    infoevery::Integer
 
     @doc """
     Construct an isotropic acoustic 2D wave equation model with CPML boundaries.
@@ -171,7 +174,7 @@ struct IsotropicAcousticCPMLWaveModel2D{T<:Real} <: WaveModel2D
         cpmlcoeffs_x = CPMLCoefficients(halo)
         cpmlcoeffs_y = CPMLCoefficients(halo)
 
-        new(nt, nx, ny, lx, ly, dt, dx, dy, vel, fact, halo, rcoef, cpmlcoeffs_x, cpmlcoeffs_y, freetop, snapevery, snapshots)
+        new(nt, nx, ny, lx, ly, dt, dx, dy, vel, fact, halo, rcoef, cpmlcoeffs_x, cpmlcoeffs_y, freetop, snapevery, snapshots, 100)
     end
 end
 
@@ -209,6 +212,7 @@ struct IsotropicAcousticCPMLWaveModel3D{T<:Real} <: WaveModel3D
     freetop::Bool
     snapevery::Union{Integer, Nothing}
     snapshots::Union{Array{T, 4}, Nothing}
+    infoevery::Integer
 
     @doc """
     Construct an isotropic acoustic 3D wave equation model with CPML boundaries.
@@ -252,7 +256,7 @@ struct IsotropicAcousticCPMLWaveModel3D{T<:Real} <: WaveModel3D
         cpmlcoeffs_y = CPMLCoefficients(halo)
         cpmlcoeffs_z = CPMLCoefficients(halo)
 
-        new(nt, nx, ny, nz, lx, ly, lz, dt, dx, dy, dz, vel, fact, halo, rcoef, cpmlcoeffs_x, cpmlcoeffs_y, cpmlcoeffs_z, freetop, snapevery, snapshots)
+        new(nt, nx, ny, nz, lx, ly, lz, dt, dx, dy, dz, vel, fact, halo, rcoef, cpmlcoeffs_x, cpmlcoeffs_y, cpmlcoeffs_z, freetop, snapevery, snapshots, 100)
     end
 end
 

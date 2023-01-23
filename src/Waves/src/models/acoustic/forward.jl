@@ -24,10 +24,14 @@
             pold, pcur, pnew, fact_a, dx,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
+        # Print timestep info
+        if it % model.infoevery == 0
+            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array(pcur))))
+        end
 
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
-            @debug "Snapping iteration: $(it), max absolute pressure: $(maximum(abs.(Array(pcur))))"
+            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
             copyto!(model.snapshots[:, div(it, model.snapevery)], pcur)
         end
     end
@@ -81,10 +85,14 @@ end
             a_x_l, a_x_r, b_K_x_l, b_K_x_r,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
+        # Print timestep info
+        if it % model.infoevery == 0
+            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array(pcur))))
+        end
 
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
-            @debug "Snapping iteration: $(it), max absolute pressure: $(maximum(abs.(Array(pcur))))"
+            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
             copyto!(model.snapshots[:, div(it, model.snapevery)], pcur)
         end
     end
@@ -154,10 +162,14 @@ end
             a_y_l, a_y_r, b_K_y_l, b_K_y_r,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
+        # Print timestep info
+        if it % model.infoevery == 0
+            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array(pcur))))
+        end
 
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
-            @debug "Snapping iteration: $(it), max absolute pressure: $(maximum(abs.(Array(pcur))))"
+            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
             copyto!(model.snapshots[:, :, div(it, model.snapevery)], pcur)
         end
     end
@@ -243,10 +255,14 @@ end
             a_z_l, a_z_r, b_K_z_l, b_K_z_r,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
+        # Print timestep info
+        if it % model.infoevery == 0
+            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array(pcur))))
+        end
 
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
-            @debug "Snapping iteration: $(it), max absolute pressure: $(maximum(abs.(Array(pcur))))"
+            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
             copyto!(model.snapshots[:, :, :, div(it, model.snapevery)], pcur)
         end
     end
