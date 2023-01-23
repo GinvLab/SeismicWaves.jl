@@ -27,6 +27,6 @@ include("models/acoustic/reset.jl")
 export Sources, Receivers
 export solve!
 
-export IsotropicAcousticSerialReflectiveWaveModel2D
+export IsotropicAcousticSerialReflectiveWaveModel1D
 
 end

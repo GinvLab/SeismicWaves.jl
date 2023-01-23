@@ -32,7 +32,7 @@ struct IsotropicAcousticSerialReflectiveWaveModel1D{T<:Real} <: WaveModel1D
     - `vel::Vector{T}`: the velocity model.
     - `snapevery::Union{Integer, Nothing} = nothing`: if specified, saves pressure field every `snapevery` timesteps into the `snapshots` field.
     """
-    function IsotropicAcousticSerialReflectiveWaveModel2D{T}(
+    function IsotropicAcousticSerialReflectiveWaveModel1D{T}(
         nt::Integer,
         dt::Real,
         dx::Real,
