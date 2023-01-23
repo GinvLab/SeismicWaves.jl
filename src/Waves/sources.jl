@@ -2,13 +2,13 @@
 Type representing a multi-source configuration for a wave propagation shot.
 """
 struct Sources{T<:Real}
-    position::Matrix{Int}
+    positions::Matrix{<:Real}
     tf::Matrix{T}
     freqdomain::Real
 
     @doc """
         Sources[{T<:Real = Float64}](
-            positions::Matrix{<:Int},
+            positions::Matrix{<:Real},
             tf::Matrix{<:T},
             freqdomain::T
         )
@@ -16,7 +16,7 @@ struct Sources{T<:Real}
     Create a single shot wave propagation source configuration from source positions, time-functions and a frequency domain.
     """
     function Sources{T}(
-        positions::Matrix{<:Int},
+        positions::Matrix{<:Real},
         tf::Matrix{T},
         freqdomain::Real
     ) where {T<:Real}

@@ -14,9 +14,7 @@ Initialize the model for a new shot.
 )
     init_bdc!(model, srcs)
     check_shot(model, srcs, recs)
-    reset!(model)
-    ## allocate_shot!(model, srcs, recs)
-    ## precompute_shot!(model, srcs, recs)
+    return allocate_shot(model, srcs, recs)
 end
 
 """
@@ -26,7 +24,14 @@ Check shot configuration for a model.
 """
 check_shot(model::WaveModel, srcs::Sources{<:Real}, recs::Receivers{<:Real}) = check_shot(WaveEquationTrait(model), BoundaryConditionTrait(model), model, srcs, recs)
 
-check_shot(x::IsotropicAcousticWaveEquation, ::ReflectiveBoundaryCondition, model::WaveModel, srcs::Sources{<:Real}, ::Receivers{<:Real}) = check_ppw(x, model, srcs)
+function check_shot(x::IsotropicAcousticWaveEquation, ::ReflectiveBoundaryCondition, model::WaveModel, srcs::Sources{<:Real}, recs::Receivers{<:Real})
+    @debug "Checking points per wavelengh"
+    check_ppw(x, model, srcs)
+    @debug "Checking sources positions"
+    check_positions(model, srcs.positions)
+    @debug "Checking receivers positions" 
+    check_positions(model, recs.positions)
+end
 
 """
     init_bdc!(model::WaveModel, srcs::Sources{<:Real})
@@ -34,14 +39,7 @@ check_shot(x::IsotropicAcousticWaveEquation, ::ReflectiveBoundaryCondition, mode
 Initialize model boundary conditions for a shot.
 """
 init_bdc!(model::WaveModel, srcs::Sources{<:Real}) = init_bdc!(WaveEquationTrait(model), BoundaryConditionTrait(model), model, srcs)
-
 init_bdc!(::AcousticWaveEquation, ::ReflectiveBoundaryCondition, ::WaveModel, ::Sources{<:Real}) = nothing
 
-"""
-    reset!(model::WaveModel)
-
-Resets a model for a new shot.
-"""
-reset!(model::WaveModel) = reset!(WaveEquationTrait(model), BoundaryConditionTrait(model), model)
-
-reset!(x::AcousticWaveEquation, ::BoundaryConditionTrait, model::WaveModel) = reset_pressure!(x, model)
+allocate_shot(model::WaveModel, srcs::Sources{<:Real}, recs::Receivers{<:Real}) = allocate_shot(WaveEquationTrait(model), model, srcs, recs)
+allocate_shot(x::AcousticWaveEquation, model::WaveModel, srcs::Sources{<:Real}, recs::Receivers{<:Real}) = extract_shot(x, model, srcs, recs)

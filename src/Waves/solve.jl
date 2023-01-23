@@ -1,16 +1,12 @@
 """
-    @views solve!(
-        model::WaveModel,
-        shots::Vector{Pair{Sources{<:Real}, Receivers{<:Real}}}
-    )::Union{Vector{Array}, Nothing}
-
 Solve the wave propagation equation specified by `WaveModel` on multiple shots.
 
 Also returns snapshots for every shot if the model has snapshotting enabled.
 """
 @views function solve!(
     model::WaveModel,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
+    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
+    backend
 )::Union{Vector{Array}, Nothing}
     check(model)
     precompute!(model)
@@ -19,18 +15,18 @@ Also returns snapshots for every shot if the model has snapshotting enabled.
         snapshots_per_shot = []
     end
     
-    ## TODO distribute shots
     for (srcs, recs) in shots
-        init_shot!(model, srcs, recs)
-        forward!(model, srcs, recs)
+        possrcs, posrecs, srctf, traces = init_shot!(model, srcs, recs)
+        forward!(model, possrcs, posrecs, srctf, traces, backend)
+        # Save traces in seismograms
+        copyto!(recs.seismograms, traces)
 
         if snapenabled(model)
-            push!(snapshots_per_shot, model.shapshots)
+            push!(snapshots_per_shot, copy(model.snapshots))
         end
     end
-    ## TODO gather results
 
-    if snapeneabled(model)
+    if snapenabled(model)
         return snapshots_per_shot
     end
     return nothing

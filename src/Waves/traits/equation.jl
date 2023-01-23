@@ -11,7 +11,7 @@ abstract type AcousticWaveEquation <: WaveEquationTrait end
 """
 Trait for an isotropic acoustic wave equation model.
 """
-struct IsotropicAcousticWaveEquation <: WaveEquationTrait end
+struct IsotropicAcousticWaveEquation <: AcousticWaveEquation end
 
 """
 Abstract trait for a general elastic wave equation model.

@@ -4,13 +4,11 @@ Simplest model for isotropic acoustic 1D wave equation modeling with reflective 
 struct IsotropicAcousticSerialReflectiveWaveModel1D{T<:Real} <: WaveModel1D
     nt::Integer
     nx::Integer
+    lx::Real
     dt::Real
     dx::Real
     vel::Vector{T}
     fact::Vector{T}
-    pold::Vector{T}
-    pcur::Vector{T}
-    pnew::Vector{T}
     snapevery::Union{Integer, Nothing}
     snapshots::Union{Matrix{T}, Nothing}
 
@@ -20,7 +18,7 @@ struct IsotropicAcousticSerialReflectiveWaveModel1D{T<:Real} <: WaveModel1D
             dt::Real,
             dx::Real,
             vel::Vector{T},
-            savesnapshots::Bool = true
+            snapevery::Union{Integer, Nothing} = nothing
         )
     
     Construct an isotropic acoustic 1D wave equation model with reflective boundaries and serial kernel.
@@ -49,14 +47,14 @@ struct IsotropicAcousticSerialReflectiveWaveModel1D{T<:Real} <: WaveModel1D
         @assert nx >= 3 "Velocity model in x-direction must have at least 3 cells!"
         @assert all(vel .> 0.0) "Velocity model must be positive everywhere!"
 
+        # Compute model size
+        lx = dx * (nx-1)
+
         # Initialize arrays
         fact = zero(vel)
-        pold = zero(vel)
-        pcur = zero(vel)
-        pnew = zero(vel)
         snapshots = (snapevery !== nothing ? zeros(nx, div(nt, snapevery)) : nothing)
 
-        new(nt, nx, dt, dx, vel, fact, pold, pcur, pnew, snapevery, snapshots)
+        new(nt, nx, lx, dt, dx, vel, fact, snapevery, snapshots)
     end
 end
 

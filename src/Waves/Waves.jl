@@ -22,11 +22,15 @@ include("solve.jl")
 include("models/acoustic/check.jl")
 include("models/acoustic/precompute.jl")
 include("models/acoustic/models.jl")
-include("models/acoustic/reset.jl")
+include("models/acoustic/forward.jl")
+export IsotropicAcousticSerialReflectiveWaveModel1D
 
 export Sources, Receivers
 export solve!
 
-export IsotropicAcousticSerialReflectiveWaveModel1D
+include("models/acoustic/backends/acoustic1D.jl")
+
+include("utils.jl")
+export rickersource1D
 
 end
