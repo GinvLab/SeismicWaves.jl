@@ -20,7 +20,7 @@ function runtests()
     for f in testfiles
         println("")
         # skip excluded files
-        if f ∈ excludedfiles
+        if f in excludedfiles
             printstyled("Skipping $(basename(f))\n"; bold=true, color=:white)
             continue
         end
