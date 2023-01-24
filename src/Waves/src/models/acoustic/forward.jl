@@ -7,9 +7,9 @@
     nt = model.nt
     dx = model.dx
     # Initialize pressure and factors arrays
-    pold = backend.Data.Array( zeros(nx) )
-    pcur = backend.Data.Array( zeros(nx) )
-    pnew = backend.Data.Array( zeros(nx) )
+    pold = backend.zeros(nx)
+    pcur = backend.zeros(nx)
+    pnew = backend.zeros(nx)
     fact_a = backend.Data.Array( model.fact )
     # Wrap sources and receivers arrays
     possrcs_a = backend.Data.Array( possrcs )
@@ -51,15 +51,15 @@ end
     dx = model.dx
     halo = model.halo
     # Initialize pressure and factors arrays
-    pold = backend.Data.Array( zeros(nx) )
-    pcur = backend.Data.Array( zeros(nx) )
-    pnew = backend.Data.Array( zeros(nx) )
+    pold = backend.zeros(nx)
+    pcur = backend.zeros(nx)
+    pnew = backend.zeros(nx)
     fact_a = backend.Data.Array( model.fact )
     # Initialize CPML arrays
-    ψ_l = backend.Data.Array( zeros(halo+1) )
-    ψ_r = backend.Data.Array( zeros(halo+1) )
-    ξ_l = backend.Data.Array( zeros(halo) )
-    ξ_r = backend.Data.Array( zeros(halo) )
+    ψ_l = backend.zeros(halo+1)
+    ψ_r = backend.zeros(halo+1)
+    ξ_l = backend.zeros(halo)
+    ξ_r = backend.zeros(halo)
     # Wrap CPML coefficient arrays
     a_x_l = backend.Data.Array( model.cpmlcoeffs.a_l )
     a_x_r = backend.Data.Array( model.cpmlcoeffs.a_r )
@@ -114,19 +114,19 @@ end
     dy = model.dy
     halo = model.halo
     # Initialize pressure and factors arrays
-    pold = backend.Data.Array( zeros(nx, ny) )
-    pcur = backend.Data.Array( zeros(nx, ny) )
-    pnew = backend.Data.Array( zeros(nx, ny) )
+    pold = backend.zeros(nx, ny)
+    pcur = backend.zeros(nx, ny)
+    pnew = backend.zeros(nx, ny)
     fact_a = backend.Data.Array( model.fact )
     # Initialize CPML arrays
-    ψ_x_l = backend.Data.Array( zeros(halo+1, ny) )
-    ψ_x_r = backend.Data.Array( zeros(halo+1, ny) )
-    ξ_x_l = backend.Data.Array( zeros(halo, ny) )
-    ξ_x_r = backend.Data.Array( zeros(halo, ny) )
-    ψ_y_l = backend.Data.Array( zeros(nx, halo+1) )
-    ψ_y_r = backend.Data.Array( zeros(nx, halo+1) )
-    ξ_y_l = backend.Data.Array( zeros(nx, halo) )
-    ξ_y_r = backend.Data.Array( zeros(nx, halo) )
+    ψ_x_l = backend.zeros(halo+1, ny)
+    ψ_x_r = backend.zeros(halo+1, ny)
+    ξ_x_l = backend.zeros(halo, ny)
+    ξ_x_r = backend.zeros(halo, ny)
+    ψ_y_l = backend.zeros(nx, halo+1)
+    ψ_y_r = backend.zeros(nx, halo+1)
+    ξ_y_l = backend.zeros(nx, halo)
+    ξ_y_r = backend.zeros(nx, halo)
     # Wrap CPML coefficient arrays
     a_x_l = backend.Data.Array( model.cpmlcoeffs_x.a_l )
     a_x_r = backend.Data.Array( model.cpmlcoeffs_x.a_r )
@@ -193,23 +193,23 @@ end
     dz = model.dz
     halo = model.halo
     # Initialize pressure and factors arrays
-    pold = backend.Data.Array( zeros(nx, ny, nz) )
-    pcur = backend.Data.Array( zeros(nx, ny, nz) )
-    pnew = backend.Data.Array( zeros(nx, ny, nz) )
+    pold = backend.zeros(nx, ny, nz)
+    pcur = backend.zeros(nx, ny, nz)
+    pnew = backend.zeros(nx, ny, nz)
     fact_a = backend.Data.Array( model.fact )
     # Initialize CPML arrays
-    ψ_x_l = backend.Data.Array( zeros(halo+1, ny, nz) )
-    ψ_x_r = backend.Data.Array( zeros(halo+1, ny, nz) )
-    ξ_x_l = backend.Data.Array( zeros(halo, ny, nz) )
-    ξ_x_r = backend.Data.Array( zeros(halo, ny, nz) )
-    ψ_y_l = backend.Data.Array( zeros(nx, halo+1, nz) )
-    ψ_y_r = backend.Data.Array( zeros(nx, halo+1, nz) )
-    ξ_y_l = backend.Data.Array( zeros(nx, halo, nz) )
-    ξ_y_r = backend.Data.Array( zeros(nx, halo, nz) )
-    ψ_z_l = backend.Data.Array( zeros(nx, ny, halo+1) )
-    ψ_z_r = backend.Data.Array( zeros(nx, ny, halo+1) )
-    ξ_z_l = backend.Data.Array( zeros(nx, ny, halo) )
-    ξ_z_r = backend.Data.Array( zeros(nx, ny, halo) )
+    ψ_x_l = backend.zeros(halo+1, ny, nz)
+    ψ_x_r = backend.zeros(halo+1, ny, nz)
+    ξ_x_l = backend.zeros(halo, ny, nz)
+    ξ_x_r = backend.zeros(halo, ny, nz)
+    ψ_y_l = backend.zeros(nx, halo+1, nz)
+    ψ_y_r = backend.zeros(nx, halo+1, nz)
+    ξ_y_l = backend.zeros(nx, halo, nz)
+    ξ_y_r = backend.zeros(nx, halo, nz)
+    ψ_z_l = backend.zeros(nx, ny, halo+1)
+    ψ_z_r = backend.zeros(nx, ny, halo+1)
+    ξ_z_l = backend.zeros(nx, ny, halo)
+    ξ_z_r = backend.zeros(nx, ny, halo)
     # Wrap CPML coefficient arrays
     a_x_l = backend.Data.Array( model.cpmlcoeffs_x.a_l )
     a_x_r = backend.Data.Array( model.cpmlcoeffs_x.a_r )

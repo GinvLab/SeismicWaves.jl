@@ -114,6 +114,17 @@ end
     return nothing
 end
 
+@parallel function correlate_gradient_kernel!(curgrad, adjcur, pcur, pold, pveryold, _dt2)
+    @all(curgrad) = @all(curgrad) + ( @all(adjcur) * ( @all(pcur) - 2.0 * @all(pold) + @all(pveryold) ) * _dt2 )
+    return nothing
+end
+
+@views function correlate_gradient!(curgrad, adjcur, pcur, pold, pveryold, dt)
+    _dt2 = 1/dt^2
+    @parallel correlate_gradient_kernel!(curgrad, adjcur, pcur, pold, pveryold, _dt2)
+    return nothing
+end
+
 @views function forward_onestep_CPML!(
     pold, pcur, pnew, fact, dx, dy, dz,
     halo, ψ_x_l, ψ_x_r, ξ_x_l, ξ_x_r, ψ_y_l, ψ_y_r, ξ_y_l, ξ_y_r, ψ_z_l, ψ_z_r, ξ_z_l, ξ_z_r,
@@ -164,3 +175,10 @@ end
 
     return pcur, pnew, pold
 end
+
+zeros(x) = @zeros(x)
+ones(x) = @ones(x)
+zeros(x,y) = @zeros(x,y)
+ones(x,y) = @ones(x,y)
+zeros(x,y,z) = @zeros(x,y,z)
+ones(x,y,z) = @ones(x,y,z)
