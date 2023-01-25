@@ -93,7 +93,7 @@ end
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
             @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            copyto!(model.snapshots[:, div(it, model.snapevery)], pcur)
+            copyto!(model.snapshots[:, div(it, model.snapevery)], Array( pcur ) )
         end
     end
 
@@ -170,7 +170,7 @@ end
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
             @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            copyto!(model.snapshots[:, :, div(it, model.snapevery)], pcur)
+            copyto!(model.snapshots[:, :, div(it, model.snapevery)], Array( pcur ))
         end
     end
 
@@ -263,7 +263,7 @@ end
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
             @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            copyto!(model.snapshots[:, :, :, div(it, model.snapevery)], pcur)
+            copyto!(model.snapshots[:, :, :, div(it, model.snapevery)], Array( pcur ) )
         end
     end
 
