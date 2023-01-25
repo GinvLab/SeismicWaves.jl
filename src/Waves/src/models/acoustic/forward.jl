@@ -32,12 +32,12 @@
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
             @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            copyto!(model.snapshots[:, div(it, model.snapevery)], Array( pcur ) )
+            model.snapshots[:, div(it, model.snapevery)] .= Array( pcur )
         end
     end
 
     # Save traces
-    copyto!(traces, Array( traces_a ))
+    traces .= Array( traces_a )
 end
 
 @views function forward!(
@@ -93,12 +93,12 @@ end
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
             @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            copyto!(model.snapshots[:, div(it, model.snapevery)], Array( pcur ) )
+            model.snapshots[:, div(it, model.snapevery)] .= Array( pcur )
         end
     end
 
     # Save traces
-    copyto!(traces, Array( traces_a ))
+    traces .= Array( traces_a )
 end
 
 @views function forward!(
@@ -170,12 +170,12 @@ end
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
             @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            copyto!(model.snapshots[:, :, div(it, model.snapevery)], Array( pcur ))
+            model.snapshots[:, :, div(it, model.snapevery)] .= Array( pcur )
         end
     end
 
     # Save traces
-    copyto!(traces, Array( traces_a ))
+    traces .= Array( traces_a )
 end
 
 @views function forward!(
@@ -263,10 +263,10 @@ end
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
             @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            copyto!(model.snapshots[:, :, :, div(it, model.snapevery)], Array( pcur ) )
+            model.snapshots[:, :, :, div(it, model.snapevery)] .= Array( pcur )
         end
     end
 
     # Save traces
-    copyto!(traces, Array( traces_a ))
+    traces .= Array( traces_a )
 end
