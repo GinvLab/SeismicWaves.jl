@@ -73,14 +73,17 @@ end
 
 @views function forward_onestep!(
     pold, pcur, pnew, fact, dx,
-    possrcs, dt2srctf, posrecs, traces, it
+    possrcs, dt2srctf, posrecs, traces, it;
+    save_trace=true
 )
     nx = length(pcur)
     _dx2 = 1 / dx^2
 
     @parallel (2:nx-1) update_p!(pold, pcur, pnew, fact, _dx2)
     @parallel (1:size(possrcs,1)) inject_sources!(pnew, dt2srctf, possrcs, it)
-    @parallel (1:size(posrecs,1)) record_receivers!(pnew, traces, posrecs, it)
+    if save_trace
+        @parallel (1:size(posrecs,1)) record_receivers!(pnew, traces, posrecs, it)
+    end
 
     return pcur, pnew, pold
 end
@@ -90,7 +93,8 @@ end
     halo, ψ_l, ψ_r, ξ_l, ξ_r,
     a_x_hl, a_x_hr, b_K_x_hl, b_K_x_hr,
     a_x_l, a_x_r, b_K_x_l, b_K_x_r,
-    possrcs, dt2srctf, posrecs, traces, it
+    possrcs, dt2srctf, posrecs, traces, it;
+    save_trace=true
 )
     nx = length(pcur)
     _dx = 1 / dx
@@ -110,7 +114,9 @@ end
         b_K_x_l, b_K_x_r
     )
     @parallel (1:size(possrcs,1)) inject_sources!(pnew, dt2srctf, possrcs, it)
-    @parallel (1:size(posrecs,1)) record_receivers!(pnew, traces, posrecs, it)
+    if save_trace
+        @parallel (1:size(posrecs,1)) record_receivers!(pnew, traces, posrecs, it)
+    end
 
     return pcur, pnew, pold
 end

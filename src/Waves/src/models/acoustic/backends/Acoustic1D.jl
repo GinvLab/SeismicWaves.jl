@@ -88,7 +88,8 @@ end
     halo, ψ_l, ψ_r, ξ_l, ξ_r,
     a_x_hl, a_x_hr, b_K_x_hl, b_K_x_hr,
     a_x_l, a_x_r, b_K_x_l, b_K_x_r,
-    possrcs, dt2srctf, posrecs, traces, it
+    possrcs, dt2srctf, posrecs, traces, it;
+    save_trace=true
 )
     nx = length(pcur)
     _dx = 1 / dx
@@ -108,7 +109,9 @@ end
         b_K_x_l, b_K_x_r
     )
     inject_sources!(pnew, dt2srctf, possrcs, it)
-    record_receivers!(pnew, traces, posrecs, it)
+    if save_trace
+        record_receivers!(pnew, traces, posrecs, it)
+    end
 
     return pcur, pnew, pold
 end

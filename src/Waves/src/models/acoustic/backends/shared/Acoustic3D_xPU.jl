@@ -134,7 +134,8 @@ end
     a_y_l, a_y_r, b_K_y_l, b_K_y_r,
     a_z_hl, a_z_hr, b_K_z_hl, b_K_z_hr,
     a_z_l, a_z_r, b_K_z_l, b_K_z_r,
-    possrcs, dt2srctf, posrecs, traces, it
+    possrcs, dt2srctf, posrecs, traces, it;
+    save_trace=true
 )
     nx, ny, nz = size(pcur)
     _dx = 1/dx
@@ -171,7 +172,9 @@ end
     # inject sources
     @parallel (1:size(possrcs,1)) inject_sources!(pnew, dt2srctf, possrcs, it)
     # record receivers
-    @parallel (1:size(posrecs,1)) record_receivers!(pnew, traces, posrecs, it)
+    if save_trace
+        @parallel (1:size(posrecs,1)) record_receivers!(pnew, traces, posrecs, it)
+    end
 
     return pcur, pnew, pold
 end
