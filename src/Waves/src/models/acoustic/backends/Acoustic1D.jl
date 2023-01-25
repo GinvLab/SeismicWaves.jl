@@ -113,4 +113,7 @@ end
     return pcur, pnew, pold
 end
 
+ones = Base.ones
+zeros = Base.zeros
+
 end
