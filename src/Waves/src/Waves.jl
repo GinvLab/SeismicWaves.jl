@@ -32,7 +32,7 @@ export IsotropicAcousticCPMLWaveModel1D, IsotropicAcousticCPMLWaveModel2D, Isotr
 export Sources, Receivers
 export solve!
 
-include("models/acoustic/backends/acoustic1D.jl")
+include("models/acoustic/backends/Acoustic1D.jl")
 
 using ParallelStencil
 
