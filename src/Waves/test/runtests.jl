@@ -4,8 +4,14 @@
 push!(LOAD_PATH, "../src")
 import Waves
 
+import CUDA
+
 # list of files to NOT be tested
 excludedfiles = []
+# list of files to skipped ONLY if CUDA is NOT functional
+if !CUDA.functional()
+    push!(excludedfiles, joinpath(pwd(), "test_analytical_CUDA.jl"))
+end
 
 function runtests()
     exename   = joinpath(Sys.BINDIR, Base.julia_exename())
