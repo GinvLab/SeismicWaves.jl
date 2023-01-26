@@ -2,7 +2,7 @@
     ::AcousticWaveEquation,
     ::CPMLBoundaryCondition,
     model::WaveModel1D, possrcs, posrecs, srctf, traces, observed, invcov, backend;
-    check_freq::Integer = 100
+    check_freq=nothing
 )
     # Numerics
     nt = model.nt
@@ -45,15 +45,27 @@
     traces_a = backend.Data.Array( traces )
     observed_a = backend.Data.Array( observed )
     invcov_a = backend.Data.Array(invcov)
-    # Checkpointing constants
-    last_checkpoint = floor(Int, nt / check_freq) * check_freq   # time step of the last checkpoint
-    # Checkpointing arrays
-    save_buffer = backend.zeros(nx, check_freq + 2)
-    checkpoints = Dict{Int, backend.Data.Array}()
-    checkpoints_CPML = Dict{Int, Any}()
-    checkpoints[-1] = copy(pold)
-    checkpoints[0] = copy(pcur)
-    checkpoints_CPML[0] = (copy(ψ_l), copy(ψ_r), copy(ξ_l), copy(ξ_r))
+
+    # Checkpointing setup
+    if check_freq !== nothing   # checkpointing enabled
+        # Time step of last checkpoint
+        last_checkpoint = floor(Int, nt / check_freq) * check_freq
+        # Checkpointing arrays
+        save_buffer = backend.zeros(nx, check_freq + 2)     # pressure window buffer
+        checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints
+        checkpoints_CPML = Dict{Int, Any}()                 # CPML arrays checkpoints
+        # Save initial conditions as first checkpoint
+        checkpoints[-1] = copy(pold)
+        checkpoints[0] = copy(pcur)
+        checkpoints_CPML[0] = (copy(ψ_l), copy(ψ_r), copy(ξ_l), copy(ξ_r))
+    else    # no checkpointing
+        last_checkpoint = 1                                 # simulate a checkpoint at time step 1 (so buffer will start from 0)
+        save_buffer = backend.zeros(nx, nt+2)               # save all timesteps (from 0 to n+1 so n+2)
+        checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints (will remain empty)
+        checkpoints_CPML = Dict{Int, Any}()                 # CPML arrays checkpoints (will remain empty)
+        # Save time step 0 into buffer
+        save_buffer[:, 1] .= pcur
+    end
     # Residuals arrays
     residuals_a = similar(traces_a)
     # Gradient arrays
@@ -72,20 +84,19 @@
         )
         # Print timestep info
         if it % model.infoevery == 0
-            @debug @sprintf("Forward iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array(pcur))))
+            @debug @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt*it)
         end
         # Save checkpoint
-        if it % check_freq == 0
+        if check_freq !== nothing && it % check_freq == 0
             @debug @sprintf("Saving checkpoint at iteration: %d", it)
             # Save current and last timestep pressure
             checkpoints[it] = copy(pcur)
             checkpoints[it-1] = copy(pold)
             # Also save CPML arrays
-            checkpoints_CPML[it] = (copy(ψ_l), copy(ψ_r), copy(ξ_l), copy(ξ_r))
+            checkpoints_CPML[it] = [copy(ψ_l), copy(ψ_r), copy(ξ_l), copy(ξ_r)]
         end
         # Start populating save buffer just before last checkpoint
         if it >= last_checkpoint-1
-            @debug @sprintf("Saving into buffer at iteration: %d", it)
             save_buffer[:, it - (last_checkpoint-1) + 1] .= pcur
         end
     end
@@ -108,11 +119,11 @@
             a_x_hl, a_x_hr, b_K_x_hl, b_K_x_hr,
             a_x_l, a_x_r, b_K_x_l, b_K_x_r,
             posrecs_a, residuals_a, nothing, nothing, it;   # adjoint sources positions are receivers
-            save_trace=false   # do not save traces for adjoint
+            save_trace=false   # do not save traces in adjoint time loop
         )
         # Print timestep info
         if it % model.infoevery == 0
-            @debug @sprintf("Backward iteration: %d, maximum absolute adjoint: %g", it, maximum(abs.(Array(adjcur))))
+            @debug @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
         if it < curr_checkpoint
@@ -120,16 +131,13 @@
             # Shift last checkpoint
             old_checkpoint = curr_checkpoint
             curr_checkpoint -= check_freq
-
-            # Start forward computation from new last checkpoint
-
             # Shift start of save buffer
             save_buffer[:, 1] .= checkpoints[curr_checkpoint-1]
             save_buffer[:, 2] .= checkpoints[curr_checkpoint]
             # Shift end of save buffer
             save_buffer[:, end-1] .= checkpoints[old_checkpoint-1]
             save_buffer[:, end] .= checkpoints[old_checkpoint]
-            # Recover arrays
+            # Recover pressure and CPML arrays from current checkpoint
             pold .= checkpoints[curr_checkpoint-1]
             pcur .= checkpoints[curr_checkpoint]
             pnew .= 0.0
@@ -148,7 +156,7 @@
                     save_trace=false   # do not save trace in recovery time loop
                 )
                 if recit % model.infoevery == 0
-                    @debug @sprintf("Recovering iteration: %d, maximum absolute pressure: %g [Pa]", recit, maximum(abs.(Array(pcur))))
+                    @debug @sprintf("Recovering iteration: %d", recit)
                 end
                 # Save recovered pressure in save buffer
                 save_buffer[:, recit - (curr_checkpoint+1) + 3] .= pcur
@@ -162,5 +170,10 @@
         backend.correlate_gradient!(curgrad, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
     end
 
+    @show Base.summarysize(checkpoints)
+    @show Base.summarysize(checkpoints_CPML)
+    @show Base.summarysize(save_buffer)
+
     return Array( curgrad )
 end
+

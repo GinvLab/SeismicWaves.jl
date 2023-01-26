@@ -120,3 +120,14 @@ end
                  model.dz * model.halo <= positions[s, 3] <= model.lz - (model.dz * model.halo)) "Position $(s) is inside the CPML region!"
     end
 end
+
+function check_invcov_matrix(model::WaveModel, invcov)
+    @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to (nt x nt)!"
+end
+
+function check_checkpoint_frequency(model::WaveModel, check_freq)
+    if check_freq !== nothing
+        @assert check_freq > 2 "Checkpointing frequency must be bigger than 2!"
+        @assert check_freq < model.nt "Checkpointing frequency must be smaller than the number of timesteps!"
+    end
+end

@@ -22,7 +22,7 @@ with_logger(error_logger) do
             halo = 0
             rcoef = 1.0
             # model
-            model = IsotropicAcousticCPMLWaveModel1D(nt, dt, dx, halo, rcoef, vel, 500)
+            model = IsotropicAcousticCPMLWaveModel1D(nt, dt, dx, halo, rcoef, vel)
             # sources
             f0 = 1.0
             t0 = 4 / f0
@@ -74,7 +74,7 @@ with_logger(error_logger) do
             halo = 20
             rcoef = 0.0001
             # model
-            model = IsotropicAcousticCPMLWaveModel1D(nt, dt, dx, halo, rcoef, vel, 500)
+            model = IsotropicAcousticCPMLWaveModel1D(nt, dt, dx, halo, rcoef, vel)
             # sources
             f0 = 1.0
             t0 = 4 / f0
@@ -232,7 +232,7 @@ with_logger(error_logger) do
             halo = 0
             rcoef = 1.0
             # model
-            model = IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel, false)
+            model = IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel; freetop=false)
             # sources
             f0 = 1.0
             t0 = 4 / f0
@@ -284,7 +284,7 @@ with_logger(error_logger) do
             halo = 20
             rcoef = 0.0001
             # model
-            model = IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel, false)
+            model = IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel; freetop=false)
             # sources
             f0 = 1.0
             t0 = 4 / f0
@@ -336,7 +336,7 @@ with_logger(error_logger) do
             halo = 0
             rcoef = 1.0
             # model
-            model = IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel, false)
+            model = IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel; freetop=false)
             # sources
             f0 = 5.0
             t0 = 4 / f0
@@ -388,7 +388,7 @@ with_logger(error_logger) do
             halo = 20
             rcoef = 0.0001
             # model
-            model = IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel, false)
+            model = IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel; freetop=false)
             # sources
             f0 = 5.0
             t0 = 4 / f0
@@ -441,7 +441,7 @@ with_logger(error_logger) do
             halo = 0
             rcoef = 1.0
             # model
-            model = IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel, false)
+            model = IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel; freetop=false)
             # sources
             f0 = 1.0
             t0 = 4 / f0
@@ -493,7 +493,7 @@ with_logger(error_logger) do
             halo = 20
             rcoef = 0.0001
             # model
-            model = IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel, false)
+            model = IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel; freetop=false)
             # sources
             f0 = 1.0
             t0 = 4 / f0
@@ -545,7 +545,7 @@ with_logger(error_logger) do
             halo = 0
             rcoef = 1.0
             # model
-            model = IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel, false)
+            model = IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel; freetop=false)
             # sources
             f0 = 5.0
             t0 = 4 / f0
@@ -597,7 +597,7 @@ with_logger(error_logger) do
             halo = 20
             rcoef = 0.0001
             # model
-            model = IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel, false)
+            model = IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel; freetop=false)
             # sources
             f0 = 5.0
             t0 = 4 / f0

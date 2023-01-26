@@ -20,8 +20,9 @@ struct IsotropicAcousticReflectiveWaveModel1D{T<:Real} <: WaveModel1D
         nt::Integer,
         dt::Real,
         dx::Real,
-        vel::Vector{T},
-        snapevery::Union{Integer, Nothing} = nothing
+        vel::Vector{T};
+        snapevery::Union{Integer, Nothing} = nothing,
+        infoevery::Union{Integer, Nothing} = nothing
     ) where {T<:Real}
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"
@@ -40,12 +41,22 @@ struct IsotropicAcousticReflectiveWaveModel1D{T<:Real} <: WaveModel1D
         fact = zero(vel)
         snapshots = (snapevery !== nothing ? zeros(nx, div(nt, snapevery)) : nothing)
 
-        new(nt, nx, lx, dt, dx, vel, fact, snapevery, snapshots, 100)
+        # Check infoevery
+        if infoevery === nothing
+            infoevery = nt + 2  # never reach it
+        else
+            @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
+        end
+
+        new(nt, nx, lx, dt, dx, vel, fact, snapevery, snapshots, infoevery)
     end
 end
 
 # Default type parameter constuctor
-IsotropicAcousticReflectiveWaveModel1D(nt, dt, dx, vel, snapevery=nothing) = IsotropicAcousticReflectiveWaveModel1D{Float64}(nt, dt, dx, vel, snapevery)
+IsotropicAcousticReflectiveWaveModel1D(nt, dt, dx, vel; snapevery=nothing, infoevery=nothing) = IsotropicAcousticReflectiveWaveModel1D{Float64}(
+    nt, dt, dx, vel;
+    snapevery=snapevery, infoevery=infoevery
+)
 
 # Tag traits
 WaveEquationTrait(::Type{<:IsotropicAcousticReflectiveWaveModel1D}) = IsotropicAcousticWaveEquation()
@@ -79,8 +90,9 @@ struct IsotropicAcousticCPMLWaveModel1D{T<:Real} <: WaveModel1D
         dx::Real,
         halo::Integer,
         rcoef::Real,
-        vel::Vector{T},
-        snapevery::Union{Integer, Nothing} = nothing
+        vel::Vector{T};
+        snapevery::Union{Integer, Nothing} = nothing,
+        infoevery::Union{Integer, Nothing} = nothing
     ) where {T<:Real}
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"
@@ -101,12 +113,22 @@ struct IsotropicAcousticCPMLWaveModel1D{T<:Real} <: WaveModel1D
         # Create CPML coefficients
         cpmlcoeffs = CPMLCoefficients(halo)
 
-        new(nt, nx, lx, dt, dx, vel, fact, halo, rcoef, cpmlcoeffs, snapevery, snapshots, 100)
+        # Check infoevery
+        if infoevery === nothing
+            infoevery = nt + 2  # never reach it
+        else
+            @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
+        end
+
+        new(nt, nx, lx, dt, dx, vel, fact, halo, rcoef, cpmlcoeffs, snapevery, snapshots, infoevery)
     end
 end
 
 # Default type parameter constuctor
-IsotropicAcousticCPMLWaveModel1D(nt, dt, dx, halo, rcoef, vel, snapevery=nothing) = IsotropicAcousticCPMLWaveModel1D{Float64}(nt, dt, dx, halo, rcoef, vel, snapevery)
+IsotropicAcousticCPMLWaveModel1D(nt, dt, dx, halo, rcoef, vel; snapevery=nothing, infoevery=nothing) = IsotropicAcousticCPMLWaveModel1D{Float64}(
+    nt, dt, dx, halo, rcoef, vel;
+    snapevery=snapevery, infoevery=infoevery
+)
 
 # Tag traits
 WaveEquationTrait(::Type{<:IsotropicAcousticCPMLWaveModel1D}) = IsotropicAcousticWaveEquation()
@@ -147,9 +169,10 @@ struct IsotropicAcousticCPMLWaveModel2D{T<:Real} <: WaveModel2D
         dy::Real,
         halo::Integer,
         rcoef::Real,
-        vel::Matrix{T},
+        vel::Matrix{T};
         freetop::Bool = true,
-        snapevery::Union{Integer, Nothing} = nothing
+        snapevery::Union{Integer, Nothing} = nothing,
+        infoevery::Union{Integer, Nothing} = nothing
     ) where {T<:Real}
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"
@@ -174,12 +197,22 @@ struct IsotropicAcousticCPMLWaveModel2D{T<:Real} <: WaveModel2D
         cpmlcoeffs_x = CPMLCoefficients(halo)
         cpmlcoeffs_y = CPMLCoefficients(halo)
 
-        new(nt, nx, ny, lx, ly, dt, dx, dy, vel, fact, halo, rcoef, cpmlcoeffs_x, cpmlcoeffs_y, freetop, snapevery, snapshots, 100)
+        # Check infoevery
+        if infoevery === nothing
+            infoevery = nt + 2  # never reach it
+        else
+            @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
+        end
+
+        new(nt, nx, ny, lx, ly, dt, dx, dy, vel, fact, halo, rcoef, cpmlcoeffs_x, cpmlcoeffs_y, freetop, snapevery, snapshots, infoevery)
     end
 end
 
 # Default type parameter constuctor
-IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel, freetop=true, snapevery=nothing) = IsotropicAcousticCPMLWaveModel2D{Float64}(nt, dt, dx, dy, halo, rcoef, vel, freetop, snapevery)
+IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel; freetop=true, snapevery=nothing, infoevery=nothing) = IsotropicAcousticCPMLWaveModel2D{Float64}(
+    nt, dt, dx, dy, halo, rcoef, vel;
+    freetop=freetop, snapevery=snapevery, infoevery=infoevery
+)
 
 # Tag traits
 WaveEquationTrait(::Type{<:IsotropicAcousticCPMLWaveModel2D}) = IsotropicAcousticWaveEquation()
@@ -225,9 +258,10 @@ struct IsotropicAcousticCPMLWaveModel3D{T<:Real} <: WaveModel3D
         dz::Real,
         halo::Integer,
         rcoef::Real,
-        vel::Array{T, 3},
+        vel::Array{T, 3};
         freetop::Bool = true,
-        snapevery::Union{Integer, Nothing} = nothing
+        snapevery::Union{Integer, Nothing} = nothing,
+        infoevery::Union{Integer, Nothing} = nothing
     ) where {T<:Real}
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"
@@ -256,12 +290,22 @@ struct IsotropicAcousticCPMLWaveModel3D{T<:Real} <: WaveModel3D
         cpmlcoeffs_y = CPMLCoefficients(halo)
         cpmlcoeffs_z = CPMLCoefficients(halo)
 
-        new(nt, nx, ny, nz, lx, ly, lz, dt, dx, dy, dz, vel, fact, halo, rcoef, cpmlcoeffs_x, cpmlcoeffs_y, cpmlcoeffs_z, freetop, snapevery, snapshots, 100)
+        # Check infoevery
+        if infoevery === nothing
+            infoevery = nt + 2  # never reach it
+        else
+            @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
+        end
+
+        new(nt, nx, ny, nz, lx, ly, lz, dt, dx, dy, dz, vel, fact, halo, rcoef, cpmlcoeffs_x, cpmlcoeffs_y, cpmlcoeffs_z, freetop, snapevery, snapshots, infoevery)
     end
 end
 
 # Default type parameter constuctor
-IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel, freetop=true, snapevery=nothing) = IsotropicAcousticCPMLWaveModel3D{Float64}(nt, dt, dx, dy, dz, halo, rcoef, vel, freetop, snapevery)
+IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel; freetop=true, snapevery=nothing, infoevery=nothing) = IsotropicAcousticCPMLWaveModel3D{Float64}(
+    nt, dt, dx, dy, dz, halo, rcoef, vel;
+    freetop=freetop, snapevery=snapevery, infoevery=infoevery
+)
 
 # Tag traits
 WaveEquationTrait(::Type{<:IsotropicAcousticCPMLWaveModel3D}) = IsotropicAcousticWaveEquation()

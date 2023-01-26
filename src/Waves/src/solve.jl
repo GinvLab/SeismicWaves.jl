@@ -50,7 +50,7 @@ end
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
     invcov::AbstractMatrix{<:Real},
     backend;
-    check_freq::Integer = 100
+    check_freq::Union{Integer, Nothing} = nothing
     )
     # Check model
     @info "Checking model"
@@ -58,11 +58,14 @@ end
     # Precompute constant values
     @info "Precomputing constant values"
     precompute!(model)
+    # Check invcov matrix and checkpointing
+    @info "Checking invcov matrix"
+    check_invcov_matrix(model, invcov)
+    @info "Checking checkpointing frequency"
+    check_checkpoint_frequency(model, check_freq)
 
-    # Snapshots setup
-    if snapenabled(model)
-        snapshots_per_shot = []
-    end
+    # Initialize total gradient
+    totgrad = zero(model.vel)
     
     # Shots loop
     for (shot, (srcs, recs)) in enumerate(shots)
@@ -73,10 +76,9 @@ end
         # Compute forward solver
         @info "Computing gradient solver"
         curgrad = gradient!(model, possrcs, posrecs, srctf, traces, recs.observed, invcov, backend; check_freq=check_freq)
-
-        # TODO accumulate total gradient
+        # Accumulate gradient
+        totgrad .+= curgrad
     end
-
-    # TODO return total gradient
-    return nothing
+    
+    return totgrad
 end
