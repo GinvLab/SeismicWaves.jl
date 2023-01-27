@@ -20,12 +20,12 @@ struct Receivers{T<:Real}
         if observed !== nothing
             @assert size(seismograms) == size(observed) "Size of observed data is not (# timesteps, # receivers)!"
         else
-            observed = zeros(0)
+            observed = zeros(0, 0)
         end
         if invcov !== nothing
             @assert size(invcov) == (nt, nt) "Size of invcov is not (# timesteps, # timesteps)!"
         else
-            invcov = zeros(0)
+            invcov = zeros(0, 0)
         end
         new(positions, seismograms, observed, invcov)
     end
