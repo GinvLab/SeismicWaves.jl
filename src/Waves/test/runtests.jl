@@ -11,6 +11,7 @@ excludedfiles = []
 # list of files to skipped ONLY if CUDA is NOT functional
 if !CUDA.functional()
     push!(excludedfiles, joinpath(pwd(), "test_analytical_CUDA.jl"))
+    push!(excludedfiles, joinpath(pwd(), "test_gradient_CUDA.jl"))
 end
 
 function runtests()
