@@ -3,13 +3,13 @@ using Waves
 import Waves.Acoustic2D_Threads
 
 using Logging
-debug_logger = ConsoleLogger(stderr, Logging.Error)
+debug_logger = ConsoleLogger(stderr, Logging.Debug)
 global_logger(debug_logger)
 
 c0 = 2000.0
-nt = 1000 * 4
-nx = 101 * 4
-ny = 101 * 4
+nt = 1000
+nx = 101
+ny = 101
 # nz = 101
 dt = 0.001 / 4
 dx = 10.0
@@ -32,21 +32,21 @@ posrecs[1,:] = [model.lx / 4, model.ly / 4]
 srctf = zeros(nt, 1)
 srctf[:,1] .= rickersource1D.(times, t0, f0)
 observed = copy(srctf)
-
-srcs = Sources(possrcs, srctf, f0)
-recs = Receivers(posrecs, nt, observed)
 invcov = Diagonal(ones(nt))
 
-foo() = solve_gradient!(model, [srcs => recs], invcov, Waves.Acoustic2D_Threads; check_freq=nothing)
-bar() = solve_gradient!(model, [srcs => recs], invcov, Waves.Acoustic2D_Threads; check_freq=floor(Int, sqrt(model.nt)))
+srcs = Sources(possrcs, srctf, f0)
+recs = Receivers(posrecs, nt; observed=observed, invcov=invcov)
+
+foo() = solve_gradient!(model, [srcs => recs], Waves.Acoustic2D_Threads; check_freq=nothing)
+bar() = solve_gradient!(model, [srcs => recs], Waves.Acoustic2D_Threads; check_freq=floor(Int, sqrt(model.nt)))
 
 grad = foo()
 grad2 = bar()
 
-b1 = @benchmark foo()
-b2 = @benchmark bar()
+# b1 = @benchmark foo()
+# b2 = @benchmark bar()
 
 @show norm(grad .- grad2)
 
-@show b1
-@show b2
+# @show b1
+# @show b2

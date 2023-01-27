@@ -48,7 +48,6 @@ end
 @views function solve_gradient!(
     model::WaveModel,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
-    invcov::AbstractMatrix{<:Real},
     backend;
     check_freq::Union{Integer, Nothing} = nothing
     )
@@ -58,9 +57,7 @@ end
     # Precompute constant values
     @info "Precomputing constant values"
     precompute!(model)
-    # Check invcov matrix and checkpointing
-    @info "Checking invcov matrix"
-    check_invcov_matrix(model, invcov)
+    # Check checkpointing setup
     @info "Checking checkpointing frequency"
     check_checkpoint_frequency(model, check_freq)
 
@@ -73,9 +70,11 @@ end
         # Initialize shot
         @info "Initializing shot"
         possrcs, posrecs, srctf, traces = init_shot!(model, srcs, recs)
+        @info "Checking invcov matrix"
+        check_invcov_matrix(model, recs.invcov)
         # Compute forward solver
         @info "Computing gradient solver"
-        curgrad = gradient!(model, possrcs, posrecs, srctf, traces, recs.observed, invcov, backend; check_freq=check_freq)
+        curgrad = gradient!(model, possrcs, posrecs, srctf, traces, recs.observed, recs.invcov, backend; check_freq=check_freq)
         # Accumulate gradient
         totgrad .+= curgrad
     end
