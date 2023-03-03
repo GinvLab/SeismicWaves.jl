@@ -1,4 +1,13 @@
 """
+Compute the forward wave propagation on the specified `WaveModel` and sources/receivers configurations.
+"""
+forward!(model::WaveModel, possrcs, posrecs, srctf, traces, backend) = forward!(
+    WaveEquationTrait(model),
+    BoundaryConditionTrait(model),
+    model, possrcs, posrecs, srctf, traces, backend
+)
+
+"""
 Solve the wave propagation equation specified by `WaveModel` on multiple shots.
 
 Also returns snapshots for every shot if the model has snapshotting enabled.
@@ -44,6 +53,35 @@ Also returns snapshots for every shot if the model has snapshotting enabled.
     end
     return nothing
 end
+
+@views function misfit!(
+    model::WaveModel,
+    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
+    backend
+    )::Float64
+    # Solve forward model for all shots
+    solve!(model, shots, backend)
+    # Compute total misfit for all shots
+    misfit = 0
+    for (shot, (_, recs)) in enumerate(shots)
+        @info "Computing residuals for shot #$(shot)"
+        residuals = similar(recs.seismograms)
+        @info "Checking invcov matrix for shot #$(shot)"
+        check_invcov_matrix(model, recs.invcov)
+        @info "Computing misfit for shot #$(shot)"
+        difcalobs = recs.seismograms - recs.observed
+        mul!(residuals, recs.invcov, difcalobs)
+        misfit += dot(difcalobs, residuals)
+    end
+
+    return misfit / 2
+end
+
+gradient!(model::WaveModel, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq) = gradient!(
+    WaveEquationTrait(model),
+    BoundaryConditionTrait(model),
+    model, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq
+)
 
 @views function solve_gradient!(
     model::WaveModel,

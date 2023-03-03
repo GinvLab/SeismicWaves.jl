@@ -18,8 +18,6 @@ include("sources.jl")
 include("receivers.jl")
 include("check.jl")
 include("precompute.jl")
-include("forward.jl")
-include("gradient.jl")
 include("init_shot.jl")
 include("solve.jl")
 
@@ -33,7 +31,7 @@ export IsotropicAcousticReflectiveWaveModel1D
 export IsotropicAcousticCPMLWaveModel1D, IsotropicAcousticCPMLWaveModel2D, IsotropicAcousticCPMLWaveModel3D
 
 export Sources, Receivers
-export solve!, solve_gradient!
+export solve!, misfit!, solve_gradient!
 
 include("models/acoustic/backends/Acoustic1D.jl")
 
