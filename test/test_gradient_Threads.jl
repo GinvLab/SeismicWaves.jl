@@ -1,16 +1,16 @@
 using Test
 
-using Waves
-import Waves.Acoustic1D_CUDA
-import Waves.Acoustic2D_CUDA
-import Waves.Acoustic3D_CUDA
+using SeismicWaves
+import SeismicWaves.Acoustic1D_Threads
+import SeismicWaves.Acoustic2D_Threads
+import SeismicWaves.Acoustic3D_Threads
 
 using LinearAlgebra
 
 using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
 with_logger(error_logger) do
-    @testset "Test 1D solve_gradient! checkpointing" begin
+    @testset "Test 1D gradient! checkpointing" begin
         # Physics
         c0 = 2000.0
         # Numerics
@@ -39,9 +39,9 @@ with_logger(error_logger) do
         recs = Receivers(posrecs, nt; observed=observed, invcov=invcov)
 
         # Solve gradient without checkpointing
-        grad = solve_gradient!(model, [srcs => recs], Waves.Acoustic1D_CUDA; check_freq=nothing)
+        grad = gradient!(model, [srcs => recs], SeismicWaves.Acoustic1D_Threads; check_freq=nothing)
         # Solve gradient with (optimal) checkpointing
-        grad_check = solve_gradient!(model, [srcs => recs], Waves.Acoustic1D_CUDA; check_freq=floor(Int, sqrt(model.nt)))
+        grad_check = gradient!(model, [srcs => recs], SeismicWaves.Acoustic1D_Threads; check_freq=floor(Int, sqrt(model.nt)))
 
         # Check that gradient is non zero
         @test !all(g -> g == 0.0, grad)
@@ -49,7 +49,7 @@ with_logger(error_logger) do
         @test grad ≈ grad_check
     end
 
-    @testset "Test 2D solve_gradient! checkpointing" begin
+    @testset "Test 2D gradient! checkpointing" begin
         # Physics
         c0 = 2000.0
         # Numerics
@@ -78,9 +78,9 @@ with_logger(error_logger) do
         recs = Receivers(posrecs, nt; observed=observed, invcov=invcov)
 
         # Solve gradient without checkpointing
-        grad = solve_gradient!(model, [srcs => recs], Waves.Acoustic2D_CUDA; check_freq=nothing)
+        grad = gradient!(model, [srcs => recs], SeismicWaves.Acoustic2D_Threads; check_freq=nothing)
         # Solve gradient with (optimal) checkpointing
-        grad_check = solve_gradient!(model, [srcs => recs], Waves.Acoustic2D_CUDA; check_freq=floor(Int, sqrt(model.nt)))
+        grad_check = gradient!(model, [srcs => recs], SeismicWaves.Acoustic2D_Threads; check_freq=floor(Int, sqrt(model.nt)))
 
         # Check that gradient is non zero
         @test !all(g -> g == 0.0, grad)
@@ -88,7 +88,7 @@ with_logger(error_logger) do
         @test grad ≈ grad_check
     end
 
-    @testset "Test 3D solve_gradient! checkpointing" begin
+    @testset "Test 3D gradient! checkpointing" begin
         # Physics
         c0 = 2000.0
         # Numerics
@@ -117,9 +117,9 @@ with_logger(error_logger) do
         recs = Receivers(posrecs, nt; observed=observed, invcov=invcov)
 
         # Solve gradient without checkpointing
-        grad = solve_gradient!(model, [srcs => recs], Waves.Acoustic3D_CUDA; check_freq=nothing)
+        grad = gradient!(model, [srcs => recs], SeismicWaves.Acoustic3D_Threads; check_freq=nothing)
         # Solve gradient with (optimal) checkpointing
-        grad_check = solve_gradient!(model, [srcs => recs], Waves.Acoustic3D_CUDA; check_freq=floor(Int, sqrt(model.nt)))
+        grad_check = gradient!(model, [srcs => recs], SeismicWaves.Acoustic3D_Threads; check_freq=floor(Int, sqrt(model.nt)))
 
         # Check that gradient is non zero
         @test !all(g -> g == 0.0, grad)

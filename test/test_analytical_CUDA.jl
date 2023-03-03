@@ -1,10 +1,10 @@
 using Test
 using DSP, NumericalIntegration, LinearAlgebra
 
-using Waves
-import Waves.Acoustic1D_Threads
-import Waves.Acoustic2D_Threads
-import Waves.Acoustic3D_Threads
+using SeismicWaves
+import SeismicWaves.Acoustic1D_CUDA
+import SeismicWaves.Acoustic2D_CUDA
+import SeismicWaves.Acoustic3D_CUDA
 
 using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
@@ -38,7 +38,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic1D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic1D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # analytical solution
@@ -90,7 +90,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic1D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic1D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # analytical solution
@@ -142,7 +142,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic1D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic1D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # analytical solution
@@ -194,7 +194,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic1D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic1D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # analytical solution
@@ -248,7 +248,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic2D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic2D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # Analytical solution
@@ -300,7 +300,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic2D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic2D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # Analytical solution
@@ -352,7 +352,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic2D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic2D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # Analytical solution
@@ -404,7 +404,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic2D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic2D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # Analytical solution
@@ -457,7 +457,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic3D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic3D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # Analytical solution
@@ -509,7 +509,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic3D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic3D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # Analytical solution
@@ -561,7 +561,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic3D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic3D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # Analytical solution
@@ -613,7 +613,7 @@ with_logger(error_logger) do
             recs = Receivers(posrecs, nt)
 
             # numerical solution
-            solve!(model, [srcs => recs], Waves.Acoustic3D_Threads)
+            forward!(model, [srcs => recs], SeismicWaves.Acoustic3D_CUDA)
             numerical_trace = recs.seismograms[:, 1]
 
             # Analytical solution

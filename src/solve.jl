@@ -1,18 +1,6 @@
-"""
-Compute the forward wave propagation on the specified `WaveModel` and sources/receivers configurations.
-"""
-forward!(model::WaveModel, possrcs, posrecs, srctf, traces, backend) = forward!(
-    WaveEquationTrait(model),
-    BoundaryConditionTrait(model),
-    model, possrcs, posrecs, srctf, traces, backend
-)
+### FORWARDS ###
 
-"""
-Solve the wave propagation equation specified by `WaveModel` on multiple shots.
-
-Also returns snapshots for every shot if the model has snapshotting enabled.
-"""
-@views function solve!(
+@views function forward!(
     model::WaveModel,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
     backend
@@ -54,13 +42,21 @@ Also returns snapshots for every shot if the model has snapshotting enabled.
     return nothing
 end
 
+forward!(model::WaveModel, possrcs, posrecs, srctf, traces, backend) = forward!(
+    WaveEquationTrait(model),
+    BoundaryConditionTrait(model),
+    model, possrcs, posrecs, srctf, traces, backend
+)
+
+### MISFITS ###
+
 @views function misfit!(
     model::WaveModel,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
     backend
-    )::Float64
+    )::Real
     # Solve forward model for all shots
-    solve!(model, shots, backend)
+    forward!(model, shots, backend)
     # Compute total misfit for all shots
     misfit = 0
     for (shot, (_, recs)) in enumerate(shots)
@@ -77,18 +73,14 @@ end
     return misfit / 2
 end
 
-gradient!(model::WaveModel, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq) = gradient!(
-    WaveEquationTrait(model),
-    BoundaryConditionTrait(model),
-    model, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq
-)
+### GRADIENTS ###
 
-@views function solve_gradient!(
+@views function gradient!(
     model::WaveModel,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
     backend;
     check_freq::Union{Integer, Nothing} = nothing
-    )
+    )::AbstractArray
     # Check model
     @info "Checking model"
     check(model)
@@ -119,3 +111,9 @@ gradient!(model::WaveModel, possrcs, posrecs, srctf, traces, observed, invcov, b
     
     return totgrad
 end
+
+gradient!(model::WaveModel, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq) = gradient!(
+    WaveEquationTrait(model),
+    BoundaryConditionTrait(model),
+    model, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq
+)

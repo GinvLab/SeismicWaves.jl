@@ -1,7 +1,7 @@
 using Test
 
-using Waves
-import Waves.Acoustic1D_Threads
+using SeismicWaves
+import SeismicWaves.Acoustic1D_Threads
 
 using LinearAlgebra
 
@@ -37,7 +37,7 @@ with_logger(error_logger) do
         recs = Receivers(posrecs, nt; observed=observed, invcov=invcov)
 
         # Solve gradient without checkpointing
-        mis = misfit!(model, [srcs => recs], Waves.Acoustic1D_Threads)
+        mis = misfit!(model, [srcs => recs], SeismicWaves.Acoustic1D_Threads)
         @test mis > 0
     end
 end

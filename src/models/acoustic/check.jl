@@ -109,7 +109,7 @@ end
     check_positions(ReflectiveBoundaryCondition(), model, positions)
     for s in 1:size(positions, 1)
         @assert (model.dx * model.halo <= positions[s, 1] <= model.lx - (model.dx * model.halo) &&
-                 model.dy * model.halo <= positions[s, 2] <= model.ly - (model.dy * model.halo)) "Position $(s) is inside the CPML region!"
+                 (model.freetop ? 0 : model.dy * model.halo) <= positions[s, 2] <= model.ly - (model.dy * model.halo)) "Position $(s) is inside the CPML region!"
     end
 end
 
@@ -118,7 +118,7 @@ end
     for s in 1:size(positions, 1)
         @assert (model.dx * model.halo <= positions[s, 1] <= model.lx - (model.dx * model.halo) &&
                  model.dy * model.halo <= positions[s, 2] <= model.ly - (model.dy * model.halo) &&
-                 model.dz * model.halo <= positions[s, 3] <= model.lz - (model.dz * model.halo)) "Position $(s) is inside the CPML region!"
+                 (model.freetop ? 0 : model.dz * model.halo) <= positions[s, 3] <= model.lz - (model.dz * model.halo)) "Position $(s) is inside the CPML region!"
     end
 end
 

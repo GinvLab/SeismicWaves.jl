@@ -4,8 +4,15 @@
 push!(LOAD_PATH, "../src")
 import SeismicWaves
 
+import CUDA
+
 # list of files to NOT be tested
 excludedfiles = []
+# list of files to skipped ONLY if CUDA is NOT functional
+if !CUDA.functional()
+    push!(excludedfiles, joinpath(pwd(), "test_analytical_CUDA.jl"))
+    push!(excludedfiles, joinpath(pwd(), "test_gradient_CUDA.jl"))
+end
 
 function runtests()
     exename   = joinpath(Sys.BINDIR, Base.julia_exename())
@@ -20,7 +27,7 @@ function runtests()
     for f in testfiles
         println("")
         # skip excluded files
-        if f ∈ excludedfiles
+        if f in excludedfiles
             printstyled("Skipping $(basename(f))\n"; bold=true, color=:white)
             continue
         end
