@@ -17,7 +17,8 @@ Check the Courant number for isotropic acoustic 2D models.
 """
 @views function check_courant_condition(::IsotropicAcousticWaveEquation, model::WaveModel2D)
     vel_max = maximum(model.vel)
-    courant = vel_max * model.dt * (1/model.dx + 1/model.dy)
+    h_min = min(model.dx, model.dy)
+    courant = vel_max * model.dt / h_min
     @debug "Courant number: $(courant)"
     @assert courant <= sqrt(2)/2 "Courant condition not satisfied!"
 end
@@ -29,7 +30,8 @@ Check the Courant number for isotropic acoustic 3D models.
 """
 @views function check_courant_condition(::IsotropicAcousticWaveEquation, model::WaveModel3D)
     vel_max = maximum(model.vel)
-    courant = vel_max * model.dt * (1/model.dx + 1/model.dy + 1/model.dz)
+    h_min = min(model.dx, model.dy, model.dz)
+    courant = vel_max * model.dt / h_min
     @debug "Courant number: $(courant)"
     @assert courant <= sqrt(3)/3 "Courant condition not satisfied!"
 end
@@ -41,8 +43,7 @@ Check that the number of points per wavelength is above or equal to the specifie
 """
 @views function check_ppw(::IsotropicAcousticWaveEquation, model::WaveModel1D, srcs::Sources{<:Real}, min_ppw::Integer=10)
     vel_min = minimum(model.vel)
-    max_cell_size = model.dx
-    ppw = vel_min / srcs.freqdomain / max_cell_size
+    ppw = vel_min / srcs.freqdomain / model.dx
     @debug "Points per wavelengh: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
@@ -54,8 +55,8 @@ Check that the number of points per wavelength is above or equal to the specifie
 """
 @views function check_ppw(::IsotropicAcousticWaveEquation, model::WaveModel2D, srcs::Sources{<:Real}, min_ppw::Integer=10)
     vel_min = minimum(model.vel)
-    max_cell_size = sqrt(model.dx^2 + model.dy^2)
-    ppw = vel_min / srcs.freqdomain / max_cell_size
+    h_max = max(model.dx, model.dy)
+    ppw = vel_min / srcs.freqdomain / h_max
     @debug "Points per wavelengh: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
@@ -67,8 +68,8 @@ Check that the number of points per wavelength is above or equal to the specifie
 """
 @views function check_ppw(::IsotropicAcousticWaveEquation, model::WaveModel3D, srcs::Sources{<:Real}, min_ppw::Integer=10)
     vel_min = minimum(model.vel)
-    max_cell_size = sqrt(model.dx^2 + model.dy^2 + model.dz^2)
-    ppw = vel_min / srcs.freqdomain / max_cell_size
+    h_max = max(model.dx, model.dy, model.dz)
+    ppw = vel_min / srcs.freqdomain / h_max
     @debug "Points per wavelengh: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
