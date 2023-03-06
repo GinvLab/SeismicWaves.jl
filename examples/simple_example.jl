@@ -67,19 +67,6 @@ function exacouprob()
         push!(shots, srcs => recs)
     end
 
-    ##========================================
-    # sources positions (in meters)
-    nshots = 6
-    nsrc = 1
-    ixsrc = round.(Int,LinRange(32,nx-31,nshots))  #round.(Int,[nx/2])
-    #ixsrc = round.(Int,[nx/2])
-    ijsrcs = Array{Array{Int64,2},1}([zeros(Int64,nsrc,2) for i=1:nshots])
-    for i=1:nshots
-        ijsrcs[i][:,1] .= ixsrc[i]
-        ijsrcs[i][:,2] .= round.(Int,[3 for i=1:nsrc]) #round.(Int,[3 for i=1:nsrc]) #
-    end
-
-
     ##============================================
     ## Input parameters for acoustic simulation
     savesnapshot = true

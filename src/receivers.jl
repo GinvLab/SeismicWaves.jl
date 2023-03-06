@@ -1,4 +1,4 @@
-"""
+@doc raw"""
 Type representing a multi-receiver configuration for a wave propagation shot.
 """
 struct Receivers{T<:Real}
@@ -7,7 +7,7 @@ struct Receivers{T<:Real}
     observed::Matrix{T}
     invcov::AbstractMatrix{T}
 
-    @doc """
+    @doc raw"""
         Receivers[{T<:Real = Float64}](positions::Matrix{<:Real}, nt::Int, observed::Union{Matrix{T}, Nothing} = nothing)
 
     Create a single shot wave propagation receivers configuration from receivers positions.

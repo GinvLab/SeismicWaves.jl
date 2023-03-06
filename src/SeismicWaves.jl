@@ -21,7 +21,6 @@ include("check.jl")
 include("precompute.jl")
 include("init_shot.jl")
 include("solve.jl")
-include("wrappers.jl")
 
 include("models/acoustic/params.jl")
 include("models/acoustic/check.jl")
@@ -33,6 +32,8 @@ include("models/acoustic/init_CPML_bdc.jl")
 export IsotropicAcousticReflectiveWaveModel1D
 export IsotropicAcousticCPMLWaveModel1D, IsotropicAcousticCPMLWaveModel2D, IsotropicAcousticCPMLWaveModel3D
 export InputParametersAcoustic1D, InputParametersAcoustic2D, InputParametersAcoustic3D
+
+include("wrappers.jl")
 
 export Sources, Receivers
 export forward!, misfit!, gradient!
@@ -57,7 +58,6 @@ include("models/acoustic/backends/Acoustic3D_CUDA.jl")
 include("utils.jl")
 export gaussource1D, rickersource1D
 
-# include("HMCseiswaves.jl")
-# using .HMCseiswaves
+include("HMCseiswaves.jl")
 
 end
