@@ -44,7 +44,7 @@ with_logger(error_logger) do
             # analytical solution
             times = collect(range(0.0, step=dt, length=nt + 1))
             dist = norm(possrcs[1, :] .- posrecs[1, :])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.0
             for it = 1:nt+1
@@ -96,7 +96,7 @@ with_logger(error_logger) do
             # analytical solution
             times = collect(range(0.0, step=dt, length=nt + 1))
             dist = norm(possrcs[1, :] .- posrecs[1, :])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.0
             for it = 1:nt+1
@@ -148,7 +148,7 @@ with_logger(error_logger) do
             # analytical solution
             times = collect(range(0.0, step=dt, length=nt + 1))
             dist = norm(possrcs[1, :] .- posrecs[1, :])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.0
             for it = 1:nt+1
@@ -200,7 +200,7 @@ with_logger(error_logger) do
             # analytical solution
             times = collect(range(0.0, step=dt, length=nt + 1))
             dist = norm(possrcs[1, :] .- posrecs[1, :])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.0
             for it = 1:nt+1
@@ -254,7 +254,7 @@ with_logger(error_logger) do
             # Analytical solution
             times = collect(range(0.0, step=dt, length=nt+1))
             dist = norm(possrcs[1,:] .- posrecs[1,:])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.
             for it = 1:nt+1
@@ -306,7 +306,7 @@ with_logger(error_logger) do
             # Analytical solution
             times = collect(range(0.0, step=dt, length=nt+1))
             dist = norm(possrcs[1,:] .- posrecs[1,:])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.
             for it = 1:nt+1
@@ -358,7 +358,7 @@ with_logger(error_logger) do
             # Analytical solution
             times = collect(range(0.0, step=dt, length=nt+1))
             dist = norm(possrcs[1,:] .- posrecs[1,:])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.
             for it = 1:nt+1
@@ -410,7 +410,7 @@ with_logger(error_logger) do
             # Analytical solution
             times = collect(range(0.0, step=dt, length=nt+1))
             dist = norm(possrcs[1,:] .- posrecs[1,:])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.
             for it = 1:nt+1
@@ -463,7 +463,7 @@ with_logger(error_logger) do
             # Analytical solution
             times = collect(range(0.0, step=dt, length=nt+1))
             dist = norm(possrcs[1,:] .- posrecs[1,:])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.
             for it = 1:nt+1
@@ -515,7 +515,7 @@ with_logger(error_logger) do
             # Analytical solution
             times = collect(range(0.0, step=dt, length=nt+1))
             dist = norm(possrcs[1,:] .- posrecs[1,:])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.
             for it = 1:nt+1
@@ -567,7 +567,7 @@ with_logger(error_logger) do
             # Analytical solution
             times = collect(range(0.0, step=dt, length=nt+1))
             dist = norm(possrcs[1,:] .- posrecs[1,:])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.
             for it = 1:nt+1
@@ -619,7 +619,7 @@ with_logger(error_logger) do
             # Analytical solution
             times = collect(range(0.0, step=dt, length=nt+1))
             dist = norm(possrcs[1,:] .- posrecs[1,:])
-            src = rickersource1D.(times, t0, f0)
+            src = (c0^2) .* rickersource1D.(times, t0, f0)
             # Calculate Green's function
             G = times .* 0.
             for it = 1:nt+1

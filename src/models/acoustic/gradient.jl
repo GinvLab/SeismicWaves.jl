@@ -105,8 +105,8 @@
     @debug "Computing residuals"
     # Compute residuals
     mul!(residuals_a, invcov_a, traces_a - observed_a)
-    # Scale residuals
-    residuals_a .*= model.dt^2
+    # Prescale residuals (fact = vel^2 * dt^2)
+    backend.prescale_residuals!(residuals_a, possrcs_a, fact_a)
 
     @debug "Computing gradients"
     # Current checkpoint
@@ -307,8 +307,8 @@ end
     @debug "Computing residuals"
     # Compute residuals
     mul!(residuals_a, invcov_a, traces_a - observed_a)
-    # Scale residuals
-    residuals_a .*= model.dt^2
+    # Prescale residuals (fact = vel^2 * dt^2)
+    backend.prescale_residuals!(residuals_a, possrcs_a, fact_a)
 
     @debug "Computing gradients"
     # Current checkpoint
@@ -539,8 +539,8 @@ end
     @debug "Computing residuals"
     # Compute residuals
     mul!(residuals_a, invcov_a, traces_a - observed_a)
-    # Scale residuals
-    residuals_a .*= model.dt^2
+    # Prescale residuals (fact = vel^2 * dt^2)
+    backend.prescale_residuals!(residuals_a, possrcs_a, fact_a)
 
     @debug "Computing gradients"
     # Current checkpoint

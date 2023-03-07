@@ -60,14 +60,18 @@ end
     return nothing
 end
 
-@parallel function correlate_gradient_kernel!(curgrad, adjcur, pcur, pold, pveryold, _dt2)
-    @all(curgrad) = @all(curgrad) + ( @all(adjcur) * ( @all(pcur) - 2.0 * @all(pold) + @all(pveryold) ) * _dt2 )
+@parallel_indices (it,is) function prescale_residuals_kernel!(residuals, possrcs, fact)
+    isrc = floor(Int, possrcs[is,1])
+    residuals[it,is] *= fact[isrc]
+
     return nothing
 end
 
-@views function correlate_gradient!(curgrad, adjcur, pcur, pold, pveryold, dt)
-    _dt2 = 1/dt^2
-    @parallel correlate_gradient_kernel!(curgrad, adjcur, pcur, pold, pveryold, _dt2)
+@views function prescale_residuals!(residuals, possrcs, fact)
+    nsrcs = size(possrcs, 1)
+    nt = size(residuals, 1)
+    @parallel (1:nt,1:nsrcs) prescale_residuals_kernel!(residuals, possrcs, fact)
+    
     return nothing
 end
 
@@ -120,12 +124,3 @@ end
 
     return pcur, pnew, pold
 end
-
-zeros(x) = @zeros(x)
-ones(x) = @ones(x)
-zeros(x,y) = @zeros(x,y)
-ones(x,y) = @ones(x,y)
-zeros(x,y,z) = @zeros(x,y,z)
-ones(x,y,z) = @ones(x,y,z)
-zeros(x,y,z,t) = @zeros(x,y,z,t)
-ones(x,y,z,t) = @ones(x,y,z,t)
