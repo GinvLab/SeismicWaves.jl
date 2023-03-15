@@ -106,7 +106,6 @@ function misfit!(
     model = build_model(params, vel)
     # Select backend
     backend = select_backend(model, use_GPU)
-    @show backend
     # Compute misfit
     misfit!(model, shots, backend)
 end
