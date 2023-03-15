@@ -8,18 +8,20 @@ import CUDA
 
 # list of files to NOT be tested
 excludedfiles = []
-# list of files to skipped ONLY if CUDA is NOT functional
-if !CUDA.functional()
-    push!(excludedfiles, joinpath(pwd(), "test_analytical_CUDA.jl"))
-    push!(excludedfiles, joinpath(pwd(), "test_gradient_CUDA.jl"))
-end
 
 function runtests()
     exename   = joinpath(Sys.BINDIR, Base.julia_exename())
     testdir   = pwd()
     # getting all test files to run tests on
     istest(f) = endswith(f, ".jl") && startswith(basename(f), "test_")
-    testfiles = sort(filter(istest, vcat([joinpath.(root, files) for (root, dirs, files) in walkdir(testdir)]...)))
+    dirfiles = sort(vcat([joinpath.(root, files) for (root, dirs, files) in walkdir(testdir)]...))
+    testfiles = filter(istest, dirfiles)
+    # exclude CUDA tests ONLY if CUDA is NOT functional
+    if !CUDA.functional()
+        isCUDAtest(f) = endswith(f, "CUDA.jl")
+        CUDAtestfiles = filter(isCUDAtest, testfiles)
+        push!(excludedfiles, CUDAtestfiles...)
+    end
 
     printstyled("Testing package SeismicWaves.jl\n"; bold=true, color=:white)
 

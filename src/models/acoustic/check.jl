@@ -123,7 +123,7 @@ end
 end
 
 function check_invcov_matrix(model::WaveModel, invcov)
-    @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to (nt x nt)!"
+    @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"
 end
 
 function check_checkpoint_frequency(model::WaveModel, check_freq)

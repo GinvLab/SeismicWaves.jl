@@ -53,10 +53,7 @@ struct IsotropicAcousticReflectiveWaveModel1D{T<:Real} <: WaveModel1D
 end
 
 # Default type parameter constuctor
-IsotropicAcousticReflectiveWaveModel1D(nt, dt, dx, vel; snapevery=nothing, infoevery=nothing) = IsotropicAcousticReflectiveWaveModel1D{Float64}(
-    nt, dt, dx, vel;
-    snapevery=snapevery, infoevery=infoevery
-)
+IsotropicAcousticReflectiveWaveModel1D(args...; kwargs...) = IsotropicAcousticReflectiveWaveModel1D{Float64}(args...; kwargs...)
 
 # Tag traits
 WaveEquationTrait(::Type{<:IsotropicAcousticReflectiveWaveModel1D}) = IsotropicAcousticWaveEquation()
@@ -125,10 +122,7 @@ struct IsotropicAcousticCPMLWaveModel1D{T<:Real} <: WaveModel1D
 end
 
 # Default type parameter constuctor
-IsotropicAcousticCPMLWaveModel1D(nt, dt, dx, halo, rcoef, vel; snapevery=nothing, infoevery=nothing) = IsotropicAcousticCPMLWaveModel1D{Float64}(
-    nt, dt, dx, halo, rcoef, vel;
-    snapevery=snapevery, infoevery=infoevery
-)
+IsotropicAcousticCPMLWaveModel1D(args...; kwargs...) = IsotropicAcousticCPMLWaveModel1D{Float64}(args...; kwargs...)
 
 # Tag traits
 WaveEquationTrait(::Type{<:IsotropicAcousticCPMLWaveModel1D}) = IsotropicAcousticWaveEquation()
@@ -209,10 +203,7 @@ struct IsotropicAcousticCPMLWaveModel2D{T<:Real} <: WaveModel2D
 end
 
 # Default type parameter constuctor
-IsotropicAcousticCPMLWaveModel2D(nt, dt, dx, dy, halo, rcoef, vel; freetop=true, snapevery=nothing, infoevery=nothing) = IsotropicAcousticCPMLWaveModel2D{Float64}(
-    nt, dt, dx, dy, halo, rcoef, vel;
-    freetop=freetop, snapevery=snapevery, infoevery=infoevery
-)
+IsotropicAcousticCPMLWaveModel2D(args...; kwargs...) = IsotropicAcousticCPMLWaveModel2D{Float64}(args...; kwargs...)
 
 # Tag traits
 WaveEquationTrait(::Type{<:IsotropicAcousticCPMLWaveModel2D}) = IsotropicAcousticWaveEquation()
@@ -302,10 +293,7 @@ struct IsotropicAcousticCPMLWaveModel3D{T<:Real} <: WaveModel3D
 end
 
 # Default type parameter constuctor
-IsotropicAcousticCPMLWaveModel3D(nt, dt, dx, dy, dz, halo, rcoef, vel; freetop=true, snapevery=nothing, infoevery=nothing) = IsotropicAcousticCPMLWaveModel3D{Float64}(
-    nt, dt, dx, dy, dz, halo, rcoef, vel;
-    freetop=freetop, snapevery=snapevery, infoevery=infoevery
-)
+IsotropicAcousticCPMLWaveModel3D(args...; kwargs...) = IsotropicAcousticCPMLWaveModel3D{Float64}(args...; kwargs...)
 
 # Tag traits
 WaveEquationTrait(::Type{<:IsotropicAcousticCPMLWaveModel3D}) = IsotropicAcousticWaveEquation()

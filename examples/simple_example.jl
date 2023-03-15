@@ -69,22 +69,16 @@ function exacouprob()
 
     ##============================================
     ## Input parameters for acoustic simulation
-    savesnapshot = true
     snapevery = 50
-    freeboundtop = true
-    boundcond = "CPML"
-    println("Boundary conditions: $boundcond ")
     infoevery = 500
-
-    # pressure field in space and time
-    params = InputParametersAcoustic2D(ntimesteps=nt,nx=nx,nz=nz,dt=dt,dh=dh,
-                                       savesnapshot=savesnapshot,snapevery=snapevery,
-                                       boundcond=boundcond,freeboundtop=freeboundtop,
-                                       infoevery=infoevery)
+    boundcond = InputBDCParametersAcousticCPML(halo=20, rcoef=0.0001, freeboundtop=true)
+    params = InputParametersAcoustic(
+        nt, dt, [nx, nz], [dh, dh], boundcond
+    )
 
     ##===============================================
     ## compute the seismograms
-    snapshots = forward!(params, velmod, shots; use_GPU=false)
+    snapshots = forward!(params, velmod, shots; use_GPU=false; snapevery=snapevery, infoevery=infoevery)
 
     return params, velmod, collect(map(s -> s.second.seismograms, shots)), snapshots
 end

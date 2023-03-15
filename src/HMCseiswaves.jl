@@ -22,7 +22,7 @@ export AcouWavProb
 
 ## create the problem type for traveltime tomography
 Base.@kwdef struct AcouWavProb
-    inpars::InputParametersAcoustic2D
+    inpars::InputParametersAcoustic{2}
     ijsrcs::Vector{Array{Int64,2}}
     ijrecs::Vector{Array{Int64,2}}
     sourcetf::Vector{Array{Float64,2}}
@@ -38,11 +38,11 @@ end
 ## make the type callable
 function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
     # numerics
-    dh = acouprob.inpars.dh
+    dh = acouprob.inpars.Δs[1]
     nt = acouprob.inpars.ntimesteps
 
     # reshape vector to 2D array
-    vel2d = reshape(vecvel,acouprob.inpars.nx,acouprob.inpars.nz)
+    vel2d = reshape(vecvel,acouprob.inpars.ns...)
 
     # build pairs of sources and receivers
     nshots = length(acouprob.ijsrcs)
@@ -64,14 +64,14 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         #############################################
         ## compute the logdensity value for vecvel ##
         #############################################
-        misval = misfit!(acouprob.inpars, vecvel, shots; use_GPU=acouprob.use_GPU)
+        misval = misfit!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU)
         return misval        
 
     elseif kind==:gradnlogpdf
         #################################################
         ## compute the gradient of the misfit function ##
         #################################################
-        grad = gradient!(acouprob.inpars, vecvel, shots; use_GPU=acouprob.use_GPU, check_freq=ceil(Int, sqrt(nt)))
+        grad = gradient!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU, check_freq=ceil(Int, sqrt(nt)))
         # return flattened gradient
         return  vec(grad)
 
@@ -80,7 +80,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         ####################################################
         ## compute calculated data (solve forward problem) ##
         ####################################################
-        dcalc = forward!(acouprob.inpars, vecvel, shots; use_GPU=acouprob.use_GPU)
+        dcalc = forward!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU)
         return dcalc
 
     else

@@ -1,64 +1,45 @@
-function build_model(params::InputParametersAcoustic1D, vel::AbstractArray)
-    if params.boundcond == "reflective"
-        return IsotropicAcousticReflectiveWaveModel1D(
-            params.ntimesteps,
-            params.dt,
-            params.dh,
-            vel;
-            snapevery=params.savesnapshot ? params.snapevery : nothing,
-            infoevery=params.infoevery
-        )
-    elseif params.boundcond == "CPML"
-        return IsotropicAcousticCPMLWaveModel1D(
-            params.ntimesteps,
-            params.dt,
-            params.dh,
-            20,         # default parameters (TODO make it a choice in input parameters)
-            0.0001,
-            vel;
-            snapevery=params.savesnapshot ? params.snapevery : nothing,
-            infoevery=params.infoevery
-        )
-    end
-    error("Not implemented boundary condition for this parameters")
-end
+build_model(params::InputParametersAcoustic, vel::AbstractArray; kwargs...) = build_model(params, params.boundcond, vel; kwargs...)
 
-function build_model(params::InputParametersAcoustic2D, vel::AbstractArray)
-    if params.boundcond == "CPML"
-        return IsotropicAcousticCPMLWaveModel2D(
-            params.ntimesteps,
-            params.dt,
-            params.dh,
-            params.dh,
-            20,         # default parameters (TODO make it a choice in input parameters)
-            0.0001,
-            vel;
-            freetop=params.freeboundtop,
-            snapevery=params.savesnapshot ? params.snapevery : nothing,
-            infoevery=params.infoevery
-        )
-    end
-    error("Not implemented boundary condition for this parameters")
-end
-
-function build_model(params::InputParametersAcoustic3D, vel::AbstractArray)
-    if params.boundcond == "CPML"
-        return IsotropicAcousticCPMLWaveModel3D(
-            params.ntimesteps,
-            params.dt,
-            params.dh,
-            params.dh,
-            params.dh,
-            20,         # default parameters (TODO make it a choice in input parameters)
-            0.0001,
-            vel;
-            freetop=params.freeboundtop,
-            snapevery=params.savesnapshot ? params.snapevery : nothing,
-            infoevery=params.infoevery
-        )
-    end
-    error("Not implemented boundary condition for this parameters")
-end
+build_model(params::InputParametersAcoustic{1}, bparams::InputBDCParametersAcousticReflective, vel::AbstractArray; kwargs...) =
+    IsotropicAcousticReflectiveWaveModel1D(
+        params.ntimesteps,
+        params.dt,
+        params.Δs...,
+        vel;
+        kwargs...
+    )
+build_model(params::InputParametersAcoustic{1}, cpmlparams::InputBDCParametersAcousticCPML, vel::AbstractArray; kwargs...) =
+    IsotropicAcousticCPMLWaveModel1D(
+        params.ntimesteps,
+        params.dt,
+        params.Δs...,
+        cpmlparams.halo,
+        cpmlparams.rcoef,
+        vel;
+        kwargs...
+    )
+build_model(params::InputParametersAcoustic{2}, cpmlparams::InputBDCParametersAcousticCPML, vel::AbstractArray; kwargs...) =
+    IsotropicAcousticCPMLWaveModel2D(
+        params.ntimesteps,
+        params.dt,
+        params.Δs...,
+        cpmlparams.halo,
+        cpmlparams.rcoef,
+        vel;
+        freetop=cpmlparams.freeboundtop,
+        kwargs...
+    )
+build_model(params::InputParametersAcoustic{3}, cpmlparams::InputBDCParametersAcousticCPML, vel::AbstractArray; kwargs...) =
+    IsotropicAcousticCPMLWaveModel3D(
+        params.ntimesteps,
+        params.dt,
+        params.Δs...,
+        cpmlparams.halo,
+        cpmlparams.rcoef,
+        vel;
+        freetop=cpmlparams.freeboundtop,
+        kwargs...
+    )
 
 select_backend(_::IsotropicAcousticWaveEquation, _::WaveModel1D, use_GPU::Bool) = (use_GPU ? Acoustic1D_CUDA : Acoustic1D_Threads)
 select_backend(_::IsotropicAcousticWaveEquation, _::WaveModel2D, use_GPU::Bool) = (use_GPU ? Acoustic2D_CUDA : Acoustic2D_Threads)
@@ -87,10 +68,12 @@ function forward!(
     params::InputParameters,
     vel::AbstractArray,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    use_GPU::Bool = false
+    use_GPU::Bool = false,
+    snapevery::Union{Int, Nothing}=nothing,
+    infoevery::Union{Int, Nothing}=nothing
     )::Union{Vector{AbstractArray}, Nothing}
     # Build model
-    model = build_model(params, vel)
+    model = build_model(params, vel; snapevery=snapevery, infoevery=infoevery)
     # Select backend
     backend = select_backend(model, use_GPU)
     # Solve simulation
