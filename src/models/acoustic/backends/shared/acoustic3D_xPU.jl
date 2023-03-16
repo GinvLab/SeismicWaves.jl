@@ -132,14 +132,15 @@ end
 end
 
 @views function forward_onestep_CPML!(
-    pold, pcur, pnew, fact, dx, dy, dz,
-    halo, ψ_x_l, ψ_x_r, ξ_x_l, ξ_x_r, ψ_y_l, ψ_y_r, ξ_y_l, ξ_y_r, ψ_z_l, ψ_z_r, ξ_z_l, ξ_z_r,
-    a_x_hl, a_x_hr, b_K_x_hl, b_K_x_hr,
-    a_x_l, a_x_r, b_K_x_l, b_K_x_r,
-    a_y_hl, a_y_hr, b_K_y_hl, b_K_y_hr,
-    a_y_l, a_y_r, b_K_y_l, b_K_y_r,
-    a_z_hl, a_z_hr, b_K_z_hl, b_K_z_hr,
-    a_z_l, a_z_r, b_K_z_l, b_K_z_r,
+    pold, pcur, pnew, fact, dx, dy, dz, halo,
+    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r, ψ_z_l, ψ_z_r,
+    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r, ξ_z_l, ξ_z_r,
+    a_x_l, a_x_r, a_x_hl, a_x_hr,
+    a_y_l, a_y_r, a_y_hl, a_y_hr,
+    a_z_l, a_z_r, a_z_hl, a_z_hr,
+    b_K_x_l, b_K_x_r, b_K_x_hl, b_K_x_hr,
+    b_K_y_l, b_K_y_r, b_K_y_hl, b_K_y_hr,
+    b_K_z_l, b_K_z_r, b_K_z_hl, b_K_z_hr,
     possrcs, dt2srctf, posrecs, traces, it;
     save_trace=true
 )

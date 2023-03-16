@@ -1,74 +1,45 @@
 @views function forward!(
     ::AcousticWaveEquation,
-    ::ReflectiveBoundaryCondition,
-    model::WaveModel1D, possrcs, posrecs, srctf, traces, backend
-)
-    nx = model.ns[1]
-    nt = model.nt
-    dx = model.Δs[1]
-    # Initialize pressure and factors arrays
-    pold = backend.zeros(nx)
-    pcur = backend.zeros(nx)
-    pnew = backend.zeros(nx)
-    fact_a = backend.Data.Array( model.fact )
-    # Wrap sources and receivers arrays
-    possrcs_a = backend.Data.Array( possrcs )
-    posrecs_a = backend.Data.Array( posrecs )
-    srctf_a = backend.Data.Array( srctf )
-    traces_a = backend.Data.Array( traces )
-
-    # Time loop
-    for it = 1:nt
-        # Compute one forward step
-        pold, pcur, pnew = backend.forward_onestep!(
-            pold, pcur, pnew, fact_a, dx,
-            possrcs_a, srctf_a, posrecs_a, traces_a, it
-        )
-        # Print timestep info
-        if it % model.infoevery == 0
-            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array(pcur))))
-        end
-
-        # Save snapshot
-        if snapenabled(model) && it % model.snapevery == 0
-            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            model.snapshots[:, div(it, model.snapevery)] .= Array( pcur )
-        end
-    end
-
-    # Save traces
-    traces .= Array( traces_a )
-end
-
-@views function forward!(
-    ::AcousticWaveEquation,
     ::CPMLBoundaryCondition,
-    model::WaveModel1D, possrcs, posrecs, srctf, traces, backend
+    model::WaveModel, possrcs, posrecs, srctf, traces, backend
 )
     # Numerics
+    N = length(model.ns)
     nt = model.nt
-    nx = model.ns[1]
-    dx = model.Δs[1]
     halo = model.halo
     # Initialize pressure and factors arrays
-    pold = backend.zeros(nx)
-    pcur = backend.zeros(nx)
-    pnew = backend.zeros(nx)
+    pold = backend.zeros(model.ns...)
+    pcur = backend.zeros(model.ns...)
+    pnew = backend.zeros(model.ns...)
     fact_a = backend.Data.Array( model.fact )
     # Initialize CPML arrays
-    ψ_l = backend.zeros(halo+1)
-    ψ_r = backend.zeros(halo+1)
-    ξ_l = backend.zeros(halo)
-    ξ_r = backend.zeros(halo)
+    ψ = []
+    ξ = []
+    for i = 1:N
+        ψ_ns = [model.ns...]
+        ξ_ns = [model.ns...]
+        ψ_ns[i] = halo+1
+        ξ_ns[i] = halo
+        append!(ψ, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
+        append!(ξ, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
+    end
     # Wrap CPML coefficient arrays
-    a_x_l = backend.Data.Array( model.cpmlcoeffs[1].a_l )
-    a_x_r = backend.Data.Array( model.cpmlcoeffs[1].a_r )
-    a_x_hl = backend.Data.Array( model.cpmlcoeffs[1].a_hl )
-    a_x_hr = backend.Data.Array( model.cpmlcoeffs[1].a_hr )
-    b_K_x_l = backend.Data.Array( model.cpmlcoeffs[1].b_K_l )
-    b_K_x_r = backend.Data.Array( model.cpmlcoeffs[1].b_K_r )
-    b_K_x_hl = backend.Data.Array( model.cpmlcoeffs[1].b_K_hl )
-    b_K_x_hr = backend.Data.Array( model.cpmlcoeffs[1].b_K_hr )
+    a_coeffs = []
+    b_K_coeffs = []
+    for i = 1:N
+        append!(a_coeffs, backend.Data.Array.([
+            model.cpmlcoeffs[i].a_l,
+            model.cpmlcoeffs[i].a_r,
+            model.cpmlcoeffs[i].a_hl,
+            model.cpmlcoeffs[i].a_hr
+        ]))
+        append!(b_K_coeffs, backend.Data.Array.([
+            model.cpmlcoeffs[i].b_K_l,
+            model.cpmlcoeffs[i].b_K_r,
+            model.cpmlcoeffs[i].b_K_hl,
+            model.cpmlcoeffs[i].b_K_hr
+        ]))
+    end
     # Wrap sources and receivers arrays
     possrcs_a = backend.Data.Array( possrcs )
     posrecs_a = backend.Data.Array( posrecs )
@@ -79,191 +50,19 @@ end
     for it = 1:nt
         # Compute one forward step
         pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, fact_a, dx,
-            halo, ψ_l, ψ_r, ξ_l, ξ_r,
-            a_x_hl, a_x_hr, b_K_x_hl, b_K_x_hr,
-            a_x_l, a_x_r, b_K_x_l, b_K_x_r,
+            pold, pcur, pnew, fact_a, model.Δs..., halo,
+            ψ..., ξ..., a_coeffs..., b_K_coeffs...,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
         # Print timestep info
         if it % model.infoevery == 0
-            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array(pcur))))
+            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array( pcur ))))
         end
 
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
-            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            model.snapshots[:, div(it, model.snapevery)] .= Array( pcur )
-        end
-    end
-
-    # Save traces
-    traces .= Array( traces_a )
-end
-
-@views function forward!(
-    ::AcousticWaveEquation,
-    ::CPMLBoundaryCondition,
-    model::WaveModel2D, possrcs, posrecs, srctf, traces, backend
-)
-    # Numerics
-    nt = model.nt
-    nx = model.ns[1]
-    ny = model.ns[2]
-    dx = model.Δs[1]
-    dy = model.Δs[2]
-    halo = model.halo
-    # Initialize pressure and factors arrays
-    pold = backend.zeros(nx, ny)
-    pcur = backend.zeros(nx, ny)
-    pnew = backend.zeros(nx, ny)
-    fact_a = backend.Data.Array( model.fact )
-    # Initialize CPML arrays
-    ψ_x_l = backend.zeros(halo+1, ny)
-    ψ_x_r = backend.zeros(halo+1, ny)
-    ξ_x_l = backend.zeros(halo, ny)
-    ξ_x_r = backend.zeros(halo, ny)
-    ψ_y_l = backend.zeros(nx, halo+1)
-    ψ_y_r = backend.zeros(nx, halo+1)
-    ξ_y_l = backend.zeros(nx, halo)
-    ξ_y_r = backend.zeros(nx, halo)
-    # Wrap CPML coefficient arrays
-    a_x_l = backend.Data.Array( model.cpmlcoeffs[1].a_l )
-    a_x_r = backend.Data.Array( model.cpmlcoeffs[1].a_r )
-    a_x_hl = backend.Data.Array( model.cpmlcoeffs[1].a_hl )
-    a_x_hr = backend.Data.Array( model.cpmlcoeffs[1].a_hr )
-    b_K_x_l = backend.Data.Array( model.cpmlcoeffs[1].b_K_l )
-    b_K_x_r = backend.Data.Array( model.cpmlcoeffs[1].b_K_r )
-    b_K_x_hl = backend.Data.Array( model.cpmlcoeffs[1].b_K_hl )
-    b_K_x_hr = backend.Data.Array( model.cpmlcoeffs[1].b_K_hr )
-    a_y_l = backend.Data.Array( model.cpmlcoeffs[2].a_l )
-    a_y_r = backend.Data.Array( model.cpmlcoeffs[2].a_r )
-    a_y_hl = backend.Data.Array( model.cpmlcoeffs[2].a_hl )
-    a_y_hr = backend.Data.Array( model.cpmlcoeffs[2].a_hr )
-    b_K_y_l = backend.Data.Array( model.cpmlcoeffs[2].b_K_l )
-    b_K_y_r = backend.Data.Array( model.cpmlcoeffs[2].b_K_r )
-    b_K_y_hl = backend.Data.Array( model.cpmlcoeffs[2].b_K_hl )
-    b_K_y_hr = backend.Data.Array( model.cpmlcoeffs[2].b_K_hr )
-    # Wrap sources and receivers arrays
-    possrcs_a = backend.Data.Array( possrcs )
-    posrecs_a = backend.Data.Array( posrecs )
-    srctf_a = backend.Data.Array( srctf )
-    traces_a = backend.Data.Array( traces )
-
-    # Time loop
-    for it = 1:nt
-        # Compute one forward step
-        pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, fact_a, dx, dy,
-            halo, ψ_x_l, ψ_x_r, ξ_x_l, ξ_x_r, ψ_y_l, ψ_y_r, ξ_y_l, ξ_y_r,
-            a_x_hl, a_x_hr, b_K_x_hl, b_K_x_hr,
-            a_x_l, a_x_r, b_K_x_l, b_K_x_r,
-            a_y_hl, a_y_hr, b_K_y_hl, b_K_y_hr,
-            a_y_l, a_y_r, b_K_y_l, b_K_y_r,
-            possrcs_a, srctf_a, posrecs_a, traces_a, it
-        )
-        # Print timestep info
-        if it % model.infoevery == 0
-            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array(pcur))))
-        end
-
-        # Save snapshot
-        if snapenabled(model) && it % model.snapevery == 0
-            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            model.snapshots[:, :, div(it, model.snapevery)] .= Array( pcur )
-        end
-    end
-
-    # Save traces
-    traces .= Array( traces_a )
-end
-
-@views function forward!(
-    ::AcousticWaveEquation,
-    ::CPMLBoundaryCondition,
-    model::WaveModel3D, possrcs, posrecs, srctf, traces, backend
-)
-    # Numerics
-    nt = model.nt
-    nx = model.ns[1]
-    ny = model.ns[2]
-    nz = model.ns[3]
-    dx = model.Δs[1]
-    dy = model.Δs[2]
-    dz = model.Δs[3]
-    halo = model.halo
-    # Initialize pressure and factors arrays
-    pold = backend.zeros(nx, ny, nz)
-    pcur = backend.zeros(nx, ny, nz)
-    pnew = backend.zeros(nx, ny, nz)
-    fact_a = backend.Data.Array( model.fact )
-    # Initialize CPML arrays
-    ψ_x_l = backend.zeros(halo+1, ny, nz)
-    ψ_x_r = backend.zeros(halo+1, ny, nz)
-    ξ_x_l = backend.zeros(halo, ny, nz)
-    ξ_x_r = backend.zeros(halo, ny, nz)
-    ψ_y_l = backend.zeros(nx, halo+1, nz)
-    ψ_y_r = backend.zeros(nx, halo+1, nz)
-    ξ_y_l = backend.zeros(nx, halo, nz)
-    ξ_y_r = backend.zeros(nx, halo, nz)
-    ψ_z_l = backend.zeros(nx, ny, halo+1)
-    ψ_z_r = backend.zeros(nx, ny, halo+1)
-    ξ_z_l = backend.zeros(nx, ny, halo)
-    ξ_z_r = backend.zeros(nx, ny, halo)
-    # Wrap CPML coefficient arrays
-    a_x_l = backend.Data.Array( model.cpmlcoeffs[1].a_l )
-    a_x_r = backend.Data.Array( model.cpmlcoeffs[1].a_r )
-    a_x_hl = backend.Data.Array( model.cpmlcoeffs[1].a_hl )
-    a_x_hr = backend.Data.Array( model.cpmlcoeffs[1].a_hr )
-    b_K_x_l = backend.Data.Array( model.cpmlcoeffs[1].b_K_l )
-    b_K_x_r = backend.Data.Array( model.cpmlcoeffs[1].b_K_r )
-    b_K_x_hl = backend.Data.Array( model.cpmlcoeffs[1].b_K_hl )
-    b_K_x_hr = backend.Data.Array( model.cpmlcoeffs[1].b_K_hr )
-    a_y_l = backend.Data.Array( model.cpmlcoeffs[2].a_l )
-    a_y_r = backend.Data.Array( model.cpmlcoeffs[2].a_r )
-    a_y_hl = backend.Data.Array( model.cpmlcoeffs[2].a_hl )
-    a_y_hr = backend.Data.Array( model.cpmlcoeffs[2].a_hr )
-    b_K_y_l = backend.Data.Array( model.cpmlcoeffs[2].b_K_l )
-    b_K_y_r = backend.Data.Array( model.cpmlcoeffs[2].b_K_r )
-    b_K_y_hl = backend.Data.Array( model.cpmlcoeffs[2].b_K_hl )
-    b_K_y_hr = backend.Data.Array( model.cpmlcoeffs[2].b_K_hr )
-    a_z_l = backend.Data.Array( model.cpmlcoeffs[3].a_l )
-    a_z_r = backend.Data.Array( model.cpmlcoeffs[3].a_r )
-    a_z_hl = backend.Data.Array( model.cpmlcoeffs[3].a_hl )
-    a_z_hr = backend.Data.Array( model.cpmlcoeffs[3].a_hr )
-    b_K_z_l = backend.Data.Array( model.cpmlcoeffs[3].b_K_l )
-    b_K_z_r = backend.Data.Array( model.cpmlcoeffs[3].b_K_r )
-    b_K_z_hl = backend.Data.Array( model.cpmlcoeffs[3].b_K_hl )
-    b_K_z_hr = backend.Data.Array( model.cpmlcoeffs[3].b_K_hr )
-    # Wrap sources and receivers arrays
-    possrcs_a = backend.Data.Array( possrcs )
-    posrecs_a = backend.Data.Array( posrecs )
-    srctf_a = backend.Data.Array( srctf )
-    traces_a = backend.Data.Array( traces )
-
-    # Time loop
-    for it = 1:nt
-        # Compute one forward step
-        pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, fact_a, dx, dy, dz,
-            halo, ψ_x_l, ψ_x_r, ξ_x_l, ξ_x_r, ψ_y_l, ψ_y_r, ξ_y_l, ξ_y_r, ψ_z_l, ψ_z_r, ξ_z_l, ξ_z_r,
-            a_x_hl, a_x_hr, b_K_x_hl, b_K_x_hr,
-            a_x_l, a_x_r, b_K_x_l, b_K_x_r,
-            a_y_hl, a_y_hr, b_K_y_hl, b_K_y_hr,
-            a_y_l, a_y_r, b_K_y_l, b_K_y_r,
-            a_z_hl, a_z_hr, b_K_z_hl, b_K_z_hr,
-            a_z_l, a_z_r, b_K_z_l, b_K_z_r,
-            possrcs_a, srctf_a, posrecs_a, traces_a, it
-        )
-        # Print timestep info
-        if it % model.infoevery == 0
-            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array(pcur))))
-        end
-
-        # Save snapshot
-        if snapenabled(model) && it % model.snapevery == 0
-            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            model.snapshots[:, :, :, div(it, model.snapevery)] .= Array( pcur )
+            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array( pcur ))))
+            model.snapshots[fill(Colon(), N)..., div(it, model.snapevery)] .= Array( pcur )
         end
     end
 

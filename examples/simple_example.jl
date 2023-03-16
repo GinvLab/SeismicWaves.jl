@@ -78,12 +78,16 @@ function exacouprob()
 
     ##===============================================
     ## compute the seismograms
-    snapshots = forward!(params, velmod, shots; use_GPU=false; snapevery=snapevery, infoevery=infoevery)
+    snapshots = forward!(params, velmod, shots; use_GPU=false, snapevery=snapevery, infoevery=infoevery)
 
     return params, velmod, collect(map(s -> s.second.seismograms, shots)), snapshots
 end
 
-exacouprob()
+# p, v, s, snaps = exacouprob()
+
+using Plots
+heatmap(snaps[6][:,:,20]'; aspect_ratio=:equal, cmap=:RdBu)
+yaxis!(flip=true)
 
 
 ##################################################################
