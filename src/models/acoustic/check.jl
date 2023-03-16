@@ -1,73 +1,43 @@
-"""
-    @views check_courant_condition(::IsotropicAcousticWaveEquation, model::WaveModel1D)
-
-Check the Courant number for isotropic acoustic 1D models.
-"""
 @views function check_courant_condition(::IsotropicAcousticWaveEquation, model::WaveModel1D)
-    vel_max = maximum(model.vel)
+    vel_max = get_maximum_func(model)(model.vel)
     courant = vel_max * model.dt / model.dx
     @debug "Courant number: $(courant)"
     @assert courant <= 1.0 "Courant condition not satisfied!"
 end
 
-"""
-    @views check_courant_condition(::IsotropicAcousticWaveEquation, model::WaveModel2D)
-
-Check the Courant number for isotropic acoustic 2D models.
-"""
 @views function check_courant_condition(::IsotropicAcousticWaveEquation, model::WaveModel2D)
-    vel_max = maximum(model.vel)
+    vel_max = get_maximum_func(model)(model.vel)
     h_min = min(model.dx, model.dy)
     courant = vel_max * model.dt / h_min
     @debug "Courant number: $(courant)"
     @assert courant <= sqrt(2)/2 "Courant condition not satisfied!"
 end
 
-"""
-    @views check_courant_condition(::IsotropicAcousticWaveEquation, model::WaveModel3D)
-
-Check the Courant number for isotropic acoustic 3D models.
-"""
 @views function check_courant_condition(::IsotropicAcousticWaveEquation, model::WaveModel3D)
-    vel_max = maximum(model.vel)
+    vel_max = get_maximum_func(model)(model.vel)
     h_min = min(model.dx, model.dy, model.dz)
     courant = vel_max * model.dt / h_min
     @debug "Courant number: $(courant)"
     @assert courant <= sqrt(3)/3 "Courant condition not satisfied!"
 end
 
-"""
-    @views check_ppw(::IsotropicAcousticWaveEquation, model::WaveModel1D, srcs::Sources{<:Real}, min_ppw::Integer=10)
-
-Check that the number of points per wavelength is above or equal to the specified threshold.
-"""
 @views function check_ppw(::IsotropicAcousticWaveEquation, model::WaveModel1D, srcs::Sources{<:Real}, min_ppw::Integer=10)
-    vel_min = minimum(model.vel)
+    vel_min = get_minimum_func(model)(model.vel)
     ppw = vel_min / srcs.freqdomain / model.dx
     @debug "Points per wavelengh: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
-"""
-    @views check_ppw(::IsotropicAcousticWaveEquation, model::WaveModel2D, srcs::Sources{<:Real}, ppw::Integer=10)
-
-Check that the number of points per wavelength is above or equal to the specified threshold.
-"""
 @views function check_ppw(::IsotropicAcousticWaveEquation, model::WaveModel2D, srcs::Sources{<:Real}, min_ppw::Integer=10)
-    vel_min = minimum(model.vel)
+    vel_min = get_minimum_func(model)(model.vel)
     h_max = max(model.dx, model.dy)
     ppw = vel_min / srcs.freqdomain / h_max
     @debug "Points per wavelengh: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
-"""
-    @views check_ppw(::IsotropicAcousticWaveEquation, model::WaveModel3D, srcs::Sources{<:Real}, ppw::Integer=10)
-
-Check that the number of points per wavelength is above or equal to the specified threshold.
-"""
 @views function check_ppw(::IsotropicAcousticWaveEquation, model::WaveModel3D, srcs::Sources{<:Real}, min_ppw::Integer=10)
-    vel_min = minimum(model.vel)
+    vel_min = get_minimum_func(model)(model.vel)
     h_max = max(model.dx, model.dy, model.dz)
     ppw = vel_min / srcs.freqdomain / h_max
     @debug "Points per wavelengh: $(ppw)"

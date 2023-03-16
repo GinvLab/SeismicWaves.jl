@@ -59,6 +59,7 @@ IsotropicAcousticReflectiveWaveModel1D(args...; kwargs...) = IsotropicAcousticRe
 WaveEquationTrait(::Type{<:IsotropicAcousticReflectiveWaveModel1D}) = IsotropicAcousticWaveEquation()
 BoundaryConditionTrait(::Type{<:IsotropicAcousticReflectiveWaveModel1D}) = ReflectiveBoundaryCondition()
 IsSnappableTrait(::Type{<:IsotropicAcousticReflectiveWaveModel1D}) = Snappable()
+GridTrait(::Type{<:IsotropicAcousticReflectiveWaveModel1D}) = LocalGrid()
 
 """
 Isotropic acoustic 1D wave equation model with CPML boundaries.
@@ -128,6 +129,7 @@ IsotropicAcousticCPMLWaveModel1D(args...; kwargs...) = IsotropicAcousticCPMLWave
 WaveEquationTrait(::Type{<:IsotropicAcousticCPMLWaveModel1D}) = IsotropicAcousticWaveEquation()
 BoundaryConditionTrait(::Type{<:IsotropicAcousticCPMLWaveModel1D}) = CPMLBoundaryCondition()
 IsSnappableTrait(::Type{<:IsotropicAcousticCPMLWaveModel1D}) = Snappable()
+GridTrait(::Type{<:IsotropicAcousticCPMLWaveModel1D}) = LocalGrid()
 
 
 """
@@ -209,7 +211,7 @@ IsotropicAcousticCPMLWaveModel2D(args...; kwargs...) = IsotropicAcousticCPMLWave
 WaveEquationTrait(::Type{<:IsotropicAcousticCPMLWaveModel2D}) = IsotropicAcousticWaveEquation()
 BoundaryConditionTrait(::Type{<:IsotropicAcousticCPMLWaveModel2D}) = CPMLBoundaryCondition()
 IsSnappableTrait(::Type{<:IsotropicAcousticCPMLWaveModel2D}) = Snappable()
-
+GridTrait(::Type{<:IsotropicAcousticCPMLWaveModel2D}) = LocalGrid()
 
 """
 Isotropic acoustic 3D wave equation model with CPML boundaries.
@@ -299,3 +301,4 @@ IsotropicAcousticCPMLWaveModel3D(args...; kwargs...) = IsotropicAcousticCPMLWave
 WaveEquationTrait(::Type{<:IsotropicAcousticCPMLWaveModel3D}) = IsotropicAcousticWaveEquation()
 BoundaryConditionTrait(::Type{<:IsotropicAcousticCPMLWaveModel3D}) = CPMLBoundaryCondition()
 IsSnappableTrait(::Type{<:IsotropicAcousticCPMLWaveModel3D}) = Snappable()
+GridTrait(::Type{<:IsotropicAcousticCPMLWaveModel3D}) = LocalGrid()

@@ -13,6 +13,7 @@ include("traits/equation.jl")
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
 include("traits/snappable.jl")
+include("traits/grid.jl")
 
 include("params.jl")
 include("sources.jl")
