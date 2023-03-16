@@ -30,8 +30,7 @@ include("models/acoustic/models.jl")
 include("models/acoustic/forward.jl")
 include("models/acoustic/gradient.jl")
 include("models/acoustic/init_CPML_bdc.jl")
-export IsotropicAcousticReflectiveWaveModel1D
-export IsotropicAcousticCPMLWaveModel1D, IsotropicAcousticCPMLWaveModel2D, IsotropicAcousticCPMLWaveModel3D
+export AcousticCPMLWaveModel1D, AcousticCPMLWaveModel2D, AcousticCPMLWaveModel3D
 export InputParametersAcoustic, InputBDCParametersAcousticReflective, InputBDCParametersAcousticCPML
 
 include("wrappers.jl")

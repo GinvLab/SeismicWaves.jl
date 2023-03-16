@@ -3,9 +3,9 @@
     ::ReflectiveBoundaryCondition,
     model::WaveModel1D, possrcs, posrecs, srctf, traces, backend
 )
-    nx = model.nx
+    nx = model.ns[1]
     nt = model.nt
-    dx = model.dx
+    dx = model.Δs[1]
     # Initialize pressure and factors arrays
     pold = backend.zeros(nx)
     pcur = backend.zeros(nx)
@@ -47,8 +47,8 @@ end
 )
     # Numerics
     nt = model.nt
-    nx = model.nx
-    dx = model.dx
+    nx = model.ns[1]
+    dx = model.Δs[1]
     halo = model.halo
     # Initialize pressure and factors arrays
     pold = backend.zeros(nx)
@@ -61,14 +61,14 @@ end
     ξ_l = backend.zeros(halo)
     ξ_r = backend.zeros(halo)
     # Wrap CPML coefficient arrays
-    a_x_l = backend.Data.Array( model.cpmlcoeffs.a_l )
-    a_x_r = backend.Data.Array( model.cpmlcoeffs.a_r )
-    a_x_hl = backend.Data.Array( model.cpmlcoeffs.a_hl )
-    a_x_hr = backend.Data.Array( model.cpmlcoeffs.a_hr )
-    b_K_x_l = backend.Data.Array( model.cpmlcoeffs.b_K_l )
-    b_K_x_r = backend.Data.Array( model.cpmlcoeffs.b_K_r )
-    b_K_x_hl = backend.Data.Array( model.cpmlcoeffs.b_K_hl )
-    b_K_x_hr = backend.Data.Array( model.cpmlcoeffs.b_K_hr )
+    a_x_l = backend.Data.Array( model.cpmlcoeffs[1].a_l )
+    a_x_r = backend.Data.Array( model.cpmlcoeffs[1].a_r )
+    a_x_hl = backend.Data.Array( model.cpmlcoeffs[1].a_hl )
+    a_x_hr = backend.Data.Array( model.cpmlcoeffs[1].a_hr )
+    b_K_x_l = backend.Data.Array( model.cpmlcoeffs[1].b_K_l )
+    b_K_x_r = backend.Data.Array( model.cpmlcoeffs[1].b_K_r )
+    b_K_x_hl = backend.Data.Array( model.cpmlcoeffs[1].b_K_hl )
+    b_K_x_hr = backend.Data.Array( model.cpmlcoeffs[1].b_K_hr )
     # Wrap sources and receivers arrays
     possrcs_a = backend.Data.Array( possrcs )
     posrecs_a = backend.Data.Array( posrecs )
@@ -108,10 +108,10 @@ end
 )
     # Numerics
     nt = model.nt
-    nx = model.nx
-    ny = model.ny
-    dx = model.dx
-    dy = model.dy
+    nx = model.ns[1]
+    ny = model.ns[2]
+    dx = model.Δs[1]
+    dy = model.Δs[2]
     halo = model.halo
     # Initialize pressure and factors arrays
     pold = backend.zeros(nx, ny)
@@ -128,22 +128,22 @@ end
     ξ_y_l = backend.zeros(nx, halo)
     ξ_y_r = backend.zeros(nx, halo)
     # Wrap CPML coefficient arrays
-    a_x_l = backend.Data.Array( model.cpmlcoeffs_x.a_l )
-    a_x_r = backend.Data.Array( model.cpmlcoeffs_x.a_r )
-    a_x_hl = backend.Data.Array( model.cpmlcoeffs_x.a_hl )
-    a_x_hr = backend.Data.Array( model.cpmlcoeffs_x.a_hr )
-    b_K_x_l = backend.Data.Array( model.cpmlcoeffs_x.b_K_l )
-    b_K_x_r = backend.Data.Array( model.cpmlcoeffs_x.b_K_r )
-    b_K_x_hl = backend.Data.Array( model.cpmlcoeffs_x.b_K_hl )
-    b_K_x_hr = backend.Data.Array( model.cpmlcoeffs_x.b_K_hr )
-    a_y_l = backend.Data.Array( model.cpmlcoeffs_y.a_l )
-    a_y_r = backend.Data.Array( model.cpmlcoeffs_y.a_r )
-    a_y_hl = backend.Data.Array( model.cpmlcoeffs_y.a_hl )
-    a_y_hr = backend.Data.Array( model.cpmlcoeffs_y.a_hr )
-    b_K_y_l = backend.Data.Array( model.cpmlcoeffs_y.b_K_l )
-    b_K_y_r = backend.Data.Array( model.cpmlcoeffs_y.b_K_r )
-    b_K_y_hl = backend.Data.Array( model.cpmlcoeffs_y.b_K_hl )
-    b_K_y_hr = backend.Data.Array( model.cpmlcoeffs_y.b_K_hr )
+    a_x_l = backend.Data.Array( model.cpmlcoeffs[1].a_l )
+    a_x_r = backend.Data.Array( model.cpmlcoeffs[1].a_r )
+    a_x_hl = backend.Data.Array( model.cpmlcoeffs[1].a_hl )
+    a_x_hr = backend.Data.Array( model.cpmlcoeffs[1].a_hr )
+    b_K_x_l = backend.Data.Array( model.cpmlcoeffs[1].b_K_l )
+    b_K_x_r = backend.Data.Array( model.cpmlcoeffs[1].b_K_r )
+    b_K_x_hl = backend.Data.Array( model.cpmlcoeffs[1].b_K_hl )
+    b_K_x_hr = backend.Data.Array( model.cpmlcoeffs[1].b_K_hr )
+    a_y_l = backend.Data.Array( model.cpmlcoeffs[2].a_l )
+    a_y_r = backend.Data.Array( model.cpmlcoeffs[2].a_r )
+    a_y_hl = backend.Data.Array( model.cpmlcoeffs[2].a_hl )
+    a_y_hr = backend.Data.Array( model.cpmlcoeffs[2].a_hr )
+    b_K_y_l = backend.Data.Array( model.cpmlcoeffs[2].b_K_l )
+    b_K_y_r = backend.Data.Array( model.cpmlcoeffs[2].b_K_r )
+    b_K_y_hl = backend.Data.Array( model.cpmlcoeffs[2].b_K_hl )
+    b_K_y_hr = backend.Data.Array( model.cpmlcoeffs[2].b_K_hr )
     # Wrap sources and receivers arrays
     possrcs_a = backend.Data.Array( possrcs )
     posrecs_a = backend.Data.Array( posrecs )
@@ -185,12 +185,12 @@ end
 )
     # Numerics
     nt = model.nt
-    nx = model.nx
-    ny = model.ny
-    nz = model.nz
-    dx = model.dx
-    dy = model.dy
-    dz = model.dz
+    nx = model.ns[1]
+    ny = model.ns[2]
+    nz = model.ns[3]
+    dx = model.Δs[1]
+    dy = model.Δs[2]
+    dz = model.Δs[3]
     halo = model.halo
     # Initialize pressure and factors arrays
     pold = backend.zeros(nx, ny, nz)
@@ -211,30 +211,30 @@ end
     ξ_z_l = backend.zeros(nx, ny, halo)
     ξ_z_r = backend.zeros(nx, ny, halo)
     # Wrap CPML coefficient arrays
-    a_x_l = backend.Data.Array( model.cpmlcoeffs_x.a_l )
-    a_x_r = backend.Data.Array( model.cpmlcoeffs_x.a_r )
-    a_x_hl = backend.Data.Array( model.cpmlcoeffs_x.a_hl )
-    a_x_hr = backend.Data.Array( model.cpmlcoeffs_x.a_hr )
-    b_K_x_l = backend.Data.Array( model.cpmlcoeffs_x.b_K_l )
-    b_K_x_r = backend.Data.Array( model.cpmlcoeffs_x.b_K_r )
-    b_K_x_hl = backend.Data.Array( model.cpmlcoeffs_x.b_K_hl )
-    b_K_x_hr = backend.Data.Array( model.cpmlcoeffs_x.b_K_hr )
-    a_y_l = backend.Data.Array( model.cpmlcoeffs_y.a_l )
-    a_y_r = backend.Data.Array( model.cpmlcoeffs_y.a_r )
-    a_y_hl = backend.Data.Array( model.cpmlcoeffs_y.a_hl )
-    a_y_hr = backend.Data.Array( model.cpmlcoeffs_y.a_hr )
-    b_K_y_l = backend.Data.Array( model.cpmlcoeffs_y.b_K_l )
-    b_K_y_r = backend.Data.Array( model.cpmlcoeffs_y.b_K_r )
-    b_K_y_hl = backend.Data.Array( model.cpmlcoeffs_y.b_K_hl )
-    b_K_y_hr = backend.Data.Array( model.cpmlcoeffs_y.b_K_hr )
-    a_z_l = backend.Data.Array( model.cpmlcoeffs_z.a_l )
-    a_z_r = backend.Data.Array( model.cpmlcoeffs_z.a_r )
-    a_z_hl = backend.Data.Array( model.cpmlcoeffs_z.a_hl )
-    a_z_hr = backend.Data.Array( model.cpmlcoeffs_z.a_hr )
-    b_K_z_l = backend.Data.Array( model.cpmlcoeffs_z.b_K_l )
-    b_K_z_r = backend.Data.Array( model.cpmlcoeffs_z.b_K_r )
-    b_K_z_hl = backend.Data.Array( model.cpmlcoeffs_z.b_K_hl )
-    b_K_z_hr = backend.Data.Array( model.cpmlcoeffs_z.b_K_hr )
+    a_x_l = backend.Data.Array( model.cpmlcoeffs[1].a_l )
+    a_x_r = backend.Data.Array( model.cpmlcoeffs[1].a_r )
+    a_x_hl = backend.Data.Array( model.cpmlcoeffs[1].a_hl )
+    a_x_hr = backend.Data.Array( model.cpmlcoeffs[1].a_hr )
+    b_K_x_l = backend.Data.Array( model.cpmlcoeffs[1].b_K_l )
+    b_K_x_r = backend.Data.Array( model.cpmlcoeffs[1].b_K_r )
+    b_K_x_hl = backend.Data.Array( model.cpmlcoeffs[1].b_K_hl )
+    b_K_x_hr = backend.Data.Array( model.cpmlcoeffs[1].b_K_hr )
+    a_y_l = backend.Data.Array( model.cpmlcoeffs[2].a_l )
+    a_y_r = backend.Data.Array( model.cpmlcoeffs[2].a_r )
+    a_y_hl = backend.Data.Array( model.cpmlcoeffs[2].a_hl )
+    a_y_hr = backend.Data.Array( model.cpmlcoeffs[2].a_hr )
+    b_K_y_l = backend.Data.Array( model.cpmlcoeffs[2].b_K_l )
+    b_K_y_r = backend.Data.Array( model.cpmlcoeffs[2].b_K_r )
+    b_K_y_hl = backend.Data.Array( model.cpmlcoeffs[2].b_K_hl )
+    b_K_y_hr = backend.Data.Array( model.cpmlcoeffs[2].b_K_hr )
+    a_z_l = backend.Data.Array( model.cpmlcoeffs[3].a_l )
+    a_z_r = backend.Data.Array( model.cpmlcoeffs[3].a_r )
+    a_z_hl = backend.Data.Array( model.cpmlcoeffs[3].a_hl )
+    a_z_hr = backend.Data.Array( model.cpmlcoeffs[3].a_hr )
+    b_K_z_l = backend.Data.Array( model.cpmlcoeffs[3].b_K_l )
+    b_K_z_r = backend.Data.Array( model.cpmlcoeffs[3].b_K_r )
+    b_K_z_hl = backend.Data.Array( model.cpmlcoeffs[3].b_K_hl )
+    b_K_z_hr = backend.Data.Array( model.cpmlcoeffs[3].b_K_hr )
     # Wrap sources and receivers arrays
     possrcs_a = backend.Data.Array( possrcs )
     posrecs_a = backend.Data.Array( posrecs )

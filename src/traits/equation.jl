@@ -4,14 +4,9 @@ Abstract trait for a general wave equation model.
 abstract type WaveEquationTrait end
 
 """
-Abstract trait for a general acoustic wave equation model.
+Trait for an acoustic wave equation model.
 """
-abstract type AcousticWaveEquation <: WaveEquationTrait end
-
-"""
-Trait for an isotropic acoustic wave equation model.
-"""
-struct IsotropicAcousticWaveEquation <: AcousticWaveEquation end
+struct AcousticWaveEquation <: WaveEquationTrait end
 
 """
 Abstract trait for a general elastic wave equation model.

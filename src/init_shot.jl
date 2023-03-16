@@ -27,7 +27,7 @@ Check shot configuration for a model.
 """
 check_shot(model::WaveModel, srcs::Sources{<:Real}, recs::Receivers{<:Real}) = check_shot(WaveEquationTrait(model), BoundaryConditionTrait(model), model, srcs, recs)
 
-function check_shot(x::IsotropicAcousticWaveEquation, bdc::BoundaryConditionTrait, model::WaveModel, srcs::Sources{<:Real}, recs::Receivers{<:Real})
+function check_shot(x::AcousticWaveEquation, bdc::BoundaryConditionTrait, model::WaveModel, srcs::Sources{<:Real}, recs::Receivers{<:Real})
     @debug "Checking points per wavelengh"
     check_ppw(x, model, srcs)
     @debug "Checking sources positions"

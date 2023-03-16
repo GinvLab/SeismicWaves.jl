@@ -1,19 +1,5 @@
-"""
-Abstract type for a general wave propagation model. 
-"""
-abstract type WaveModel end
+abstract type WaveModel{N} end
 
-"""
-Abstract type for a 1D wave propagation model.
-"""
-abstract type WaveModel1D <: WaveModel end
-
-"""
-Abstract type for a 2D wave propagation model.
-"""
-abstract type WaveModel2D <: WaveModel end
-
-"""
-Abstract type for a 3D wave propagation model.
-"""
-abstract type WaveModel3D <: WaveModel end
+WaveModel1D = WaveModel{1}
+WaveModel2D = WaveModel{2}
+WaveModel3D = WaveModel{3}

@@ -1,28 +1,20 @@
 build_model(params::InputParametersAcoustic, vel::AbstractArray; kwargs...) = build_model(params, params.boundcond, vel; kwargs...)
 
-build_model(params::InputParametersAcoustic{1}, bparams::InputBDCParametersAcousticReflective, vel::AbstractArray; kwargs...) =
-    IsotropicAcousticReflectiveWaveModel1D(
-        params.ntimesteps,
-        params.dt,
-        params.Δs...,
-        vel;
-        kwargs...
-    )
 build_model(params::InputParametersAcoustic{1}, cpmlparams::InputBDCParametersAcousticCPML, vel::AbstractArray; kwargs...) =
-    IsotropicAcousticCPMLWaveModel1D(
+    AcousticCPMLWaveModel1D(
         params.ntimesteps,
         params.dt,
-        params.Δs...,
+        params.Δs,
         cpmlparams.halo,
         cpmlparams.rcoef,
         vel;
         kwargs...
     )
 build_model(params::InputParametersAcoustic{2}, cpmlparams::InputBDCParametersAcousticCPML, vel::AbstractArray; kwargs...) =
-    IsotropicAcousticCPMLWaveModel2D(
+    AcousticCPMLWaveModel2D(
         params.ntimesteps,
         params.dt,
-        params.Δs...,
+        params.Δs,
         cpmlparams.halo,
         cpmlparams.rcoef,
         vel;
@@ -30,10 +22,10 @@ build_model(params::InputParametersAcoustic{2}, cpmlparams::InputBDCParametersAc
         kwargs...
     )
 build_model(params::InputParametersAcoustic{3}, cpmlparams::InputBDCParametersAcousticCPML, vel::AbstractArray; kwargs...) =
-    IsotropicAcousticCPMLWaveModel3D(
+    AcousticCPMLWaveModel3D(
         params.ntimesteps,
         params.dt,
-        params.Δs...,
+        params.Δs,
         cpmlparams.halo,
         cpmlparams.rcoef,
         vel;
@@ -41,9 +33,9 @@ build_model(params::InputParametersAcoustic{3}, cpmlparams::InputBDCParametersAc
         kwargs...
     )
 
-select_backend(_::IsotropicAcousticWaveEquation, _::WaveModel1D, use_GPU::Bool) = (use_GPU ? Acoustic1D_CUDA : Acoustic1D_Threads)
-select_backend(_::IsotropicAcousticWaveEquation, _::WaveModel2D, use_GPU::Bool) = (use_GPU ? Acoustic2D_CUDA : Acoustic2D_Threads)
-select_backend(_::IsotropicAcousticWaveEquation, _::WaveModel3D, use_GPU::Bool) = (use_GPU ? Acoustic3D_CUDA : Acoustic3D_Threads)
+select_backend(_::AcousticWaveEquation, _::WaveModel1D, use_GPU::Bool) = (use_GPU ? Acoustic1D_CUDA : Acoustic1D_Threads)
+select_backend(_::AcousticWaveEquation, _::WaveModel2D, use_GPU::Bool) = (use_GPU ? Acoustic2D_CUDA : Acoustic2D_Threads)
+select_backend(_::AcousticWaveEquation, _::WaveModel3D, use_GPU::Bool) = (use_GPU ? Acoustic3D_CUDA : Acoustic3D_Threads)
 select_backend(model::WaveModel, use_GPU::Bool) = select_backend(WaveEquationTrait(model), model, use_GPU)
 
 @doc raw"""
