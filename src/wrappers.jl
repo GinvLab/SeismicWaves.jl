@@ -51,7 +51,9 @@ select_backend(model::WaveModel, use_GPU::Bool) = select_backend(WaveEquationTra
         params::InputParameters,
         vel::AbstractArray,
         shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-        use_GPU::Bool = false
+        use_GPU::Bool = false,
+        snapevery::Union{Int, Nothing} = nothing,
+        infoevery::Union{Int, Nothing} = nothing
     )::Union{Vector{AbstractArray}, Nothing}
 
 Compute forward simulation using the given input parameters `params` and velocity model `vel` on multiple shots.
@@ -63,14 +65,19 @@ Receivers traces are stored in the `Receivers` object for each shot. See also [`
 Return a vector of snapshots for every shot if snapshotting is enabled.
 
 See also [`Sources`](@ref), [`Receivers`](@ref).
+
+# Keyword arguments
+- `use_GPU::Bool = false`: controls which backend is used (`true` for GPU backend, `false` for CPU backend).
+- `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays  
+- `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
 function forward!(
     params::InputParameters,
     vel::AbstractArray,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     use_GPU::Bool = false,
-    snapevery::Union{Int, Nothing}=nothing,
-    infoevery::Union{Int, Nothing}=nothing
+    snapevery::Union{Int, Nothing} = nothing,
+    infoevery::Union{Int, Nothing} = nothing
     )::Union{Vector{AbstractArray}, Nothing}
     # Build model
     model = build_model(params, vel; snapevery=snapevery, infoevery=infoevery)
@@ -116,7 +123,8 @@ end
         vel::AbstractArray,
         shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
         use_GPU::Bool = false,
-        check_freq::Union{Integer, Nothing} = nothing
+        check_freq::Union{Int, Nothing} = nothing,
+        infoevery::Union{Int, Nothing} = nothing
     )::AbstractArray
 
 Compute gradients w.r.t. model parameters using the given input parameters `params` and velocity model `vel` on multiple shots.
@@ -130,16 +138,22 @@ The optimal tradeoff value is `check_freq = sqrt(nt)` where `nt` is the number o
 Bigger values speed up computation at the cost of using more memory.
 
 See also [`Sources`](@ref), [`Receivers`](@ref), [`forward!`](@ref), [`misfit!`](@ref).
+
+# Keyword arguments
+- `use_GPU::Bool = false`: controls which backend is used (`true` for GPU backend, `false` for CPU backend).
+- `check_freq::Union{Int, Nothing}`: if specified, enables checkpointing and specifies the checkpointing frequency.
+- `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
 function gradient!(
     params::InputParameters,
     vel::AbstractArray,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     use_GPU::Bool = false,
-    check_freq::Union{Integer, Nothing} = nothing
+    check_freq::Union{Int, Nothing} = nothing,
+    infoevery::Union{Int, Nothing} = nothing
     )::AbstractArray
     # Build model
-    model = build_model(params, vel)
+    model = build_model(params, vel; infoevery=infoevery)
     # Select backend
     backend = select_backend(model, use_GPU)
     # Solve simulation
