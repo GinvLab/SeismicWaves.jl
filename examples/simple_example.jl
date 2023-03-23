@@ -89,7 +89,7 @@ function exacouprob()
 
     ##===============================================
     ## compute the seismograms
-    seism = solveacoustic2D(inpar,ijsrcs,velmod,ijrecs,sourcetf,srcdomfreq,runparallel=true)
+    seism = solveacoustic2D(inpar,ijsrcs,velmod,ijrecs,sourcetf,srcdomfreq,runparallel=false)
 
     return inpar,velmod,seism
 end
