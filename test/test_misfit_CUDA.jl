@@ -6,7 +6,7 @@ include("utils.jl")
 using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
 with_logger(error_logger) do
-    @testset "Test 1D misfit!" begin
+    @testset "Test 1D swmisfit!" begin
         # Physics
         c0 = 2000.0
         f0 = 10.0
@@ -20,7 +20,7 @@ with_logger(error_logger) do
         params, srcs, recs, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
 
         # Solve gradient without checkpointing
-        mis = misfit!(params, vel, [srcs => recs]; use_GPU=true)
+        mis = swmisfit!(params, vel, [srcs => recs]; parall=:GPU)
         @test mis > 0
     end
 end

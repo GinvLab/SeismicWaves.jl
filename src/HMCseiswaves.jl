@@ -1,7 +1,7 @@
 
 #
 # MIT License
-# Copyright (c) 2019 Andrea Zunino
+# Copyright (c) 2023 Andrea Zunino
 # 
 
 ################################################################
@@ -38,7 +38,7 @@ end
 ## make the type callable
 function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
     # numerics
-    dh = acouprob.inpars.Δs[1]
+    dh = acouprob.inpars.gridspacing[1]
     nt = acouprob.inpars.ntimesteps
 
     # reshape vector to 2D array
@@ -64,14 +64,14 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         #############################################
         ## compute the logdensity value for vecvel ##
         #############################################
-        misval = misfit!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU)
+        misval = swmisfit!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU)
         return misval        
 
     elseif kind==:gradnlogpdf
         #################################################
         ## compute the gradient of the misfit function ##
         #################################################
-        grad = gradient!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU, check_freq=ceil(Int, sqrt(nt)))
+        grad = swgradient!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU, check_freq=ceil(Int, sqrt(nt)))
         # return flattened gradient
         return  vec(grad)
 
@@ -80,7 +80,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         ####################################################
         ## compute calculated data (solve forward problem) ##
         ####################################################
-        dcalc = forward!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU)
+        dcalc = swforward!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU)
         return dcalc
 
     else

@@ -16,12 +16,12 @@ struct UnSnappable <: IsSnappableTrait end
 IsSnappableTrait(x) = IsSnappableTrait(typeof(x))
 IsSnappableTrait(x::Type) = error("IsSnappableTrait not implemented for type $(x)")
 
-# Default behaviour for a WaveModel is UnSnappable
-IsSnappableTrait(::Type{<:WaveModel}) = UnSnappable()
+# Default behaviour for a WaveSimul is UnSnappable
+IsSnappableTrait(::Type{<:WaveSimul}) = UnSnappable()
 
 """
-    snapenabled(model::WaveModel)
+    snapenabled(model::WaveSimul)
 
 Check if a model has snapping enabled.
 """
-snapenabled(model::WaveModel) = isa(IsSnappableTrait(model), Snappable) && model.snapevery !== nothing
+snapenabled(model::WaveSimul) = isa(IsSnappableTrait(model), Snappable) && model.snapevery !== nothing

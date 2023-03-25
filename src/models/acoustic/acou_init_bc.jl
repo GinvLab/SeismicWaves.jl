@@ -1,9 +1,9 @@
-function init_CPML_bdc!(
-    ::AcousticWaveEquation,
-    ::CPMLBoundaryCondition,
-    model::WaveModel,
+
+function init_bdc!(
+    model::Acoustic_CD_CPML_WaveSimul,
     srcs::Sources{<:Real}
-)
+    )
+
     N = length(model.cpmlcoeffs)
     for n = 1:N
         compute_CPML_coefficients!(
@@ -12,8 +12,8 @@ function init_CPML_bdc!(
             model.dt,
             model.halo,
             model.rcoef,
-            model.Δs[n] * model.halo,
-            srcs.freqdomain
+            model.gridspacing[n] * model.halo,
+            srcs.domfreq
         )
     end
 
@@ -23,4 +23,13 @@ function init_CPML_bdc!(
         model.cpmlcoeffs[N].b_K_l .= 1.0
         model.cpmlcoeffs[N].b_K_hl .= 1.0
     end
+    return
+end
+
+
+function init_bdc!(
+    ::Acoustic_CD_Refl_WaveSimul,
+    ::Sources{<:Real}
+    )
+    return
 end

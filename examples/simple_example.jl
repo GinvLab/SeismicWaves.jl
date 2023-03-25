@@ -71,14 +71,14 @@ function exacouprob()
     ## Input parameters for acoustic simulation
     snapevery = 50
     infoevery = 500
-    boundcond = InputBDCParametersAcousticCPML(halo=20, rcoef=0.0001, freeboundtop=true)
+    boundcond = CPML_BC(halo=20, rcoef=0.0001, freeboundtop=true)
     params = InputParametersAcoustic(
         nt, dt, [nx, nz], [dh, dh], boundcond
     )
 
     ##===============================================
     ## compute the seismograms
-    snapshots = forward!(params, velmod, shots; use_GPU=false, snapevery=snapevery, infoevery=infoevery)
+    snapshots = swforward!(params, velmod, shots; use_GPU=false, snapevery=snapevery, infoevery=infoevery)
 
     return params, velmod, collect(map(s -> s.second.seismograms, shots)), snapshots
 end

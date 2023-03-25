@@ -1,4 +1,4 @@
-module Acoustic1D_CUDA
+module Acoustic1D_CD_CPML_GPU
 
 using CUDA
 using ParallelStencil

@@ -1,4 +1,4 @@
-module Acoustic1D_Threads
+module Acoustic1D_CD_CPML_Threads
 
 using ParallelStencil
 using ParallelStencil.FiniteDifferences1D

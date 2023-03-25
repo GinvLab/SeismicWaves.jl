@@ -6,7 +6,7 @@ include("utils.jl")
 using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
 with_logger(error_logger) do
-    @testset "Test 1D gradient! checkpointing" begin
+    @testset "Test 1D swgradient! checkpointing" begin
         # Physics
         c0 = 2000.0
         f0 = 10.0
@@ -20,9 +20,9 @@ with_logger(error_logger) do
         params, srcs, recs, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
 
         # Solve gradient without checkpointing
-        grad = gradient!(params, vel, [srcs => recs]; use_GPU=true, check_freq=nothing)
+        grad = swgradient!(params, vel, [srcs => recs]; parall=:GPU, check_freq=nothing)
         # Solve gradient with (optimal) checkpointing
-        grad_check = gradient!(params, vel, [srcs => recs]; use_GPU=true, check_freq=floor(Int, sqrt(nt)))
+        grad_check = swgradient!(params, vel, [srcs => recs]; parall=:GPU, check_freq=floor(Int, sqrt(nt)))
 
         # Check that gradient is non zero
         @test !all(g -> g == 0.0, grad)
@@ -30,7 +30,7 @@ with_logger(error_logger) do
         @test grad ≈ grad_check
     end
 
-    @testset "Test 2D gradient! checkpointing" begin
+    @testset "Test 2D swgradient! checkpointing" begin
         # Physics
         c0 = 2000.0
         f0 = 10.0
@@ -44,9 +44,9 @@ with_logger(error_logger) do
         params, srcs, recs, vel = setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
 
         # Solve gradient without checkpointing
-        grad = gradient!(params, vel, [srcs => recs]; use_GPU=true, check_freq=nothing)
+        grad = swgradient!(params, vel, [srcs => recs]; parall=:GPU, check_freq=nothing)
         # Solve gradient with (optimal) checkpointing
-        grad_check = gradient!(params, vel, [srcs => recs]; use_GPU=true, check_freq=floor(Int, sqrt(nt)))
+        grad_check = swgradient!(params, vel, [srcs => recs]; parall=:GPU, check_freq=floor(Int, sqrt(nt)))
 
         # Check that gradient is non zero
         @test !all(g -> g == 0.0, grad)
@@ -54,7 +54,7 @@ with_logger(error_logger) do
         @test grad ≈ grad_check
     end
 
-    @testset "Test 3D gradient! checkpointing" begin
+    @testset "Test 3D swgradient! checkpointing" begin
         # Physics
         c0 = 2000.0
         f0 = 10.0
@@ -68,9 +68,9 @@ with_logger(error_logger) do
         params, srcs, recs, vel = setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
 
         # Solve gradient without checkpointing
-        grad = gradient!(params, vel, [srcs => recs]; use_GPU=true, check_freq=nothing)
+        grad = swgradient!(params, vel, [srcs => recs]; parall=:GPU, check_freq=nothing)
         # Solve gradient with (optimal) checkpointing
-        grad_check = gradient!(params, vel, [srcs => recs]; use_GPU=true, check_freq=floor(Int, sqrt(nt)))
+        grad_check = swgradient!(params, vel, [srcs => recs]; parall=:GPU, check_freq=floor(Int, sqrt(nt)))
 
         # Check that gradient is non zero
         @test !all(g -> g == 0.0, grad)

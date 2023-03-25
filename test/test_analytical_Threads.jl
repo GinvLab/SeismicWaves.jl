@@ -21,7 +21,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -43,7 +43,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -65,7 +65,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -86,7 +86,7 @@ with_logger(error_logger) do
             params, srcs, recs, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
             times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -110,7 +110,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -132,7 +132,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -154,7 +154,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -176,7 +176,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -200,7 +200,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -222,7 +222,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -244,7 +244,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt
@@ -266,7 +266,7 @@ with_logger(error_logger) do
             times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, srcs, recs)
 
             # numerical solution
-            forward!(params, vel, [srcs => recs]; use_GPU=false)
+            swforward!(params, vel, [srcs => recs]; parall=:threads)
             numerical_trace = recs.seismograms[:, 1]
 
             @test length(numerical_trace) == length(Gc) == nt

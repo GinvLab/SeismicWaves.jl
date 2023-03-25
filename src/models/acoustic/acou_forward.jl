@@ -1,7 +1,12 @@
-@views function forward!(
-    ::AcousticWaveEquation,
-    ::CPMLBoundaryCondition,
-    model::WaveModel, possrcs, posrecs, srctf, traces, backend
+
+@views function swforward_1shot!(
+    model::Acoustic_CD_CPML_WaveSimul, # includes types Acoustic_CD_CPML_WaveSimul{1}, ...{2} and ...{3}
+    backend::Module,
+    possrcs, posrecs, srctf, traces
+    # ::Acoustic_CD_WaveSimul,
+    # ::CPMLBoundaryCondition,
+    # backend::Module,
+    # model::WaveSimul, possrcs, posrecs, srctf, traces
 )
     # Numerics
     N = length(model.ns)
@@ -50,13 +55,13 @@
     for it = 1:nt
         # Compute one forward step
         pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, fact_a, model.Δs..., halo,
+            pold, pcur, pnew, fact_a, model.gridspacing..., halo,
             ψ..., ξ..., a_coeffs..., b_K_coeffs...,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
         # Print timestep info
         if it % model.infoevery == 0
-            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*it, maximum(abs.(Array( pcur ))))
+            @debug @sprintf("Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt*(it-1), maximum(abs.(Array( pcur ))))
         end
 
         # Save snapshot
@@ -68,4 +73,5 @@
 
     # Save traces
     traces .= Array( traces_a )
+    return
 end

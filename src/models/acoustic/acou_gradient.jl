@@ -1,7 +1,7 @@
-@views function gradient!(
-    ::AcousticWaveEquation,
-    ::CPMLBoundaryCondition,
-    model::WaveModel, possrcs, posrecs, srctf, traces, observed, invcov, backend;
+@views function swgradient_1shot!(
+    model::Acoustic_CD_CPML_WaveSimul, # includes types Acoustic_CD_CPML_WaveSimul{1}, ...{2} and ...{3}
+    backend::Module,
+    possrcs, posrecs, srctf, traces, observed, invcov ;
     check_freq=nothing
 )
     # Numerics
@@ -91,7 +91,7 @@
     for it = 1:nt+1
         # Compute one forward step
         pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, fact_a, model.Δs..., halo,
+            pold, pcur, pnew, fact_a, model.gridspacing..., halo,
             ψ..., ξ..., a_coeffs..., b_K_coeffs...,
             possrcs_a, srctf_a, posrecs_a, traces_a, it;
             save_trace=(it <= nt)   # do not save trace for last timestep
@@ -129,7 +129,7 @@
     for it = nt:-1:1
         # Compute one adjoint step
         adjold, adjcur, adjnew = backend.forward_onestep_CPML!(
-            adjold, adjcur, adjnew, fact_a, model.Δs..., halo,
+            adjold, adjcur, adjnew, fact_a, model.gridspacing..., halo,
             ψ_adj..., ξ_adj..., a_coeffs..., b_K_coeffs...,
             posrecs_a, residuals_a, nothing, nothing, it;   # adjoint sources positions are receivers
             save_trace=false   # do not save traces in adjoint time loop
@@ -163,7 +163,7 @@
             # Forward recovery time loop
             for recit = curr_checkpoint+1:(old_checkpoint-1)-1
                 pold, pcur, pnew = backend.forward_onestep_CPML!(
-                    pold, pcur, pnew, fact_a, model.Δs..., halo,
+                    pold, pcur, pnew, fact_a, model.gridspacing..., halo,
                     ψ..., ξ..., a_coeffs..., b_K_coeffs...,
                     possrcs_a, srctf_a, nothing, nothing, recit;
                     save_trace=false   # do not save trace in recovery time loop

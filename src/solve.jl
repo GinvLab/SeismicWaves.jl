@@ -1,19 +1,20 @@
 ### FORWARDS ###
 
-@views function forward!(
-    model::WaveModel,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
-    backend
+@views function run_swforward!(
+    wavsim::WaveSimul,
+    backend::Module,
+    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
     )::Union{Vector{Array}, Nothing}
-    # Check model
-    @info "Checking model"
-    check(model)
+    # Check wavsim
+    @info "Checking wavsim"
+    check(wavsim)
     # Precompute constant values
     @info "Precomputing constant values"
-    precompute!(model)
+    precompute!(wavsim)
 
     # Snapshots setup
-    if snapenabled(model)
+    takesnapshots = snapenabled(wavsim)
+    if takesnapshots
         snapshots_per_shot = []
     end
     
@@ -22,48 +23,48 @@
         @info "Shot #$(shot)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(model, srcs, recs)
+        possrcs, posrecs, srctf, traces = init_shot!(wavsim, srcs, recs)
         # Compute forward solver
-        @info "Computing forward solver"
-        forward!(model, possrcs, posrecs, srctf, traces, backend)
+        @info "Forward modelling for one shot"
+        swforward_1shot!(wavsim, backend, possrcs, posrecs, srctf, traces)
         # Save traces in reeivers seismograms
-        @info "Saving receivers seismograms"
+        @info "Saving seismograms"
         copyto!(recs.seismograms, traces)
         # Save shot's snapshots
-        if snapenabled(model)
+        if takesnapshots
             @info "Saving snapshots"
-            push!(snapshots_per_shot, copy(model.snapshots))
+            push!(snapshots_per_shot, copy(wavsim.snapshots))
         end
     end
 
-    if snapenabled(model)
+    if takesnapshots
         return snapshots_per_shot
     end
     return nothing
 end
 
-forward!(model::WaveModel, possrcs, posrecs, srctf, traces, backend) = forward!(
-    WaveEquationTrait(model),
-    BoundaryConditionTrait(model),
-    model, possrcs, posrecs, srctf, traces, backend
-)
+# swforward_1shot!!(wavsim::WaveSimul, possrcs, posrecs, srctf, traces, backend) = swforward_1shot!(
+#     WaveEquationTrait(wavsim),
+#     BoundaryConditionTrait(wavsim),
+#     wavsim, possrcs, posrecs, srctf, traces, backend
+# )
 
 ### MISFITS ###
 
-@views function misfit!(
-    model::WaveModel,
+@views function run_swmisfit!(
+    wavsim::WaveSimul,
+    backend::Module,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
-    backend
     )::Real
     # Solve forward model for all shots
-    forward!(model, shots, backend)
+    run_swforward!(wavsim, backend, shots)
     # Compute total misfit for all shots
     misfit = 0
     for (shot, (_, recs)) in enumerate(shots)
         @info "Computing residuals for shot #$(shot)"
         residuals = similar(recs.seismograms)
         @info "Checking invcov matrix for shot #$(shot)"
-        check_invcov_matrix(model, recs.invcov)
+        check_invcov_matrix(wavsim, recs.invcov)
         @info "Computing misfit for shot #$(shot)"
         difcalobs = recs.seismograms - recs.observed
         mul!(residuals, recs.invcov, difcalobs)
@@ -75,36 +76,37 @@ end
 
 ### GRADIENTS ###
 
-@views function gradient!(
-    model::WaveModel,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
-    backend;
+@views function run_swgradient!(
+    wavsim::WaveSimul,
+    backend::Module,
+    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}} ;
     check_freq::Union{Integer, Nothing} = nothing
     )::AbstractArray
-    # Check model
-    @info "Checking model"
-    check(model)
+    # Check wavsim
+    @info "Checking wavsim"
+    check(wavsim)
     # Precompute constant values
     @info "Precomputing constant values"
-    precompute!(model)
+    precompute!(wavsim)
     # Check checkpointing setup
     @info "Checking checkpointing frequency"
-    check_checkpoint_frequency(model, check_freq)
+    check_checkpoint_frequency(wavsim, check_freq)
 
     # Initialize total gradient
-    totgrad = zero(model.vel)
+    totgrad = zero(wavsim.vel)
     
     # Shots loop
     for (shot, (srcs, recs)) in enumerate(shots)
         @info "Shot #$(shot)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(model, srcs, recs)
+        possrcs, posrecs, srctf, traces = init_shot!(wavsim, srcs, recs)
         @info "Checking invcov matrix"
-        check_invcov_matrix(model, recs.invcov)
+        check_invcov_matrix(wavsim, recs.invcov)
         # Compute forward solver
         @info "Computing gradient solver"
-        curgrad = gradient!(model, possrcs, posrecs, srctf, traces, recs.observed, recs.invcov, backend; check_freq=check_freq)
+        curgrad = swgradient_1shot!(wavsim, backend, possrcs, posrecs, srctf,
+                                    traces, recs.observed, recs.invcov; check_freq=check_freq)
         # Accumulate gradient
         totgrad .+= curgrad
     end
@@ -112,8 +114,8 @@ end
     return totgrad
 end
 
-gradient!(model::WaveModel, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq) = gradient!(
-    WaveEquationTrait(model),
-    BoundaryConditionTrait(model),
-    model, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq
-)
+# swgradient_1shot!!(wavsim::WaveSimul, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq) = run_swgradient_1shot!(
+#     WaveEquationTrait(wavsim),
+#     BoundaryConditionTrait(wavsim),
+#     wavsim, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq
+# )

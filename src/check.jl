@@ -1,11 +1,11 @@
 """
-    check(model::WaveModel)
+    check(model::WaveSimul)
 
 Check model for possible assertions based on configuration and model traits.
 """
-check(model::WaveModel) = check(WaveEquationTrait(model), model)
+#check(model::WaveSimul) = check(WaveEquationTrait(model), model)
 
-function check(x::AcousticWaveEquation, model::WaveModel)
+function check(model::WaveSimul)
     @debug "Checking CFL condition"
-    check_courant_condition(x, model)
+    check_courant_condition(model)
 end
