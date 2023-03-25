@@ -22,11 +22,11 @@ end
 @views function setup_shot(model::Acoustic_CD_WaveSimul, srcs::Sources{<:Real}, recs::Receivers{<:Real})
     # source time functions
     nsrcs = size(srcs.positions, 1)                      # number of sources
-    ncoo  = size(srcs.positions, 2)                      # number of coordinates
+    ncoos = size(srcs.positions, 2)                      # number of coordinates
     # find nearest grid point for each source
     possrcs = zeros(Int, size(srcs.positions))           # sources positions (in grid points)
     for s = 1:nsrcs
-        tmp = [ srcs.positions[s,i] / model.gridspacing[i] + 1  for i=1:ncoo ]
+        tmp = [ srcs.positions[s,i] / model.gridspacing[i] + 1  for i=1:ncoos ]
         possrcs[s,:] .= round.(Int, tmp, RoundNearestTiesUp)
     end
     # receivers traces
@@ -34,8 +34,9 @@ end
     traces = zeros(model.nt, nrecs)                      # receiver seismograms
     # find nearest grid point for each receiver
     posrecs = zeros(Int, size(recs.positions))          # receiver positions (in grid points)
+    ncoor   = size(srcs.positions, 2)
     for r = 1:nrecs
-        tmp = [ recs.positions[r,i] / model.gridspacing[i] + 1  for i=1:ncoo ]
+        tmp = [ recs.positions[r,i] / model.gridspacing[i] + 1  for i=1:ncoor ]
         posrecs[r,:] .= round.(Int, tmp, RoundNearestTiesUp)
     end
     # prescale with boxcar function 1/dx, 1/(dx*dy) or 1/(dx*dy*dz) or 

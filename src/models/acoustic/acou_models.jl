@@ -68,34 +68,12 @@ end
 
 struct Acoustic_CD_Refl_WaveSimul{N} <: Acoustic_CD_WaveSimul{N} end
 
-
 #######################################################################
 
-IsSnappableTrait(::Type{<:Acoustic_CD_CPML_WaveSimul}) = Snappable()
+IsSnappableTrait(::Type{<:Acoustic_CD_WaveSimul}) = Snappable()
 
 GridTrait(::Type{<:Acoustic_CD_CPML_WaveSimul{1}}) = LocalGrid()
 GridTrait(::Type{<:Acoustic_CD_CPML_WaveSimul{2}}) = LocalGrid()
 GridTrait(::Type{<:Acoustic_CD_CPML_WaveSimul{3}}) = LocalGrid()
 
 #######################################################################
-
-# Acoustic_CD_CPML_WaveSimul1D = Acoustic_CD_CPML_WaveSimul{1}
-# Acoustic_CD_CPML_WaveSimul2D = Acoustic_CD_CPML_WaveSimul{2}
-# Acoustic_CD_CPML_WaveSimul3D = Acoustic_CD_CPML_WaveSimul{3}
-
-# WaveEquationTrait(::Type{<:Acoustic_CD_CPML_WaveSimul1D}) = Acoustic_CD_WaveSimul()
-# BoundaryConditionTrait(::Type{<:Acoustic_CD_CPML_WaveSimul1D}) = CPMLBoundaryCondition()
-# IsSnappableTrait(::Type{<:Acoustic_CD_CPML_WaveSimul1D}) = Snappable()
-
-
-
-# WaveEquationTrait(::Type{<:Acoustic_CD_CPML_WaveSimul2D}) = Acoustic_CD_WaveSimul()
-# BoundaryConditionTrait(::Type{<:Acoustic_CD_CPML_WaveSimul2D}) = CPMLBoundaryCondition()
-# IsSnappableTrait(::Type{<:Acoustic_CD_CPML_WaveSimul2D}) = Snappable()
-
-
-
-# WaveEquationTrait(::Type{<:Acoustic_CD_CPML_WaveSimul3D}) = Acoustic_CD_WaveSimul()
-# BoundaryConditionTrait(::Type{<:Acoustic_CD_CPML_WaveSimul3D}) = CPMLBoundaryCondition()
-# IsSnappableTrait(::Type{<:Acoustic_CD_CPML_WaveSimul3D}) = Snappable()
-

@@ -148,22 +148,6 @@ function build_wavesim(params::InputParametersAcoustic, cpmlparams::CPML_BC, vel
     return acoumod
 end
 
-# function build_wavesim(params::InputParametersAcoustic, cpmlparams::Refl_BC, vel::AbstractArray; kwargs...)
-
-#     N = length(params.gridsize)
-
-#     acoumod = Acoustic_CD_CPML_WaveSimul{N}(
-#         params.ntimesteps,
-#         params.dt,
-#         params.gridspacing,
-#         cpmlparams.halo,
-#         cpmlparams.rcoef,
-#         vel;
-#         kwargs...
-#             )
-#     return acoumod
-# end
-
 #######################################################
 
 function select_backend(wavesim,parall)

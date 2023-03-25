@@ -7,7 +7,7 @@
     tmp = sqrt(sum(1 ./ model.gridspacing.^2))
     courant = vel_max * model.dt / tmp    
     @debug "Courant number: $(courant)"
-    @assert courant <= 1.0 "Courant condition not satisfied!"
+    @assert courant <= 1.0 "Courant condition not satisfied! [$(courant)]"
 end
 
 #####################################

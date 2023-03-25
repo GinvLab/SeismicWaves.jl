@@ -98,7 +98,7 @@ with_logger(error_logger) do
     end
     
     @testset "Test 2D analytical solution" begin
-        @testset "Test constant unitary velocity halo 0" begin
+        @testset "Test 2D constant unitary velocity halo 0" begin
             # constant velocity setup
             c0 = 1.0
             nt = 1200
@@ -120,7 +120,7 @@ with_logger(error_logger) do
             @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
         end
 
-        @testset "Test constant unitary velocity halo 20" begin
+        @testset "Test 2D constant unitary velocity halo 20" begin
             # constant velocity setup
             c0 = 1.0
             nt = 1200 * 2
@@ -142,7 +142,7 @@ with_logger(error_logger) do
             @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
         end
 
-        @testset "Test constant velocity (5 m/s) halo 0" begin
+        @testset "Test 2D constant velocity (5 m/s) halo 0" begin
             # constant velocity setup
             c0 = 5.0
             nt = 1200
@@ -164,7 +164,7 @@ with_logger(error_logger) do
             @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
         end
 
-        @testset "Test constant velocity (5 m/s) halo 20" begin
+        @testset "Test 2D constant velocity (5 m/s) halo 20" begin
             # constant velocity setup
             c0 = 5.0
             nt = 1200 * 2
@@ -188,7 +188,7 @@ with_logger(error_logger) do
     end
 
     @testset "Test 3D analytical solution" begin
-        @testset "Test constant unitary velocity halo 0" begin
+        @testset "Test 3D constant unitary velocity halo 0" begin
             # constant velocity setup
             c0 = 1.0
             nt = 650
@@ -210,7 +210,7 @@ with_logger(error_logger) do
             @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
         end
 
-        @testset "Test constant unitary velocity halo 20" begin
+        @testset "Test 3D constant unitary velocity halo 20" begin
             # constant velocity setup
             c0 = 1.0
             nt = 650 * 2
@@ -232,7 +232,7 @@ with_logger(error_logger) do
             @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
         end
 
-        @testset "Test constant velocity (5 m/s) halo 0" begin
+        @testset "Test 3D constant velocity (5 m/s) halo 0" begin
             # constant velocity setup
             c0 = 5.0
             nt = 650
@@ -254,7 +254,7 @@ with_logger(error_logger) do
             @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
         end
 
-        @testset "Test constant velocity (5 m/s) halo 20" begin
+        @testset "Test 3D constant velocity (5 m/s) halo 20" begin
             # constant velocity setup
             c0 = 5.0
             nt = 650 * 2
