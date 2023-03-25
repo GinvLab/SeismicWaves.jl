@@ -1,12 +1,12 @@
 struct CPMLCoefficients{T<:Real}
-    a_l
-    a_r
-    a_hl
-    a_hr
-    b_K_l
-    b_K_r
-    b_K_hl
-    b_K_hr
+    a_l::Vector{T}
+    a_r::Vector{T}
+    a_hl::Vector{T}
+    a_hr::Vector{T}
+    b_K_l::Vector{T}
+    b_K_r::Vector{T}
+    b_K_hl::Vector{T}
+    b_K_hr::Vector{T}
 
     function CPMLCoefficients{T}(halo::Integer) where {T<:Real}
         new(
@@ -54,6 +54,7 @@ function compute_CPML_coefficients!(
     return nothing
 end
 
+
 function calc_Kab_CPML(
     halo::Integer,
     dt::Float64,
@@ -62,22 +63,23 @@ function calc_Kab_CPML(
     alpha_max_pml::Float64,
     K_max_pml::Float64,
     onwhere::String
-)
+    )
+    
     Kab_size = halo
     # shift for half grid coefficients
     if onwhere == "halfgrd"
-    Kab_size += 1
-    shift = 0.5
+        Kab_size += 1
+        shift = 0.5
     elseif onwhere == "ongrd"
-    shift = 0.0
+        shift = 0.0
     else
-    error("Wrong onwhere parameter!")
+        error("Wrong onwhere parameter!")
     end
 
     # distance from edge node
     dist = collect(LinRange(0-shift, Kab_size-shift-1, Kab_size))
     if onwhere == "halfgrd"
-    dist[1] = 0
+        dist[1] = 0
     end
     normdist_left = reverse(dist) ./ halo
     normdist_right = dist ./ halo

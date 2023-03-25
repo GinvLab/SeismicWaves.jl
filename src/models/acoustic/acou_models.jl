@@ -1,10 +1,6 @@
 
 ###########################################################
 
-abstract type Acoustic_CD_WaveSimul{N} <: WaveSimul{N} end
-
-###########################################################
-
 struct Acoustic_CD_CPML_WaveSimul{N} <: Acoustic_CD_WaveSimul{N}
     nt::Integer
     ns::NTuple{N, <:Integer}

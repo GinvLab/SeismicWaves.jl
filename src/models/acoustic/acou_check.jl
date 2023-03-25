@@ -1,6 +1,6 @@
 
 
-#######################################
+####################################################
 
 @views function check_courant_condition(model::Acoustic_CD_WaveSimul)
     vel_max = get_maximum_func(model)(model.vel)
@@ -10,7 +10,45 @@
     @assert courant <= 1.0 "Courant condition not satisfied! [$(courant)]"
 end
 
-#####################################
+####################################################
+
+@views function check_ppw(model::Acoustic_CD_WaveSimul, srcs::Sources{<:Real}, min_ppw::Integer=10)
+    vel_min = get_minimum_func(model)(model.vel)
+    h_max = maximum(model.gridspacing)
+    ppw = vel_min / srcs.domfreq / h_max
+    @debug "Points per wavelengh: $(ppw)"
+    @assert ppw >= min_ppw "Not enough points per wavelengh!"
+end
+
+####################################################
+
+function check_positions(model::Acoustic_CD_CPML_WaveSimul, positions::Matrix{<:Real})
+    ndimwavsim = length(model.gridspacing)
+    @assert size(positions, 2) == ndimwavsim "Positions matrix do not match the dimension of the model!"
+
+    for s in 1:size(positions, 1)
+        for c=1:size(positions, 2)
+            @assert (0 <= positions[s, c] <= model.ls[c]) "Position $(s) is not inside the grid!"
+            @assert (model.gridspacing[c] * model.halo <= positions[s, c] <= model.ls[c] - (model.gridspacing[c] * model.halo) ) "Position $(s) is inside the CPML region!"
+        end
+    end
+    return
+end
+
+####################################################
+
+function check_invcov_matrix(model::WaveSimul, invcov)
+    @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"
+end
+
+function check_checkpoint_frequency(model::WaveSimul, check_freq)
+    if check_freq !== nothing
+        @assert check_freq > 2 "Checkpointing frequency must be bigger than 2!"
+        @assert check_freq < model.nt "Checkpointing frequency must be smaller than the number of timesteps!"
+    end
+end
+
+#####################################################
 
 # @views function check_courant_condition(model::Acoustic_CD_WaveSimul{1})
 #     vel_max = get_maximum_func(model)(model.vel)
@@ -35,14 +73,6 @@ end
 #     @assert courant <= sqrt(3)/3 "Courant condition not satisfied!"
 # end
 
-@views function check_ppw(model::Acoustic_CD_WaveSimul, srcs::Sources{<:Real}, min_ppw::Integer=10)
-    vel_min = get_minimum_func(model)(model.vel)
-    h_max = maximum(model.gridspacing)
-    ppw = vel_min / srcs.domfreq / h_max
-    @debug "Points per wavelengh: $(ppw)"
-    @assert ppw >= min_ppw "Not enough points per wavelengh!"
-end
-
 # @views function check_ppw(model::Acoustic_CD_WaveSimul{1}, srcs::Sources{<:Real}, min_ppw::Integer=10)
 #     vel_min = get_minimum_func(model)(model.vel)
 #     ppw = vel_min / srcs.domfreq / model.gridspacing[1]
@@ -65,37 +95,6 @@ end
 #     @debug "Points per wavelengh: $(ppw)"
 #     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 # end
-
-####################################################
-
-function check_positions(model::Acoustic_CD_CPML_WaveSimul, positions::Matrix{<:Real})
-    ndimwavsim = length(model.gridspacing)
-    @assert size(positions, 2) == ndimwavsim "Positions matrix do not match the dimension of the model!"
-
-    for s in 1:size(positions, 1)
-        for c=1:size(positions, 2)
-            @assert (0 <= positions[s, c] <= model.ls[c]) "Position $(s) is not inside the grid!"
-            @assert (model.gridspacing[c] * model.halo <= positions[s, c] <= model.ls[c] - (model.gridspacing[c] * model.halo) ) "Position $(s) is inside the CPML region!"
-        end
-    end
-    return
-end
-
-####################################################
-
-
-function check_invcov_matrix(model::WaveSimul, invcov)
-    @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"
-end
-
-function check_checkpoint_frequency(model::WaveSimul, check_freq)
-    if check_freq !== nothing
-        @assert check_freq > 2 "Checkpointing frequency must be bigger than 2!"
-        @assert check_freq < model.nt "Checkpointing frequency must be smaller than the number of timesteps!"
-    end
-end
-
-#####################################################
 
 # @views function check_positions(model::Acoustic_CD_WaveSimul{1}, positions::Matrix{<:Real})
 #     @assert size(positions, 2) == 1 "Positions matrix do not match the dimension of the model!"

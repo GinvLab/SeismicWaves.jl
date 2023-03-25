@@ -1,4 +1,5 @@
 
+
 precompute!(model::Acoustic_CD_WaveSimul) = precompute_fact!(model)
 
 """
@@ -34,7 +35,7 @@ end
     traces = zeros(model.nt, nrecs)                      # receiver seismograms
     # find nearest grid point for each receiver
     posrecs = zeros(Int, size(recs.positions))          # receiver positions (in grid points)
-    ncoor   = size(srcs.positions, 2)
+    ncoor   = size(recs.positions, 2)
     for r = 1:nrecs
         tmp = [ recs.positions[r,i] / model.gridspacing[i] + 1  for i=1:ncoor ]
         posrecs[r,:] .= round.(Int, tmp, RoundNearestTiesUp)

@@ -20,7 +20,6 @@ include("abstract_types.jl")
 include("sources.jl")
 include("receivers.jl")
 include("check.jl")
-include("precompute.jl")
 include("init_shot.jl")
 include("solve.jl")
 
