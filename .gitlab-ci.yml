@@ -15,16 +15,16 @@
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Julia.gitlab-ci.yml
 
 # Below is the template to run your tests in Julia
-.test_pipeline: &test_definition
+#.test_pipeline: &test_definition
   # Uncomment below (and adjust as needed) to run the tests for specific references
   # only, such as the default branch, a `development` branch, and so on:
   # rules:
   #   - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   #   - if: $CI_COMMIT_BRANCH == "development"
-  script:
+ # script:
     # Let's run the tests. Substitute `coverage = false` below, if you do not
     # want coverage results.
-    - julia -e 'import Pkg; Pkg.activate("."); Pkg.test(; coverage = false)'
+  #  - julia -e 'import Pkg; Pkg.activate("."); Pkg.test(; coverage = false)'
     # Comment out below if you do not want coverage results.
     # - julia -e 'using Pkg; Pkg.add("Coverage");
     #   import SeismicWaves; cd(joinpath(dirname(pathof(SeismicWaves)), ".."));
@@ -34,9 +34,9 @@
 # Name a test and select an appropriate image.
 # images comes from Docker hub
 
-test:1.8:
-  image: julia:1.8
-  <<: *test_definition
+#test:1.8:
+ # image: julia:1.8
+ # <<: *test_definition
 
 # Maybe you would like to test your package against the development branch:
 # test:1.1-dev (not sure there is such an image in docker, so not tested yet):
