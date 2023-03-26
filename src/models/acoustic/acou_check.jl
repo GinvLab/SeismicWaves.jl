@@ -2,17 +2,17 @@
 
 ####################################################
 
-@views function check_courant_condition(model::Acoustic_CD_WaveSimul)
+function check_courant_condition(model::Acoustic_CD_WaveSimul)
     vel_max = get_maximum_func(model)(model.vel)
     tmp = sqrt(sum(1 ./ model.gridspacing.^2))
-    courant = vel_max * model.dt / tmp    
+    courant = vel_max * model.dt * tmp    
     @debug "Courant number: $(courant)"
     @assert courant <= 1.0 "Courant condition not satisfied! [$(courant)]"
 end
 
 ####################################################
 
-@views function check_ppw(model::Acoustic_CD_WaveSimul, srcs::Sources{<:Real}, min_ppw::Integer=10)
+function check_ppw(model::Acoustic_CD_WaveSimul, srcs::Sources{<:Real}, min_ppw::Integer=10)
     vel_min = get_minimum_func(model)(model.vel)
     h_max = maximum(model.gridspacing)
     ppw = vel_min / srcs.domfreq / h_max
