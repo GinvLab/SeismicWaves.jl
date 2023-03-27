@@ -35,7 +35,7 @@ end
     for i = 1:halo+1
         ii = i + nx - halo - 2  # shift for right boundary pressure indices
         # left boundary
-@show i,size(a_x_hl),size(b_K_x_hl)
+@show i,size(a_x_hl),size(b_K_x_hl),a_x_hl
         ψ_l[i] = b_K_x_hl[i] * ψ_l[i] + a_x_hl[i]*(pcur[ i+1] - pcur[ i])*_dx
         # right boundary
         ψ_r[i] = b_K_x_hr[i] * ψ_r[i] + a_x_hr[i]*(pcur[ii+1] - pcur[ii])*_dx
