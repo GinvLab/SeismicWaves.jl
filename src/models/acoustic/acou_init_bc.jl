@@ -17,7 +17,7 @@ function init_bdc!(
         )
     end
 
-    if model.freetop && N > 1
+    if model.freetop && N >= 1
         model.cpmlcoeffs[N].a_l .= 0.0
         model.cpmlcoeffs[N].a_hl .= 0.0
         model.cpmlcoeffs[N].b_K_l .= 1.0

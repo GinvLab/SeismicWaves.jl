@@ -5,7 +5,8 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     lx = (nx-1) * dx
     vel = c0 .* ones(nx)
     # input parameters
-    params = InputParametersAcoustic(nt, dt, [nx], [dx], CPML_BC(halo=halo, rcoef=rcoef))
+    params = InputParametersAcoustic(nt, dt, [nx], [dx],
+                                     CPML_BC(halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     t0 = 4 / f0
     times = collect(range(0.0, step=dt, length=nt))
@@ -28,7 +29,8 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     ly = (ny-1) * dy
     vel = c0 .* ones(nx, ny)
     # input parameters
-    params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy], CPML_BC(halo=halo, rcoef=rcoef))
+    params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
+                                     CPML_BC(halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     t0 = 4 / f0
     times = collect(range(0.0, step=dt, length=nt))
@@ -52,7 +54,8 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     lz = (nz-1) * dz
     vel = c0 .* ones(nx, ny, nz)
     # input parameters
-    params = InputParametersAcoustic(nt, dt, [nx, ny, nz], [dx, dy, dz], CPML_BC(halo=halo, rcoef=rcoef))
+    params = InputParametersAcoustic(nt, dt, [nx, ny, nz], [dx, dy, dz],
+                                     CPML_BC(halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     t0 = 4 / f0
     times = collect(range(0.0, step=dt, length=nt))

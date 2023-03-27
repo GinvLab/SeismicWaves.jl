@@ -143,6 +143,7 @@ function build_wavesim(params::InputParametersAcoustic, cpmlparams::CPML_BC, vel
         cpmlparams.halo,
         cpmlparams.rcoef,
         vel;
+        freetop=cpmlparams.freeboundtop,
         kwargs...
             )
     return acoumod
@@ -154,7 +155,7 @@ function select_backend(wavesim,parall)
 
     parasym = [:serial, :threads, :GPU]
     if !(parall in parasym)
-        throw(ErrorException("Argument `parall` must be one of the following symbols: $parasym"))
+        throw(ErrorException("Argument `parall` must be one of the following symbols: $parasym. Got $(parall)."))
     end
 
     tpwavsim = typeof(wavesim)
@@ -168,7 +169,7 @@ function select_backend(wavesim,parall)
 
         if tpwavsim==Acoustic_CD_CPML_WaveSimul{1}
             if parall==:serial
-                return Acoustic1D_serial
+                return Acoustic1D_CD_CPML_Serial
             elseif parall==:threads
                 return Acoustic1D_CD_CPML_Threads
             elseif parall==:GPU
@@ -177,7 +178,7 @@ function select_backend(wavesim,parall)
 
         elseif tpwavsim==Acoustic_CD_CPML_WaveSimul{2}
             if parall==:serial
-                return Acoustic2D_serial
+                return Acoustic2D_CD_CPML_Serial
             elseif parall==:threads
                 return Acoustic2D_CD_CPML_Threads
             elseif parall==:GPU
@@ -186,7 +187,7 @@ function select_backend(wavesim,parall)
 
         elseif tpwavsim==Acoustic_CD_CPML_WaveSimul{3}
             if parall==:serial
-                return Acoustic3D_serial
+                return Acoustic3D_CD_CPML_Serial
             elseif parall==:threads
                 return Acoustic3D_CD_CPML_Threads
             elseif parall==:GPU

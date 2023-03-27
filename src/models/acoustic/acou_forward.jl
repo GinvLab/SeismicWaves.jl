@@ -3,10 +3,6 @@
     model::Acoustic_CD_CPML_WaveSimul, # includes types Acoustic_CD_CPML_WaveSimul{1}, ...{2} and ...{3}
     backend::Module,
     possrcs, posrecs, srctf, traces
-    # ::Acoustic_CD_WaveSimul,
-    # ::CPMLBoundaryCondition,
-    # backend::Module,
-    # model::WaveSimul, possrcs, posrecs, srctf, traces
     )
     
     # Numerics

@@ -17,6 +17,8 @@ function exacouprob()
     nz = 120
     dh = 10.0 # meters
 
+    #@show (nx-1)*dh, (nz-1)*dh
+    
     velmod = zeros(nx,nz)
     for i=1:nx
         for j=1:nz
@@ -45,6 +47,7 @@ function exacouprob()
         possrcs = zeros(nsrc,2)    # 1 source, 2 dimensions
         possrcs[:,1] .= (ixsrc[i]-1) * dh    # x-positions in meters
         possrcs[:,2] .= 2 * dh               # y-positions in meters
+               
         # source time functions
         f0 = 12.0
         t0 = 1.20 / f0
@@ -54,6 +57,8 @@ function exacouprob()
         end
         srcs = Sources(possrcs, srcstf, f0)
 
+        #@show srcs.positions
+        
         # receivers definition
         nrecs = 20
         # receivers x-positions (in grid points) (same for every shot)
@@ -62,6 +67,8 @@ function exacouprob()
         posrecs[:,1] .= (ixrec .- 1) .* dh    # x-positions in meters
         posrecs[:,2] .= 2 * dh                # y-positions in meters
         recs = Receivers(posrecs, nt)
+        
+        #@show recs.positions
 
         # add pair as shot
         push!(shots, srcs => recs)
@@ -76,18 +83,20 @@ function exacouprob()
         nt, dt, [nx, nz], [dh, dh], boundcond
     )
 
+    #@show (boundcond.halo-1)*dh
+    
     ##===============================================
     ## compute the seismograms
-    snapshots = swforward!(params, velmod, shots; use_GPU=false, snapevery=snapevery, infoevery=infoevery)
+    snapshots = swforward!(params, velmod, shots; parall=:serial, snapevery=snapevery, infoevery=infoevery)
 
     return params, velmod, collect(map(s -> s.second.seismograms, shots)), snapshots
 end
 
 # p, v, s, snaps = exacouprob()
 
-using Plots
-heatmap(snaps[6][:,:,20]'; aspect_ratio=:equal, cmap=:RdBu)
-yaxis!(flip=true)
+# using Plots
+# heatmap(snaps[6][:,:,20]'; aspect_ratio=:equal, cmap=:RdBu)
+# yaxis!(flip=true)
 
 
 ##################################################################

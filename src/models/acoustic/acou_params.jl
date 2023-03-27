@@ -38,5 +38,5 @@ Base.@kwdef struct Refl_BC <: InputBCParameters end
 Base.@kwdef struct CPML_BC <: InputBCParameters
     halo::Int = 20
     rcoef::Real = 0.0001
-    freeboundtop::Bool = false
+    freeboundtop::Bool = true
 end

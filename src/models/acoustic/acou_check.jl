@@ -26,10 +26,16 @@ function check_positions(model::Acoustic_CD_CPML_WaveSimul, positions::Matrix{<:
     ndimwavsim = length(model.gridspacing)
     @assert size(positions, 2) == ndimwavsim "Positions matrix do not match the dimension of the model!"
 
+    Ndim = size(positions, 2)
     for s in 1:size(positions, 1)
-        for c=1:size(positions, 2)
-            @assert (0 <= positions[s, c] <= model.ls[c]) "Position $(s) is not inside the grid!"
-            @assert (model.gridspacing[c] * model.halo <= positions[s, c] <= model.ls[c] - (model.gridspacing[c] * model.halo) ) "Position $(s) is inside the CPML region!"
+        for c=1:Ndim
+            @assert (0 <= positions[s, c] <= model.ls[c]) "Position $(positions[s,:]) is not inside the grid!"
+
+            if c==Ndim && model.freetop
+                nothing
+            else
+                @assert (model.gridspacing[c] * model.halo <= positions[s, c] <= model.ls[c] - (model.gridspacing[c] * model.halo) ) "Position $(positions[s,:]) is inside the CPML region!"
+            end
         end
     end
     return

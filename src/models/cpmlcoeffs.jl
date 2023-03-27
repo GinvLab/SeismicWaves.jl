@@ -51,6 +51,11 @@ function compute_CPML_coefficients!(
     cpmlcoeffs.b_K_hl .= b_K_hl
     cpmlcoeffs.b_K_hr .= b_K_hr
 
+    println()
+    @show halo
+    @show size(a_l),size(a_r),size(a_hl),size(a_hr)
+    @show size(b_K_l),size(b_K_r),size(b_K_hl),size(b_K_hr)
+    
     return nothing
 end
 

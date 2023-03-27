@@ -1,4 +1,4 @@
-module Acoustic1D
+module Acoustic1D_CD_CPML_Serial
 
 # Dummy data module
 module Data
@@ -35,10 +35,12 @@ end
     for i = 1:halo+1
         ii = i + nx - halo - 2  # shift for right boundary pressure indices
         # left boundary
+@show i,size(a_x_hl),size(b_K_x_hl)
         ψ_l[i] = b_K_x_hl[i] * ψ_l[i] + a_x_hl[i]*(pcur[ i+1] - pcur[ i])*_dx
         # right boundary
         ψ_r[i] = b_K_x_hr[i] * ψ_r[i] + a_x_hr[i]*(pcur[ii+1] - pcur[ii])*_dx
     end
+    return
 end
 
 @views function update_p_CPML!(pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
@@ -67,6 +69,7 @@ end
         # update pressure
         pnew[i] = 2.0 * pcur[i] - pold[i] + fact[i] * (d2p_dx2) + damp
     end
+    return
 end
 
 @views function forward_onestep!(

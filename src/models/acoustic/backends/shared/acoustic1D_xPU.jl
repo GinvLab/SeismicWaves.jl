@@ -1,3 +1,4 @@
+
 @parallel_indices (is) function inject_sources!(pnew, dt2srctf, possrcs, it)
     isrc = floor(Int, possrcs[is,1])
     pnew[isrc] += dt2srctf[it,is]
@@ -99,7 +100,8 @@ end
     b_K_x_l, b_K_x_r, b_K_x_hl, b_K_x_hr,
     possrcs, dt2srctf, posrecs, traces, it;
     save_trace=true
-)
+    )
+    
     nx = length(pcur)
     _dx = 1 / dx
     _dx2 = 1 / dx^2

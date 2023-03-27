@@ -42,7 +42,8 @@ include("models/acoustic/acou_init_bc.jl")
 
 include("wrappers.jl")
 
-include("models/acoustic/backends/Acoustic1D.jl")
+include("models/acoustic/backends/Acoustic1D_CD_CPML_Serial.jl")
+include("models/acoustic/backends/Acoustic2D_CD_CPML_Serial.jl")
 
 ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Threads.jl")
