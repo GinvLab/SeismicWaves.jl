@@ -17,7 +17,7 @@ function update_ψ_x!(ψ_x_l, ψ_x_r, pcur,
 
     ny = size(ψ_x_l,2)
     for j=1:ny
-        for i=1:1:halo+1
+        for i=1:halo+1
             
             ii = i + nx - halo - 2  # shift for right boundary pressure indices
             # left boundary

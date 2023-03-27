@@ -11,7 +11,7 @@ with_logger(error_logger) do
 
     for parall in [:threads, :GPU, :serial]
 
-    @testset "Test 1D analytical solution" begin
+    @testset "Test 1D $(parall) analytical solution" begin
 
             @testset "Test 1D $(parall) constant velocity halo 0" begin
                 # constant velocity setup

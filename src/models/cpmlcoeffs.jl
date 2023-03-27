@@ -50,11 +50,6 @@ function compute_CPML_coefficients!(
     cpmlcoeffs.b_K_r .= b_K_r
     cpmlcoeffs.b_K_hl .= b_K_hl
     cpmlcoeffs.b_K_hr .= b_K_hr
-
-    println()
-    @show halo
-    @show size(a_l),size(a_r),size(a_hl),size(a_hr)
-    @show size(b_K_l),size(b_K_r),size(b_K_hl),size(b_K_hr)
     
     return nothing
 end
@@ -69,7 +64,9 @@ function calc_Kab_CPML(
     K_max_pml::Float64,
     onwhere::String
     )
-    
+
+    @assert halo>=0.0
+
     Kab_size = halo
     # shift for half grid coefficients
     if onwhere == "halfgrd"
@@ -86,8 +83,8 @@ function calc_Kab_CPML(
     if onwhere == "halfgrd"
         dist[1] = 0
     end
-    normdist_left = reverse(dist) ./ halo
-    normdist_right = dist ./ halo
+    normdist_left = reverse(dist) ./ Kab_size
+    normdist_right = dist ./ Kab_size
 
     d_left = d0 .* (normdist_left .^ npower)
     alpha_left = alpha_max_pml .* (1.0 .- normdist_left)
