@@ -188,7 +188,9 @@ function select_backend(wavesim,parall)
 
         elseif tpwavsim==Acoustic_CD_CPML_WaveSimul{3}
             if parall==:serial
-                return Acoustic3D_CD_CPML_Serial
+                # return Acoustic3D_CD_CPML_Serial
+                error("Acoustic3D_CD_CPML_Serial not yet implemented...")
+                return nothing
             elseif parall==:threads
                 return Acoustic3D_CD_CPML_Threads
             elseif parall==:GPU

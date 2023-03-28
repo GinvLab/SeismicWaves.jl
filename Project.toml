@@ -1,7 +1,7 @@
 name = "SeismicWaves"
 uuid = "f2cc81fa-a164-11e9-3f65-e3f851c759e3"
 authors = ["Andrea Zunino","Giacomo Aloisi"]
-version = "0.2.0"
+version = "0.3.0"
 
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -11,3 +11,13 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 ParallelStencil = "94395366-693c-11ea-3b26-d9b7aac5d958"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[compat]
+julia = "1.7"
+
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

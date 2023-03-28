@@ -1,3 +1,5 @@
+
+
 @views function swgradient_1shot!(
     model::Acoustic_CD_CPML_WaveSimul, # includes types Acoustic_CD_CPML_WaveSimul{1}, ...{2} and ...{3}
     backend::Module,

@@ -5,6 +5,11 @@ module Data
     Array = Base.Array
 end
 
+#####
+ones = Base.ones
+zeros = Base.zeros
+
+
 @views function inject_sources!(pnew, dt2srctf, possrcs, it)
     _, nsrcs = size(dt2srctf)
     for i = 1:nsrcs
@@ -71,6 +76,17 @@ end
     return
 end
 
+@views function prescale_residuals!(residuals, possrcs, fact)
+    for is=1:size(possrcs,1)
+        isrc = floor(Int, possrcs[is,1])
+        for it=1:size(residuals,1) # nt
+            residuals[it,is] *= fact[isrc]
+        end
+    end
+    return nothing
+end
+
+
 @views function forward_onestep!(
     pold, pcur, pnew, fact, dx,
     possrcs, dt2srctf, posrecs, traces, it
@@ -118,7 +134,20 @@ end
     return pcur, pnew, pold
 end
 
-ones = Base.ones
-zeros = Base.zeros
 
+function correlate_gradient!(curgrad, adjcur, pcur, pold, pveryold, dt)
+    _dt2 = 1/dt^2
+    nx = size(curgrad,1)
+    for i=1:nx
+        curgrad[i] = curgrad[i] + ( adjcur[i] * ( pcur[i] - 2.0 * pold[i] + pveryold[i] ) * _dt2 )
+    end
+    return nothing
 end
+
+
+
+
+
+###################
+end # module
+###################
