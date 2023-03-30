@@ -15,7 +15,7 @@
 Compute forward simulation using the given input parameters `params` and velocity model `vel` on multiple shots.
 
 The `parall::Symbol` controls which backend is used for computation:
-  - the `CUDA.jl` GPU backend if set to `GPU`
+  - the `CUDA.jl` GPU backend if set to `:GPU`
   - `Base.Threads` CPU threads if set to `:threads`
   - otherwise the serial version if set to `:serial`
 
@@ -188,9 +188,7 @@ function select_backend(wavesim,parall)
 
         elseif tpwavsim==Acoustic_CD_CPML_WaveSimul{3}
             if parall==:serial
-                # return Acoustic3D_CD_CPML_Serial
-                error("Acoustic3D_CD_CPML_Serial not yet implemented...")
-                return nothing
+                return Acoustic3D_CD_CPML_Serial
             elseif parall==:threads
                 return Acoustic3D_CD_CPML_Threads
             elseif parall==:GPU

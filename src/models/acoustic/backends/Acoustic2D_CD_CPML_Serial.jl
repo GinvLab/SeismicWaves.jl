@@ -1,3 +1,4 @@
+
 module Acoustic2D_CD_CPML_Serial
 
 # Dummy data module
@@ -125,7 +126,7 @@ function record_receivers!(pnew, traces, posrecs, it)
 end
 
 
-@views function prescale_residuals!(residuals, possrcs, fact)
+function prescale_residuals!(residuals, possrcs, fact)
     for is=1:size(possrcs,1)
         isrc = floor(Int, possrcs[is,1])
         jsrc = floor(Int, possrcs[is,2])
@@ -137,7 +138,7 @@ end
 end
 
 
-@views function forward_onestep_CPML!(
+function forward_onestep_CPML!(
     pold, pcur, pnew, fact, dx, dy, halo,
     ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
     ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,

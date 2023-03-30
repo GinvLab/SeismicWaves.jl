@@ -87,12 +87,13 @@ function exacouprob()
     
     ##===============================================
     ## compute the seismograms
-    snapshots = swforward!(params, velmod, shots; parall=:serial, snapevery=snapevery, infoevery=infoevery)
+    snapshots = swforward!(params, velmod, shots; parall=:threads, infoevery=10, snapevery=snapevery )
 
+    
     return params, velmod, collect(map(s -> s.second.seismograms, shots)), snapshots
 end
 
-# p, v, s, snaps = exacouprob()
+p, v, s, snaps = exacouprob()
 
 # using Plots
 # heatmap(snaps[6][:,:,20]'; aspect_ratio=:equal, cmap=:RdBu)
