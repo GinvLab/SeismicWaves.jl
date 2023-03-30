@@ -3,7 +3,7 @@ using DSP, NumericalIntegration, LinearAlgebra
 function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx-1) * dx
-    vel = c0 .* ones(nx)
+    vel = Vp_AcouCD_MatProp( c0 .* ones(nx) )
     # input parameters
     params = InputParametersAcoustic(nt, dt, [nx], [dx],
                                      CPML_BC(halo=halo, rcoef=rcoef, freeboundtop=false))
@@ -27,7 +27,7 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx-1) * dx
     ly = (ny-1) * dy
-    vel = c0 .* ones(nx, ny)
+    vel = Vp_AcouCD_MatProp( c0 .* ones(nx, ny) )
     # input parameters
     params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
                                      CPML_BC(halo=halo, rcoef=rcoef, freeboundtop=false))
@@ -52,7 +52,7 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     lx = (nx-1) * dx
     ly = (ny-1) * dy
     lz = (nz-1) * dz
-    vel = c0 .* ones(nx, ny, nz)
+    vel = Vp_AcouCD_MatProp( c0 .* ones(nx, ny, nz) )
     # input parameters
     params = InputParametersAcoustic(nt, dt, [nx, ny, nz], [dx, dy, dz],
                                      CPML_BC(halo=halo, rcoef=rcoef, freeboundtop=false))

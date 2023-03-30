@@ -7,10 +7,10 @@ using LinearAlgebra
 using Printf
 using ParallelStencil
 
-#export Acoustic_CD_CPML_WaveSimul1D, Acoustic_CD_CPML_WaveSimul2D, Acoustic_CD_CPML_WaveSimul3D
 export InputParametersAcoustic
-#export InputBCParametersAcousticReflective,
 export CPML_BC, Refl_BC
+export Vp_AcouCD_MatProp
+
 export Sources, Receivers
 export swforward!, swmisfit!, swgradient!
 export gaussource1D, rickersource1D
@@ -32,6 +32,7 @@ include("traits/shooting.jl")
 include("traits/snappable.jl")
 include("traits/grid.jl")
 
+include("models/acoustic/material_properties.jl")
 include("models/acoustic/acou_models.jl")
 include("models/acoustic/acou_params.jl")
 include("models/acoustic/acou_check.jl")

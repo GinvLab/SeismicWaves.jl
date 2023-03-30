@@ -25,7 +25,7 @@ function exacouprob()
             velmod[i,j] = 2000.0 + 12.0*(j-1)
         end
     end
-
+    
     # pad the lateral borders because there will be some PML layers there
     npad = 34
     left = repeat(velmod[1:1,:],npad,1)
@@ -34,6 +34,8 @@ function exacouprob()
     # pad also the bottom...
     bottom = repeat(velmod[:,end:end],1,npad)
     velmod = hcat(velmod,bottom)
+
+    matprop = Vp_AcouCD_MatProp( velmod )
 
     ##========================================
     # shots definition

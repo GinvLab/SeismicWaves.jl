@@ -10,3 +10,8 @@ abstract type InputParameters{N} end
 abstract type InputBCParameters end
 
 abstract type Acoustic_CD_WaveSimul{N} <: WaveSimul{N} end
+
+abstract type MaterialProperties{N} end
+
+
+
