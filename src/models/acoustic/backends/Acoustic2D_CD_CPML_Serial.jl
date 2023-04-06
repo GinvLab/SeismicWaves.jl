@@ -107,7 +107,7 @@ end
 
 
 function inject_sources!(pnew, dt2srctf, possrcs, it)
-    for is=1:size(possrcs,1)
+    for is = axes(possrcs,1)
         isrc = floor(Int, possrcs[is,1])
         jsrc = floor(Int, possrcs[is,2])
         pnew[isrc,jsrc] += dt2srctf[it,is]
@@ -117,7 +117,7 @@ end
 
 
 function record_receivers!(pnew, traces, posrecs, it)
-    for ir=1:size(posrecs,1)
+    for ir = axes(posrecs,1)
         irec = floor(Int, posrecs[ir,1])
         jrec = floor(Int, posrecs[ir,2])
         traces[it,ir] = pnew[irec,jrec]
@@ -127,10 +127,10 @@ end
 
 
 function prescale_residuals!(residuals, possrcs, fact)
-    for is=1:size(possrcs,1)
+    for is = axes(possrcs,1)
         isrc = floor(Int, possrcs[is,1])
         jsrc = floor(Int, possrcs[is,2])
-        for it=1:size(residuals,1) # nt
+        for it = axes(residuals,1) # nt
             residuals[it,is] *= fact[isrc,jsrc]
         end
     end

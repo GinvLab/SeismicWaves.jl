@@ -77,9 +77,9 @@ end
 end
 
 @views function prescale_residuals!(residuals, possrcs, fact)
-    for is=1:size(possrcs,1)
+    for is = axes(possrcs,1)
         isrc = floor(Int, possrcs[is,1])
-        for it=1:size(residuals,1) # nt
+        for it= axes(residuals,1) # nt
             residuals[it,is] *= fact[isrc]
         end
     end

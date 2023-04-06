@@ -29,7 +29,7 @@ Base.@kwdef struct AcouWavProb
     srcdomfreq::Vector{Float64}
     dobs::Vector{Array{Float64,2}}
     invCovds::Vector{<:AbstractMatrix{Float64}}
-    use_GPU::Bool
+    parall::Symbol
 end
 
 ## use  x.T * C^-1 * x  = ||L^-1 * x ||^2 ?
@@ -43,6 +43,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
 
     # reshape vector to 2D array
     vel2d = reshape(vecvel,acouprob.inpars.ns...)
+    matprop = Vp_AcouCD_MatProp(vel2d)
 
     # build pairs of sources and receivers
     nshots = length(acouprob.ijsrcs)
@@ -64,14 +65,14 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         #############################################
         ## compute the logdensity value for vecvel ##
         #############################################
-        misval = swmisfit!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU)
+        misval = swmisfit!(acouprob.inpars, matprop, shots; parall=acouprob.parall)
         return misval        
 
     elseif kind==:gradnlogpdf
         #################################################
         ## compute the gradient of the misfit function ##
         #################################################
-        grad = swgradient!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU, check_freq=ceil(Int, sqrt(nt)))
+        grad = swgradient!(acouprob.inpars, matprop, shots; parall=acouprob.parall, check_freq=ceil(Int, sqrt(nt)))
         # return flattened gradient
         return  vec(grad)
 
@@ -80,7 +81,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         ####################################################
         ## compute calculated data (solve forward problem) ##
         ####################################################
-        dcalc = swforward!(acouprob.inpars, vel2d, shots; use_GPU=acouprob.use_GPU)
+        dcalc = swforward!(acouprob.inpars, matprop, shots; parall=acouprob.parall)
         return dcalc
 
     else

@@ -89,7 +89,7 @@ function exacouprob()
     
     ##===============================================
     ## compute the seismograms
-    snapshots = swforward!(params, velmod, shots; parall=:threads, infoevery=10, snapevery=snapevery )
+    snapshots = swforward!(params, matprop, shots; parall=:threads, infoevery=infoevery, snapevery=snapevery )
 
     
     return params, velmod, collect(map(s -> s.second.seismograms, shots)), snapshots
