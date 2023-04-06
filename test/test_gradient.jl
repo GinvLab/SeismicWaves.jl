@@ -1,5 +1,6 @@
 using Test
 using SeismicWaves
+import CUDA
 
 include("utils.jl")
 
@@ -7,7 +8,13 @@ using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
 with_logger(error_logger) do
 
-    for parall in [:threads, :GPU, :serial]
+    test_backends = [:serial, :threads]
+    # test GPU backend only if CUDA is functional
+    if CUDA.functional()
+        push!(test_backends, :GPU)
+    end
+
+    for parall in test_backends
         
         @testset "Test 1D $(parall) swgradient! checkpointing" begin
             # Physics

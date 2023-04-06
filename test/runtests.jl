@@ -4,8 +4,6 @@
 push!(LOAD_PATH, "../src")
 import SeismicWaves
 
-import CUDA
-
 # list of files to NOT be tested
 excludedfiles = []
 
@@ -16,12 +14,6 @@ function runtests()
     istest(f) = endswith(f, ".jl") && startswith(basename(f), "test_")
     dirfiles = sort(vcat([joinpath.(root, files) for (root, dirs, files) in walkdir(testdir)]...))
     testfiles = filter(istest, dirfiles)
-    # exclude CUDA tests ONLY if CUDA is NOT functional
-    if !CUDA.functional()
-        isCUDAtest(f) = endswith(f, "CUDA.jl")
-        CUDAtestfiles = filter(isCUDAtest, testfiles)
-        push!(excludedfiles, CUDAtestfiles...)
-    end
 
     printstyled("Testing package SeismicWaves.jl\n"; bold=true, color=:white)
 

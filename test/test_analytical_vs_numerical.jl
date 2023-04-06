@@ -1,5 +1,6 @@
 using Test
 using DSP, NumericalIntegration, LinearAlgebra
+import CUDA
 
 using SeismicWaves
 
@@ -9,9 +10,15 @@ using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
 with_logger(error_logger) do
 
-    for parall in [:threads, :GPU, :serial]
+    test_backends = [:serial, :threads]
+    # test GPU backend only if CUDA is functional
+    if CUDA.functional()
+        push!(test_backends, :GPU)
+    end
 
-    @testset "Test 1D $(parall) analytical solution" begin
+    for parall in test_backends
+
+        @testset "Test 1D $(parall) analytical solution" begin
 
             @testset "Test 1D $(parall) constant velocity halo 0" begin
                 # constant velocity setup
