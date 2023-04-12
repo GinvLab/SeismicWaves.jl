@@ -7,5 +7,5 @@ Check model for possible assertions based on configuration and model traits.
 
 function check(model::WaveSimul)
     @debug "Checking CFL condition"
-    check_courant_condition(model)
+    return check_courant_condition(model)
 end

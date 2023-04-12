@@ -1,7 +1,6 @@
 
 #######################################################
 
-
 @doc raw"""
     swforward!(
         params::InputParameters,
@@ -27,20 +26,19 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 - `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays  
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-function swforward!(
-    params::InputParameters,
+function swforward!(params::InputParameters,
     matprop::MaterialProperties,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    parall::Symbol = :threads,
-    snapevery::Union{Int, Nothing} = nothing,
-    infoevery::Union{Int, Nothing} = nothing
-    )::Union{Vector{AbstractArray}, Nothing}
+    parall::Symbol=:threads,
+    snapevery::Union{Int, Nothing}=nothing,
+    infoevery::Union{Int, Nothing}=nothing)::Union{Vector{AbstractArray},
+    Nothing}
     # Build wavesim
     wavesim = build_wavesim(params, matprop; snapevery=snapevery, infoevery=infoevery)
     # Select backend
     backend = select_backend(wavesim, parall)
     # Solve simulation
-    run_swforward!(wavesim, backend, shots)
+    return run_swforward!(wavesim, backend, shots)
 end
 
 #######################################################
@@ -65,18 +63,16 @@ Receivers traces are stored in the `Receivers` object for each shot.
     
 See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 """
-function swmisfit!(
-    params::InputParameters,
+function swmisfit!(params::InputParameters,
     matprop::MaterialProperties,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    parall::Symbol = :threads,
-    )::Real
+    parall::Symbol=:threads)::Real
     # Build wavesim
     wavesim = build_wavesim(params, matprop)
     # Select backend
     backend = select_backend(wavesim, parall)
     # Compute misfit
-    run_swmisfit!(wavesim, backend, shots)
+    return run_swmisfit!(wavesim, backend, shots)
 end
 
 #######################################################
@@ -109,94 +105,69 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `check_freq::Union{Int, Nothing}`: if specified, enables checkpointing and specifies the checkpointing frequency.
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-function swgradient!(
-    params::InputParameters,
+function swgradient!(params::InputParameters,
     matprop::MaterialProperties,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    parall::Symbol = :threads,
-    check_freq::Union{Int, Nothing} = nothing,
-    infoevery::Union{Int, Nothing} = nothing
-    )::AbstractArray
+    parall::Symbol=:threads,
+    check_freq::Union{Int, Nothing}=nothing,
+    infoevery::Union{Int, Nothing}=nothing)::AbstractArray
     # Build wavesim
     wavesim = build_wavesim(params, matprop; infoevery=infoevery)
     # Select backend
     backend = select_backend(wavesim, parall)
     # Solve simulation
-    run_swgradient!(wavesim, backend, shots; check_freq=check_freq)
+    return run_swgradient!(wavesim, backend, shots; check_freq=check_freq)
 end
-
 
 #######################################################
 
-build_wavesim(params::InputParametersAcoustic, matprop::MaterialProperties; kwargs...) = build_wavesim(params, params.boundcond, matprop; kwargs...)
+function build_wavesim(params::InputParametersAcoustic, matprop::MaterialProperties;
+    kwargs...)
+    return build_wavesim(params, params.boundcond, matprop; kwargs...)
+end
 
-
-function build_wavesim(params::InputParametersAcoustic, cpmlparams::CPML_BC, matprop::Vp_AcouCD_MatProp; kwargs...)
-
+function build_wavesim(params::InputParametersAcoustic,
+    cpmlparams::CPMLBoundaryConditionParameters,
+    matprop::VpAcousticCDMaterialProperty;
+    kwargs...)
     N = length(params.gridsize)
 
-    acoumod = Acoustic_CD_CPML_WaveSimul{N}(
-        params.ntimesteps,
+    acoumod = AcousticCDCPMLWaveSimul{N}(params.ntimesteps,
         params.dt,
         params.gridspacing,
         cpmlparams.halo,
         cpmlparams.rcoef,
         matprop.vp;
         freetop=cpmlparams.freeboundtop,
-        kwargs...
-            )
+        kwargs...)
     return acoumod
 end
 
 #######################################################
 
-function select_backend(wavesim,parall)
+select_backend(model::WaveSimul, parall::Symbol) =
+    select_backend(BoundaryConditionTrait(model), GridTrait(model), model, Val{parall})
 
+function select_backend(
+    ::BoundaryConditionTrait,
+    ::GridTrait,
+    model::WaveSimul,
+    ::Type{Val{parall}}
+) where {parall}
     parasym = [:serial, :threads, :GPU]
-    if !(parall in parasym)
-        throw(ErrorException("Argument `parall` must be one of the following symbols: $parasym. Got $(parall)."))
-    end
-
-    tpwavsim = typeof(wavesim)
-
-    physsim = [Acoustic_CD_CPML_WaveSimul{1}, Acoustic_CD_CPML_WaveSimul{2}, Acoustic_CD_CPML_WaveSimul{3} ]
-    if !(tpwavsim in physsim)
-        throw(ErrorException("$(typeof(wavesim)) not (yet?) implemented."))
-    end
-
-    if tpwavsim <: Acoustic_CD_WaveSimul
-
-        if tpwavsim==Acoustic_CD_CPML_WaveSimul{1}
-            if parall==:serial
-                return Acoustic1D_CD_CPML_Serial
-            elseif parall==:threads
-                return Acoustic1D_CD_CPML_Threads
-            elseif parall==:GPU
-                return Acoustic1D_CD_CPML_GPU
-            end                
-
-        elseif tpwavsim==Acoustic_CD_CPML_WaveSimul{2}
-            if parall==:serial
-                return Acoustic2D_CD_CPML_Serial
-            elseif parall==:threads
-                return Acoustic2D_CD_CPML_Threads
-            elseif parall==:GPU
-                return Acoustic2D_CD_CPML_GPU
-            end     
-
-        elseif tpwavsim==Acoustic_CD_CPML_WaveSimul{3}
-            if parall==:serial
-                return Acoustic3D_CD_CPML_Serial
-            elseif parall==:threads
-                return Acoustic3D_CD_CPML_Threads
-            elseif parall==:GPU
-                return Acoustic3D_CD_CPML_GPU
-            end   
-
-        end
-
-    end
-    return
+    error(
+        "No backend found for model of type $(typeof(model)) and `parall` $(parall). Argument `parall` must be one of the following symbols: $parasym."
+    )
 end
 
-#######################################################
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{1}, ::Type{Val{:serial}}) = Acoustic1D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{2}, ::Type{Val{:serial}}) = Acoustic2D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{3}, ::Type{Val{:serial}}) = Acoustic3D_CD_CPML_Serial
+
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{1}, ::Type{Val{:threads}}) = Acoustic1D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{2}, ::Type{Val{:threads}}) = Acoustic2D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{3}, ::Type{Val{:threads}}) = Acoustic3D_CD_CPML_Threads
+
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{1}, ::Type{Val{:GPU}}) = Acoustic1D_CD_CPML_GPU
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{2}, ::Type{Val{:GPU}}) = Acoustic21D_CD_CPML_GPU
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{3}, ::Type{Val{:GPU}}) = Acoustic3D_CD_CPML_GPU

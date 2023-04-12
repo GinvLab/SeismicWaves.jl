@@ -8,13 +8,12 @@ using Printf
 using ParallelStencil
 
 export InputParametersAcoustic
-export CPML_BC, Refl_BC
-export Vp_AcouCD_MatProp
+export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
+export VpAcousticCDMaterialProperty
 
 export Sources, Receivers
 export swforward!, swmisfit!, swgradient!
 export gaussource1D, rickersource1D
-
 
 include("abstract_types.jl")
 include("sources.jl")
@@ -23,10 +22,8 @@ include("check.jl")
 include("init_shot.jl")
 include("solve.jl")
 
-
 include("models/cpmlcoeffs.jl")
 
-include("traits/equation.jl")
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
 include("traits/snappable.jl")
@@ -46,7 +43,6 @@ include("wrappers.jl")
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Serial.jl")
 include("models/acoustic/backends/Acoustic2D_CD_CPML_Serial.jl")
 include("models/acoustic/backends/Acoustic3D_CD_CPML_Serial.jl")
-
 
 ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Threads.jl")

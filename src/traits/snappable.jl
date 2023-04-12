@@ -14,7 +14,7 @@ struct UnSnappable <: IsSnappableTrait end
 
 # Trait constuctor
 IsSnappableTrait(x) = IsSnappableTrait(typeof(x))
-IsSnappableTrait(x::Type) = error("IsSnappableTrait not implemented for type $(x)")
+IsSnappableTrait(::Type) = error("IsSnappableTrait not implemented for type $(x)")
 
 # Default behaviour for a WaveSimul is UnSnappable
 IsSnappableTrait(::Type{<:WaveSimul}) = UnSnappable()

@@ -2,14 +2,14 @@ using DSP, NumericalIntegration, LinearAlgebra
 
 function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     # constant velocity setup
-    lx = (nx-1) * dx
-    vel = Vp_AcouCD_MatProp( c0 .* ones(nx) )
+    lx = (nx - 1) * dx
+    vel = VpAcousticCDMaterialProperty(c0 .* ones(nx))
     # input parameters
     params = InputParametersAcoustic(nt, dt, [nx], [dx],
-                                     CPML_BC(halo=halo, rcoef=rcoef, freeboundtop=false))
+        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     t0 = 4 / f0
-    times = collect(range(0.0, step=dt, length=nt))
+    times = collect(range(0.0; step=dt, length=nt))
     possrcs = zeros(1, 1)
     srctf = zeros(nt, 1)
     srctf[:, 1] .= rickersource1D.(times, t0, f0)
@@ -20,20 +20,20 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     srcs = Sources(possrcs, srctf, f0)
     recs = Receivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
 
-    params, srcs, recs, vel
+    return params, srcs, recs, vel
 end
 
 function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     # constant velocity setup
-    lx = (nx-1) * dx
-    ly = (ny-1) * dy
-    vel = Vp_AcouCD_MatProp( c0 .* ones(nx, ny) )
+    lx = (nx - 1) * dx
+    ly = (ny - 1) * dy
+    vel = VpAcousticCDMaterialProperty(c0 .* ones(nx, ny))
     # input parameters
     params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
-                                     CPML_BC(halo=halo, rcoef=rcoef, freeboundtop=false))
+        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     t0 = 4 / f0
-    times = collect(range(0.0, step=dt, length=nt))
+    times = collect(range(0.0; step=dt, length=nt))
     possrcs = zeros(1, 2)
     possrcs[1, :] = [lx / 2, ly / 2]
     srctf = zeros(nt, 1)
@@ -44,21 +44,21 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     srcs = Sources(possrcs, srctf, f0)
     recs = Receivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
 
-    params, srcs, recs, vel
+    return params, srcs, recs, vel
 end
 
 function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
     # constant velocity setup
-    lx = (nx-1) * dx
-    ly = (ny-1) * dy
-    lz = (nz-1) * dz
-    vel = Vp_AcouCD_MatProp( c0 .* ones(nx, ny, nz) )
+    lx = (nx - 1) * dx
+    ly = (ny - 1) * dy
+    lz = (nz - 1) * dz
+    vel = VpAcousticCDMaterialProperty(c0 .* ones(nx, ny, nz))
     # input parameters
     params = InputParametersAcoustic(nt, dt, [nx, ny, nz], [dx, dy, dz],
-                                     CPML_BC(halo=halo, rcoef=rcoef, freeboundtop=false))
+        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     t0 = 4 / f0
-    times = collect(range(0.0, step=dt, length=nt))
+    times = collect(range(0.0; step=dt, length=nt))
     possrcs = zeros(1, 3)
     possrcs[1, :] = [lx / 2, ly / 2, lz / 2]
     srctf = zeros(nt, 1)
@@ -69,17 +69,17 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     srcs = Sources(possrcs, srctf, f0)
     recs = Receivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
 
-    params, srcs, recs, vel
+    return params, srcs, recs, vel
 end
 
 function analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)
     # analytical solution
-    times = collect(range(dt, step=dt, length=nt))
+    times = collect(range(dt; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
     src = (c0^2) .* srcs.tf[:, 1]
     # Calculate Green's function
     G = times .* 0.0
-    for it = 1:nt
+    for it in 1:nt
         # Heaviside function
         if (times[it] - dist / c0) >= 0
             G[it] = 1.0 / (2 * c0)
@@ -94,15 +94,15 @@ end
 
 function analytical_solution_constant_vel_2D(c0, dt, nt, srcs, recs)
     # analytical solution
-    times = collect(range(dt, step=dt, length=nt))
+    times = collect(range(dt; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
     src = (c0^2) .* srcs.tf[:, 1]
     # Calculate Green's function
-    G = times .* 0.
-    for it = 1:nt
+    G = times .* 0.0
+    for it in 1:nt
         # Heaviside function
         if (times[it] - dist / c0) >= 0
-            G[it] = 1. / (2π * c0^2 * sqrt((times[it]^2) - (dist^2 / (c0^2))))
+            G[it] = 1.0 / (2π * c0^2 * sqrt((times[it]^2) - (dist^2 / (c0^2))))
         end
     end
     # Convolve with source term
@@ -114,12 +114,12 @@ end
 
 function analytical_solution_constant_vel_3D(c0, dt, nt, srcs, recs)
     # analytical solution
-    times = collect(range(dt, step=dt, length=nt))
+    times = collect(range(dt; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
     src = (c0^2) .* srcs.tf[:, 1]
     # Calculate Green's function
-    G = times .* 0.
-    for it = 1:nt
+    G = times .* 0.0
+    for it in 1:nt
         # Delta function
         if (times[it] - dist / c0) >= 0
             G[it] = 1.0 / (4π * c0^2 * dist)

@@ -1,7 +1,7 @@
 
 ###########################################################
 
-struct Acoustic_CD_CPML_WaveSimul{N} <: Acoustic_CD_WaveSimul{N}
+struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     nt::Integer
     ns::NTuple{N, <:Integer}
     ls::NTuple{N, <:Integer}
@@ -17,27 +17,25 @@ struct Acoustic_CD_CPML_WaveSimul{N} <: Acoustic_CD_WaveSimul{N}
     snapshots::Union{<:Array{<:Real}, Nothing}
     infoevery::Integer
 
-    function Acoustic_CD_CPML_WaveSimul{N}(
-        nt::Integer,
+    function AcousticCDCPMLWaveSimul{N}(nt::Integer,
         dt::Real,
         gridspacing::NTuple{N, <:Real},
         halo::Integer,
         rcoef::Real,
         vel::Array{<:Real, N};
-        freetop::Bool = true,
-        snapevery::Union{<:Integer, Nothing} = nothing,
-        infoevery::Union{<:Integer, Nothing} = nothing
-        ) where {N}
-        
+        freetop::Bool=true,
+        snapevery::Union{<:Integer, Nothing}=nothing,
+        infoevery::Union{<:Integer, Nothing}=nothing) where {N}
+
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"
         @assert dt > 0 "Timestep size must be positive!"
         @assert all(d -> d > 0, gridspacing) "All cell sizes must be positive!"
-        
+
         # Check velocity
         ns = size(vel)
-        ns_cpml = freetop ? ns[1:end-1] : ns
-        @assert all(n -> n >= 2halo+3, ns_cpml) "Velocity model in the dimensions with C-PML boundaries must have at least 2*halo+3 = $(2halo+3) cells!"
+        ns_cpml = freetop ? ns[1:(end-1)] : ns
+        @assert all(n -> n >= 2halo + 3, ns_cpml) "Velocity model in the dimensions with C-PML boundaries must have at least 2*halo+3 = $(2halo+3) cells!"
         @assert all(vel .> 0.0) "Velocity model must be positive everywhere!"
 
         # Compute model sizes
@@ -56,20 +54,20 @@ struct Acoustic_CD_CPML_WaveSimul{N} <: Acoustic_CD_WaveSimul{N}
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
-        new(nt, ns, ls, dt, gridspacing, vel, fact, halo, rcoef, cpmlcoeffs, freetop, snapevery, snapshots, infoevery)
+        return new(nt, ns, ls, dt, gridspacing, vel, fact, halo, rcoef, cpmlcoeffs, freetop, snapevery, snapshots, infoevery)
     end
 end
 
+IsSnappableTrait(::Type{<:AcousticCDCPMLWaveSimul}) = Snappable()
+BoundaryConditionTrait(::Type{<:AcousticCDCPMLWaveSimul}) = CPMLBoundaryCondition()
+GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
+
 #######################################################################
 
-struct Acoustic_CD_Refl_WaveSimul{N} <: Acoustic_CD_WaveSimul{N} end
+struct AcousticCDReflWaveSimul{N} <: AcousticCDWaveSimul{N} end    # TODO implementation
 
-#######################################################################
-
-IsSnappableTrait(::Type{<:Acoustic_CD_WaveSimul}) = Snappable()
-
-GridTrait(::Type{<:Acoustic_CD_CPML_WaveSimul{1}}) = LocalGrid()
-GridTrait(::Type{<:Acoustic_CD_CPML_WaveSimul{2}}) = LocalGrid()
-GridTrait(::Type{<:Acoustic_CD_CPML_WaveSimul{3}}) = LocalGrid()
+IsSnappableTrait(::Type{<:AcousticCDReflWaveSimul}) = Snappable()
+BoundaryConditionTrait(::Type{<:AcousticCDReflWaveSimul}) = ReflectiveBoundaryCondition()
+GridTrait(::Type{<:AcousticCDReflWaveSimul}) = LocalGrid()
 
 #######################################################################

@@ -1,10 +1,10 @@
 ### FORWARDS ###
 
-@views function run_swforward!(
-    wavsim::WaveSimul,
+@views function run_swforward!(wavsim::WaveSimul,
     backend::Module,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
-    )::Union{Vector{Array}, Nothing}
+)::Union{Vector{Array},
+    Nothing}
     # Check wavsim
     @info "Checking wavsim"
     check(wavsim)
@@ -17,7 +17,7 @@
     if takesnapshots
         snapshots_per_shot = []
     end
-    
+
     # Shots loop
     for (shot, (srcs, recs)) in enumerate(shots)
         @info "Shot #$(shot)"
@@ -43,19 +43,11 @@
     return nothing
 end
 
-# swforward_1shot!!(wavsim::WaveSimul, possrcs, posrecs, srctf, traces, backend) = swforward_1shot!(
-#     WaveEquationTrait(wavsim),
-#     BoundaryConditionTrait(wavsim),
-#     wavsim, possrcs, posrecs, srctf, traces, backend
-# )
-
 ### MISFITS ###
 
-@views function run_swmisfit!(
-    wavsim::WaveSimul,
+@views function run_swmisfit!(wavsim::WaveSimul,
     backend::Module,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}},
-    )::Real
+    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}})::Real
     # Solve forward model for all shots
     run_swforward!(wavsim, backend, shots)
     # Compute total misfit for all shots
@@ -76,12 +68,10 @@ end
 
 ### GRADIENTS ###
 
-@views function run_swgradient!(
-    wavsim::WaveSimul,
+@views function run_swgradient!(wavsim::WaveSimul,
     backend::Module,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}} ;
-    check_freq::Union{Integer, Nothing} = nothing
-    )::AbstractArray
+    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    check_freq::Union{Integer, Nothing}=nothing)::AbstractArray
     # Check wavsim
     @info "Checking wavsim"
     check(wavsim)
@@ -94,7 +84,7 @@ end
 
     # Initialize total gradient
     totgrad = zero(wavsim.vel)
-    
+
     # Shots loop
     for (shot, (srcs, recs)) in enumerate(shots)
         @info "Shot #$(shot)"
@@ -105,17 +95,11 @@ end
         check_invcov_matrix(wavsim, recs.invcov)
         # Compute forward solver
         @info "Computing gradient solver"
-        curgrad = swgradient_1shot!(wavsim, backend, possrcs, posrecs, srctf,
-                                    traces, recs.observed, recs.invcov; check_freq=check_freq)
+        curgrad =
+            swgradient_1shot!(wavsim, backend, possrcs, posrecs, srctf, traces, recs.observed, recs.invcov; check_freq=check_freq)
         # Accumulate gradient
         totgrad .+= curgrad
     end
-    
+
     return totgrad
 end
-
-# swgradient_1shot!!(wavsim::WaveSimul, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq) = run_swgradient_1shot!(
-#     WaveEquationTrait(wavsim),
-#     BoundaryConditionTrait(wavsim),
-#     wavsim, possrcs, posrecs, srctf, traces, observed, invcov, backend; check_freq=check_freq
-# )

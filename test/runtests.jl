@@ -2,17 +2,18 @@
 
 # the following lines allow for precompiling of depencencies, making tests run faster
 push!(LOAD_PATH, "../src")
-import SeismicWaves
+using SeismicWaves: SeismicWaves
 
 # list of files to NOT be tested
 excludedfiles = []
 
 function runtests()
-    exename   = joinpath(Sys.BINDIR, Base.julia_exename())
-    testdir   = pwd()
+    exename = joinpath(Sys.BINDIR, Base.julia_exename())
+    testdir = pwd()
     # getting all test files to run tests on
     istest(f) = endswith(f, ".jl") && startswith(basename(f), "test_")
-    dirfiles = sort(vcat([joinpath.(root, files) for (root, dirs, files) in walkdir(testdir)]...))
+    dirfiles = sort(vcat([joinpath.(root, files)
+                          for (root, dirs, files) in walkdir(testdir)]...))
     testfiles = filter(istest, dirfiles)
 
     printstyled("Testing package SeismicWaves.jl\n"; bold=true, color=:white)

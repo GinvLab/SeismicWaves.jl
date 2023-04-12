@@ -1,7 +1,7 @@
 @doc raw"""
 Type representing a multi-receiver configuration for a wave propagation shot.
 """
-struct Receivers{T<:Real}
+struct Receivers{T <: Real}
     positions::Matrix{<:Real}
     seismograms::Matrix{T}
     observed::Matrix{T}
@@ -12,9 +12,10 @@ struct Receivers{T<:Real}
 
     Create a single shot wave propagation receivers configuration from receivers positions.
     """
-    function Receivers{T}(positions::Matrix{<:Real}, nt::Integer;
-                          observed::Union{Matrix{T}, Nothing} = nothing, invcov::Union{AbstractMatrix{T}, Nothing} = nothing
-    ) where {T<:Real}
+    function Receivers{T}(positions::Matrix{<:Real},
+        nt::Integer;
+        observed::Union{Matrix{T}, Nothing}=nothing,
+        invcov::Union{AbstractMatrix{T}, Nothing}=nothing) where {T <: Real}
         @assert size(positions, 1) > 0 "There must be at least one receiver!"
         seismograms = zeros(T, nt, size(positions, 1))
         if observed !== nothing
@@ -27,7 +28,7 @@ struct Receivers{T<:Real}
         else
             invcov = zeros(0, 0)
         end
-        new(positions, seismograms, observed, invcov)
+        return new(positions, seismograms, observed, invcov)
     end
 end
 

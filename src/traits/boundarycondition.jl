@@ -20,4 +20,4 @@ struct CPMLBoundaryCondition <: BoundaryConditionTrait end
 
 # Trait constuctor
 BoundaryConditionTrait(x) = BoundaryConditionTrait(typeof(x))
-BoundaryConditionTrait(x::Type) = error("BoundaryConditionTrait not implemented for type $(x)")
+BoundaryConditionTrait(::Type) = error("BoundaryConditionTrait not implemented for type $(x)")

@@ -1,17 +1,12 @@
 
 abstract type WaveSimul{N} end
 
-WaveSimul1D = WaveSimul{1}
-WaveSimul2D = WaveSimul{2}
-WaveSimul3D = WaveSimul{3}
+abstract type AcousticWaveSimul{N} <: WaveSimul{N} end
+
+abstract type AcousticCDWaveSimul{N} <: AcousticWaveSimul{N} end
 
 abstract type InputParameters{N} end
 
-abstract type InputBCParameters end
-
-abstract type Acoustic_CD_WaveSimul{N} <: WaveSimul{N} end
+abstract type InputBoundaryConditionParameters end
 
 abstract type MaterialProperties{N} end
-
-
-
