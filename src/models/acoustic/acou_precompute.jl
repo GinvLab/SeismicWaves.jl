@@ -10,9 +10,7 @@ precompute!(model::AcousticCDWaveSimul) = precompute_fact!(model)
     end
 end
 
-@views function find_nearest_grid_points(model::WaveSimul,
-    srcs::Sources{<:Real},
-    recs::Receivers{<:Real})
+@views function find_nearest_grid_points(model::WaveSimul, srcs::Sources{<:Real}, recs::Receivers{<:Real})
     # source time functions
     nsrcs = size(srcs.positions, 1)                      # number of sources
     ncoos = size(srcs.positions, 2)                      # number of coordinates
@@ -36,9 +34,7 @@ end
     return possrcs, posrecs, traces
 end
 
-@views function setup_shot(model::AcousticCDWaveSimul,
-    srcs::Sources{<:Real},
-    recs::Receivers{<:Real})
+@views function setup_shot(model::AcousticCDWaveSimul, srcs::Sources{<:Real}, recs::Receivers{<:Real})
     possrcs, posrecs, traces = find_nearest_grid_points(model, srcs, recs)
     # prescale with boxcar function 1/dx, 1/(dx*dy) or 1/(dx*dy*dz)
     dt2srctf = srcs.tf ./ prod(model.gridspacing)

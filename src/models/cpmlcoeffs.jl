@@ -9,27 +9,31 @@ struct CPMLCoefficients{T <: Real}
     b_K_hr::Vector{T}
 
     function CPMLCoefficients{T}(halo::Integer) where {T <: Real}
-        return new(zeros(T, halo),
-            zeros(T, halo),
-            zeros(T, halo + 1),
-            zeros(T, halo + 1),
+        return new(
             zeros(T, halo),
             zeros(T, halo),
             zeros(T, halo + 1),
-            zeros(T, halo + 1))
+            zeros(T, halo + 1),
+            zeros(T, halo),
+            zeros(T, halo),
+            zeros(T, halo + 1),
+            zeros(T, halo + 1)
+        )
     end
 end
 
 # Default type constructor
 CPMLCoefficients(halo) = CPMLCoefficients{Float64}(halo)
 
-function compute_CPML_coefficients!(cpmlcoeffs::CPMLCoefficients,
+function compute_CPML_coefficients!(
+    cpmlcoeffs::CPMLCoefficients,
     vel_max::Real,
     dt::Real,
     halo::Integer,
     rcoef::Real,
     thickness::Real,
-    f0::Real)
+    f0::Real
+)
     # CPML coefficients (l = left, r = right, h = staggered in betweeen grid points)
     alpha_max = π * f0          # CPML α multiplicative factor (half of dominating angular frequency)
     npower = 2.0                # CPML power coefficient
@@ -48,13 +52,15 @@ function compute_CPML_coefficients!(cpmlcoeffs::CPMLCoefficients,
     return cpmlcoeffs.b_K_hr .= b_K_hr
 end
 
-function calc_Kab_CPML(halo::Integer,
+function calc_Kab_CPML(
+    halo::Integer,
     dt::Float64,
     npower::Float64,
     d0::Float64,
     alpha_max_pml::Float64,
     K_max_pml::Float64,
-    onwhere::String)
+    onwhere::String
+)
     @assert halo >= 0.0
 
     Kab_size = halo

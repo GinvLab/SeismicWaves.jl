@@ -9,11 +9,13 @@ struct InputParametersAcoustic{N} <: InputParameters{N}
     boundcond::InputBoundaryConditionParameters
 end
 
-function InputParametersAcoustic(ntimesteps::Int,
+function InputParametersAcoustic(
+    ntimesteps::Int,
     dt::Real,
     gridsize::AbstractVector{<:Int},
     gridspacing::AbstractVector{<:Real},
-    boundcond::InputBoundaryConditionParameters)
+    boundcond::InputBoundaryConditionParameters
+)
     # Check dimensionality
     N = length(gridsize)
     @assert N == length(gridspacing) "Dimensionality mismatch between number of grid points and grid step sizes!"

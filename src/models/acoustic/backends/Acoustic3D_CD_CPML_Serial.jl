@@ -60,13 +60,15 @@ function update_ψ_z!(ψ_z_l, ψ_z_r, pcur, halo, _dz, nz, a_z_hl, a_z_hr, b_K_z
     end
 end
 
-function update_p_CPML!(pold, pcur, pnew, halo, fact,
+function update_p_CPML!(
+    pold, pcur, pnew, halo, fact,
     _dx, _dx2, _dy, _dy2, _dz, _dz2, nx, ny, nz,
     ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r, ψ_z_l, ψ_z_r,
     ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r, ξ_z_l, ξ_z_r,
     a_x_l, a_x_r, b_K_x_l, b_K_x_r,
     a_y_l, a_y_r, b_K_y_l, b_K_y_r,
-    a_z_l, a_z_r, b_K_z_l, b_K_z_r)
+    a_z_l, a_z_r, b_K_z_l, b_K_z_r
+)
     for k in 2:(nz-1)
         for j in 2:(ny-1)
             for i in 2:(nx-1)
@@ -150,7 +152,8 @@ prescale_residuals!(residuals, possrcs, fact) =
         end
     end
 
-function forward_onestep_CPML!(pold, pcur, pnew, fact, dx, dy, dz, halo,
+function forward_onestep_CPML!(
+    pold, pcur, pnew, fact, dx, dy, dz, halo,
     ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r, ψ_z_l, ψ_z_r,
     ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r, ξ_z_l, ξ_z_r,
     a_x_l, a_x_r, a_x_hl, a_x_hr,
@@ -160,7 +163,8 @@ function forward_onestep_CPML!(pold, pcur, pnew, fact, dx, dy, dz, halo,
     b_K_y_l, b_K_y_r, b_K_y_hl, b_K_y_hr,
     b_K_z_l, b_K_z_r, b_K_z_hl, b_K_z_hr,
     possrcs, dt2srctf, posrecs, traces, it;
-    save_trace=true)
+    save_trace=true
+)
     nx, ny, nz = size(pcur)
     _dx = 1 / dx
     _dx2 = 1 / dx^2

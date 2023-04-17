@@ -63,10 +63,12 @@ Receivers traces are stored in the `Receivers` object for each shot.
     
 See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 """
-function swmisfit!(params::InputParameters,
+function swmisfit!(
+    params::InputParameters,
     matprop::MaterialProperties,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    parall::Symbol=:threads)::Real
+    parall::Symbol=:threads
+)::Real
     # Build wavesim
     wavesim = build_wavesim(params, matprop)
     # Select backend
@@ -105,12 +107,14 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `check_freq::Union{Int, Nothing}`: if specified, enables checkpointing and specifies the checkpointing frequency.
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-function swgradient!(params::InputParameters,
+function swgradient!(
+    params::InputParameters,
     matprop::MaterialProperties,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads,
     check_freq::Union{Int, Nothing}=nothing,
-    infoevery::Union{Int, Nothing}=nothing)::AbstractArray
+    infoevery::Union{Int, Nothing}=nothing
+)::AbstractArray
     # Build wavesim
     wavesim = build_wavesim(params, matprop; infoevery=infoevery)
     # Select backend
@@ -121,25 +125,28 @@ end
 
 #######################################################
 
-function build_wavesim(params::InputParametersAcoustic, matprop::MaterialProperties;
-    kwargs...)
+function build_wavesim(params::InputParametersAcoustic, matprop::MaterialProperties; kwargs...)
     return build_wavesim(params, params.boundcond, matprop; kwargs...)
 end
 
-function build_wavesim(params::InputParametersAcoustic,
+function build_wavesim(
+    params::InputParametersAcoustic,
     cpmlparams::CPMLBoundaryConditionParameters,
     matprop::VpAcousticCDMaterialProperty;
-    kwargs...)
+    kwargs...
+)
     N = length(params.gridsize)
 
-    acoumod = AcousticCDCPMLWaveSimul{N}(params.ntimesteps,
+    acoumod = AcousticCDCPMLWaveSimul{N}(
+        params.ntimesteps,
         params.dt,
         params.gridspacing,
         cpmlparams.halo,
         cpmlparams.rcoef,
         matprop.vp;
         freetop=cpmlparams.freeboundtop,
-        kwargs...)
+        kwargs...
+    )
     return acoumod
 end
 

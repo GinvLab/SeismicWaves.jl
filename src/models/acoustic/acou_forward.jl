@@ -1,12 +1,14 @@
 swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryConditionTrait(model), model, args...)
 
-@views function swforward_1shot!(::CPMLBoundaryCondition,
+@views function swforward_1shot!(
+    ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimul,
     backend::Module,
     possrcs,
     posrecs,
     srctf,
-    traces)
+    traces
+)
     # Numerics
     N = length(model.ns)
     nt = model.nt
@@ -51,12 +53,14 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        pold, pcur, pnew = backend.forward_onestep_CPML!(pold, pcur, pnew, fact_a,
+        pold, pcur, pnew = backend.forward_onestep_CPML!(
+            pold, pcur, pnew, fact_a,
             model.gridspacing..., halo,
             ψ..., ξ..., a_coeffs...,
             b_K_coeffs...,
             possrcs_a, srctf_a, posrecs_a,
-            traces_a, it)
+            traces_a, it
+        )
         # Print timestep info
         if it % model.infoevery == 0
             @debug @sprintf(
@@ -75,5 +79,5 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
     end
 
     # Save traces
-    return traces .= Array(traces_a)
+    traces .= Array(traces_a)
 end

@@ -1,7 +1,8 @@
 swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     swgradient_1shot!(BoundaryConditionTrait(model), model, args...; kwargs...)
 
-@views function swgradient_1shot!(::CPMLBoundaryCondition,
+@views function swgradient_1shot!(
+    ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimul,
     backend::Module,
     possrcs,
@@ -10,7 +11,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     traces,
     observed,
     invcov;
-    check_freq=nothing)
+    check_freq=nothing
+)
     # Numerics
     N = length(model.ns)
     nt = model.nt
@@ -95,13 +97,15 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     # Forward time loop (nt+1 timesteps)
     for it in 1:(nt+1)
         # Compute one forward step
-        pold, pcur, pnew = backend.forward_onestep_CPML!(pold, pcur, pnew, fact_a,
+        pold, pcur, pnew = backend.forward_onestep_CPML!(
+            pold, pcur, pnew, fact_a,
             model.gridspacing..., halo,
             ψ..., ξ..., a_coeffs...,
             b_K_coeffs...,
             possrcs_a, srctf_a, posrecs_a,
             traces_a, it;
-            save_trace=(it <= nt))
+            save_trace=(it <= nt)
+        )
         # Print timestep info
         if it % model.infoevery == 0
             @debug @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
@@ -122,6 +126,9 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         end
     end
 
+    # Save traces
+    traces .= Array(traces_a)
+
     @debug "Computing residuals"
     # Compute residuals
     mul!(residuals_a, invcov_a, traces_a - observed_a)
@@ -134,14 +141,16 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        adjold, adjcur, adjnew = backend.forward_onestep_CPML!(adjold, adjcur, adjnew,
+        adjold, adjcur, adjnew = backend.forward_onestep_CPML!(
+            adjold, adjcur, adjnew,
             fact_a, model.gridspacing...,
             halo,
             ψ_adj..., ξ_adj...,
             a_coeffs..., b_K_coeffs...,
             posrecs_a, residuals_a,
             nothing, nothing, it;   # adjoint sources positions are receivers
-            save_trace=false)
+            save_trace=false
+        )
         # Print timestep info
         if it % model.infoevery == 0
             @debug @sprintf("Backward iteration: %d", it)
@@ -170,13 +179,15 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             end
             # Forward recovery time loop
             for recit in (curr_checkpoint+1):((old_checkpoint-1)-1)
-                pold, pcur, pnew = backend.forward_onestep_CPML!(pold, pcur, pnew, fact_a,
+                pold, pcur, pnew = backend.forward_onestep_CPML!(
+                    pold, pcur, pnew, fact_a,
                     model.gridspacing..., halo,
                     ψ..., ξ..., a_coeffs...,
                     b_K_coeffs...,
                     possrcs_a, srctf_a,
                     nothing, nothing, recit;
-                    save_trace=false)
+                    save_trace=false
+                )
                 if recit % model.infoevery == 0
                     @debug @sprintf("Recovering iteration: %d", recit)
                 end
@@ -192,5 +203,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         backend.correlate_gradient!(curgrad, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
     end
 
-    return Array(curgrad)
+    # rescale gradient
+    gradient = Array(curgrad)
+    gradient = (2.0 ./ (model.vel .^ 3)) .* gradient
+    return gradient
 end

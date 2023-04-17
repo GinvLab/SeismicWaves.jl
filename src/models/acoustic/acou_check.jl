@@ -23,14 +23,13 @@ end
 
 ####################################################
 
-check_positions(model::WaveSimul, positions::Matrix{<:Real}) =
-    check_positions(BoundaryConditionTrait(model),
-        model,
-        positions)
+check_positions(model::WaveSimul, positions::Matrix{<:Real}) = check_positions(BoundaryConditionTrait(model), model, positions)
 
-function check_positions(::ReflectiveBoundaryCondition,
+function check_positions(
+    ::ReflectiveBoundaryCondition,
     model::WaveSimul,
-    positions::Matrix{<:Real})
+    positions::Matrix{<:Real}
+)
     ndimwavsim = length(model.gridspacing)
     @assert size(positions, 2) == ndimwavsim "Positions matrix do not match the dimension of the model!"
 
@@ -42,9 +41,11 @@ function check_positions(::ReflectiveBoundaryCondition,
     end
 end
 
-function check_positions(::CPMLBoundaryCondition,
+function check_positions(
+    ::CPMLBoundaryCondition,
     model::WaveSimul,
-    positions::Matrix{<:Real})
+    positions::Matrix{<:Real}
+)
     check_positions(ReflectiveBoundaryCondition(), model, positions)
     Ndim = size(positions, 2)
     for s in axes(positions, 1)

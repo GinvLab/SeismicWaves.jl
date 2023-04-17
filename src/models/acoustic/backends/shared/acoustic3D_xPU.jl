@@ -1,7 +1,9 @@
-@parallel_indices (i, j, k) function update_ψ_x!(ψ_x_l, ψ_x_r, pcur,
+@parallel_indices (i, j, k) function update_ψ_x!(
+    ψ_x_l, ψ_x_r, pcur,
     halo, _dx, nx,
     a_x_hl, a_x_hr,
-    b_K_x_hl, b_K_x_hr)
+    b_K_x_hl, b_K_x_hr
+)
     ii = i + nx - halo - 2  # shift for right boundary pressure indices
     # left boundary
     ψ_x_l[i, j, k] = b_K_x_hl[i] * ψ_x_l[i, j, k] + a_x_hl[i] * (pcur[i+1, j, k] - pcur[i, j, k]) * _dx
@@ -11,10 +13,12 @@
     return nothing
 end
 
-@parallel_indices (i, j, k) function update_ψ_y!(ψ_y_l, ψ_y_r, pcur,
+@parallel_indices (i, j, k) function update_ψ_y!(
+    ψ_y_l, ψ_y_r, pcur,
     halo, _dy, ny,
     a_y_hl, a_y_hr,
-    b_K_y_hl, b_K_y_hr)
+    b_K_y_hl, b_K_y_hr
+)
     jj = j + ny - halo - 2  # shift for bottom boundary pressure indices
     # top boundary
     ψ_y_l[i, j, k] = b_K_y_hl[j] * ψ_y_l[i, j, k] + a_y_hl[j] * (pcur[i, j+1, k] - pcur[i, j, k]) * _dy
@@ -24,10 +28,12 @@ end
     return nothing
 end
 
-@parallel_indices (i, j, k) function update_ψ_z!(ψ_z_l, ψ_z_r, pcur,
+@parallel_indices (i, j, k) function update_ψ_z!(
+    ψ_z_l, ψ_z_r, pcur,
     halo, _dz, nz,
     a_z_hl, a_z_hr,
-    b_K_z_hl, b_K_z_hr)
+    b_K_z_hl, b_K_z_hr
+)
     kk = k + nz - halo - 2  # shift for bottom boundary pressure indices
     # front boundary
     ψ_z_l[i, j, k] = b_K_z_hl[k] * ψ_z_l[i, j, k] + a_z_hl[k] * (pcur[i, j, k+1] - pcur[i, j, k]) * _dz
@@ -37,7 +43,8 @@ end
     return nothing
 end
 
-@parallel_indices (i, j, k) function update_p_CPML!(pold, pcur, pnew, halo, fact,
+@parallel_indices (i, j, k) function update_p_CPML!(
+    pold, pcur, pnew, halo, fact,
     _dx, _dx2, _dy, _dy2, _dz, _dz2, nx, ny,
     nz,
     ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r, ψ_z_l,
@@ -46,7 +53,8 @@ end
     ξ_z_r,
     a_x_l, a_x_r, b_K_x_l, b_K_x_r,
     a_y_l, a_y_r, b_K_y_l, b_K_y_r,
-    a_z_l, a_z_r, b_K_z_l, b_K_z_r)
+    a_z_l, a_z_r, b_K_z_l, b_K_z_r
+)
     # pressure derivatives in space
     d2p_dx2 = (pcur[i+1, j, k] - 2.0 * pcur[i, j, k] + pcur[i-1, j, k]) * _dx2
     d2p_dy2 = (pcur[i, j+1, k] - 2.0 * pcur[i, j, k] + pcur[i, j-1, k]) * _dy2
@@ -133,7 +141,8 @@ end
     @parallel (1:nt, 1:nsrcs) prescale_residuals_kernel!(residuals, possrcs, fact)
 end
 
-@views function forward_onestep_CPML!(pold, pcur, pnew, fact, dx, dy, dz, halo,
+@views function forward_onestep_CPML!(
+    pold, pcur, pnew, fact, dx, dy, dz, halo,
     ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r, ψ_z_l, ψ_z_r,
     ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r, ξ_z_l, ξ_z_r,
     a_x_l, a_x_r, a_x_hl, a_x_hr,
@@ -143,7 +152,8 @@ end
     b_K_y_l, b_K_y_r, b_K_y_hl, b_K_y_hr,
     b_K_z_l, b_K_z_r, b_K_z_hl, b_K_z_hr,
     possrcs, dt2srctf, posrecs, traces, it;
-    save_trace=true)
+    save_trace=true
+)
     nx, ny, nz = size(pcur)
     _dx = 1 / dx
     _dx2 = 1 / dx^2

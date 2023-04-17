@@ -17,7 +17,8 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     snapshots::Union{<:Array{<:Real}, Nothing}
     infoevery::Integer
 
-    function AcousticCDCPMLWaveSimul{N}(nt::Integer,
+    function AcousticCDCPMLWaveSimul{N}(
+        nt::Integer,
         dt::Real,
         gridspacing::NTuple{N, <:Real},
         halo::Integer,
@@ -25,7 +26,8 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         vel::Array{<:Real, N};
         freetop::Bool=true,
         snapevery::Union{<:Integer, Nothing}=nothing,
-        infoevery::Union{<:Integer, Nothing}=nothing) where {N}
+        infoevery::Union{<:Integer, Nothing}=nothing
+    ) where {N}
 
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"

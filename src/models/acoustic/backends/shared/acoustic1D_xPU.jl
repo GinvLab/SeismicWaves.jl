@@ -19,10 +19,12 @@ end
     return nothing
 end
 
-@parallel_indices (i) function update_ψ!(ψ_l, ψ_r, pcur,
+@parallel_indices (i) function update_ψ!(
+    ψ_l, ψ_r, pcur,
     halo, nx, _dx,
     a_x_hl, a_x_hr,
-    b_K_x_hl, b_K_x_hr)
+    b_K_x_hl, b_K_x_hr
+)
     ii = i + nx - halo - 2  # shift for right boundary pressure indices
     # left boundary
     ψ_l[i] = b_K_x_hl[i] * ψ_l[i] + a_x_hl[i] * (pcur[i+1] - pcur[i]) * _dx
@@ -32,11 +34,13 @@ end
     return nothing
 end
 
-@parallel_indices (i) function update_p_CPML!(pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
+@parallel_indices (i) function update_p_CPML!(
+    pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
     ψ_l, ψ_r,
     ξ_l, ξ_r,
     a_x_l, a_x_r,
-    b_K_x_l, b_K_x_r)
+    b_K_x_l, b_K_x_r
+)
     d2p_dx2 = (pcur[i+1] - 2.0 * pcur[i] + pcur[i-1]) * _dx2
 
     if i <= halo + 1
@@ -73,9 +77,11 @@ end
     @parallel (1:nt, 1:nsrcs) prescale_residuals_kernel!(residuals, possrcs, fact)
 end
 
-@views function forward_onestep!(pold, pcur, pnew, fact, dx,
+@views function forward_onestep!(
+    pold, pcur, pnew, fact, dx,
     possrcs, dt2srctf, posrecs, traces, it;
-    save_trace=true)
+    save_trace=true
+)
     nx = length(pcur)
     _dx2 = 1 / dx^2
 
@@ -88,12 +94,14 @@ end
     return pcur, pnew, pold
 end
 
-@views function forward_onestep_CPML!(pold, pcur, pnew, fact, dx, halo,
+@views function forward_onestep_CPML!(
+    pold, pcur, pnew, fact, dx, halo,
     ψ_l, ψ_r, ξ_l, ξ_r,
     a_x_l, a_x_r, a_x_hl, a_x_hr,
     b_K_x_l, b_K_x_r, b_K_x_hl, b_K_x_hr,
     possrcs, dt2srctf, posrecs, traces, it;
-    save_trace=true)
+    save_trace=true
+)
     nx = length(pcur)
     _dx = 1 / dx
     _dx2 = 1 / dx^2

@@ -36,12 +36,14 @@ function update_ψ_y!(ψ_y_l, ψ_y_r, pcur, halo, _dy, ny, a_y_hl, a_y_hr, b_K_y
     end
 end
 
-function update_p_CPML!(pold, pcur, pnew, halo, fact,
+function update_p_CPML!(
+    pold, pcur, pnew, halo, fact,
     _dx, _dx2, _dy, _dy2, nx, ny,
     ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
     ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,
     a_x_l, a_x_r, b_K_x_l, b_K_x_r,
-    a_y_l, a_y_r, b_K_y_l, b_K_y_r)
+    a_y_l, a_y_r, b_K_y_l, b_K_y_r
+)
     for j in 2:(ny-1)
         for i in 2:(nx-1)
 
@@ -106,7 +108,8 @@ prescale_residuals!(residuals, possrcs, fact) =
         end
     end
 
-function forward_onestep_CPML!(pold, pcur, pnew, fact, dx, dy, halo,
+function forward_onestep_CPML!(
+    pold, pcur, pnew, fact, dx, dy, halo,
     ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
     ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,
     a_x_l, a_x_r, a_x_hl, a_x_hr,
@@ -114,7 +117,8 @@ function forward_onestep_CPML!(pold, pcur, pnew, fact, dx, dy, halo,
     b_K_x_l, b_K_x_r, b_K_x_hl, b_K_x_hr,
     b_K_y_l, b_K_y_r, b_K_y_hl, b_K_y_hr,
     possrcs, dt2srctf, posrecs, traces, it;
-    save_trace=true)
+    save_trace=true
+)
     nx, ny = size(pcur)
     _dx = 1 / dx
     _dx2 = 1 / dx^2

@@ -25,7 +25,8 @@ end
     end
 end
 
-@views update_p!(pold, pcur, pnew, fact, nx, _dx2) = for i in 2:(nx-1)
+@views update_p!(pold, pcur, pnew, fact, nx, _dx2) =
+    for i in 2:(nx-1)
         d2p_dx2 = (pcur[i-1] - 2.0 * pcur[i] + pcur[i-1]) * _dx2
         pnew[i] = 2.0 * pcur[i] - pold[i] + fact[i] * (d2p_dx2)
     end
@@ -40,11 +41,13 @@ end
     end
 end
 
-@views function update_p_CPML!(pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
+@views function update_p_CPML!(
+    pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
     ψ_l, ψ_r,
     ξ_l, ξ_r,
     a_x_l, a_x_r,
-    b_K_x_l, b_K_x_r)
+    b_K_x_l, b_K_x_r
+)
     for i in 2:(nx-1)
         d2p_dx2 = (pcur[i+1] - 2.0 * pcur[i] + pcur[i-1]) * _dx2
 
@@ -76,8 +79,10 @@ end
         end
     end
 
-@views function forward_onestep!(pold, pcur, pnew, fact, dx,
-    possrcs, dt2srctf, posrecs, traces, it)
+@views function forward_onestep!(
+    pold, pcur, pnew, fact, dx,
+    possrcs, dt2srctf, posrecs, traces, it
+)
     nx = length(pcur)
     _dx2 = 1 / dx^2
 
@@ -88,12 +93,14 @@ end
     return pcur, pnew, pold
 end
 
-@views function forward_onestep_CPML!(pold, pcur, pnew, fact, dx,
+@views function forward_onestep_CPML!(
+    pold, pcur, pnew, fact, dx,
     halo, ψ_l, ψ_r, ξ_l, ξ_r,
     a_x_l, a_x_r, a_x_hl, a_x_hr,
     b_K_x_l, b_K_x_r, b_K_x_hl, b_K_x_hr,
     possrcs, dt2srctf, posrecs, traces, it;
-    save_trace=true)
+    save_trace=true
+)
     nx = length(pcur)
     _dx = 1 / dx
     _dx2 = 1 / dx^2
