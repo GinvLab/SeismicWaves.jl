@@ -106,6 +106,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
   - otherwise the serial version if set to `:serial`
 - `check_freq::Union{Int, Nothing}`: if specified, enables checkpointing and specifies the checkpointing frequency.
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
+- `compute_misfit::Bool = false`: if true, also computes and return misfit value.
 """
 function swgradient!(
     params::InputParameters,
@@ -113,14 +114,15 @@ function swgradient!(
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads,
     check_freq::Union{Int, Nothing}=nothing,
-    infoevery::Union{Int, Nothing}=nothing
-)::AbstractArray
+    infoevery::Union{Int, Nothing}=nothing,
+    compute_misfit::Bool=false
+)::Union{AbstractArray, Tuple{AbstractArray, Real}}
     # Build wavesim
     wavesim = build_wavesim(params, matprop; infoevery=infoevery)
     # Select backend
     backend = select_backend(wavesim, parall)
     # Solve simulation
-    return run_swgradient!(wavesim, backend, shots; check_freq=check_freq)
+    return run_swgradient!(wavesim, backend, shots; check_freq=check_freq, compute_misfit=compute_misfit)
 end
 
 #######################################################

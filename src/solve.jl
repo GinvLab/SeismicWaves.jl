@@ -53,19 +53,19 @@ end
     # Solve forward model for all shots
     run_swforward!(wavsim, backend, shots)
     # Compute total misfit for all shots
-    misfit = 0
+    totmisfit = 0
     for (shot, (_, recs)) in enumerate(shots)
-        @info "Computing residuals for shot #$(shot)"
-        residuals = similar(recs.seismograms)
-        @info "Checking invcov matrix for shot #$(shot)"
+        @info "Shot #$(shot)"
+        @info "Checking invcov matrix"
         check_invcov_matrix(wavsim, recs.invcov)
-        @info "Computing misfit for shot #$(shot)"
+        @info "Computing misfit"
+        residuals = similar(recs.seismograms)
         difcalobs = recs.seismograms - recs.observed
         mul!(residuals, recs.invcov, difcalobs)
-        misfit += dot(difcalobs, residuals)
+        totmisfit += dot(difcalobs, residuals)
     end
 
-    return misfit / 2
+    return totmisfit / 2
 end
 
 ### GRADIENTS ###
@@ -74,8 +74,9 @@ end
     wavsim::WaveSimul,
     backend::Module,
     shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    check_freq::Union{Integer, Nothing}=nothing
-)::AbstractArray
+    check_freq::Union{Integer, Nothing}=nothing,
+    compute_misfit::Bool=false
+)::Union{AbstractArray, Tuple{AbstractArray, Real}}
     # Check wavsim
     @info "Checking wavsim"
     check(wavsim)
@@ -86,9 +87,9 @@ end
     @info "Checking checkpointing frequency"
     check_checkpoint_frequency(wavsim, check_freq)
 
-    # Initialize total gradient
+    # Initialize total gradient and total misfit
     totgrad = zero(wavsim.vel)
-
+    totmisfit = 0
     # Shots loop
     for (shot, (srcs, recs)) in enumerate(shots)
         @info "Shot #$(shot)"
@@ -105,9 +106,20 @@ end
             recs.observed, recs.invcov;
             check_freq=check_freq
         )
+        # Compute misfit
+        @info "Saving seismograms"
+        copyto!(recs.seismograms, traces)
+        # Compute misfit if needed
+        if compute_misfit
+            @info "Computing misfit"
+            residuals = similar(recs.seismograms)
+            difcalobs = recs.seismograms - recs.observed
+            mul!(residuals, recs.invcov, difcalobs)
+            totmisfit += dot(difcalobs, residuals)
+        end
         # Accumulate gradient
         totgrad .+= curgrad
     end
 
-    return totgrad
+    return compute_misfit ? (totgrad, totmisfit / 2) : totgrad
 end

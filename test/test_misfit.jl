@@ -28,7 +28,7 @@ with_logger(error_logger) do
             params, srcs, recs, vel =
                 setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
 
-            # Solve gradient without checkpointing
+            # Compute misfit
             mis = swmisfit!(params, vel, [srcs => recs]; parall=parall)
             @test mis > 0
         end
@@ -48,7 +48,7 @@ with_logger(error_logger) do
             params, srcs, recs, vel =
                 setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
 
-            # Solve gradient without checkpointing
+            # Compute misfit
             mis = swmisfit!(params, vel, [srcs => recs]; parall=parall)
             @test mis > 0
         end
@@ -69,7 +69,7 @@ with_logger(error_logger) do
             params, srcs, recs, vel =
                 setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
 
-            # Solve gradient without checkpointing
+            # Compute misfit
             mis = swmisfit!(params, vel, [srcs => recs]; parall=parall)
             @test mis > 0
         end
