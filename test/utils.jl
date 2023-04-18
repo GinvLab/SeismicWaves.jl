@@ -19,8 +19,8 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     posrecs[1, :] = [lx / 4]
     srcs = Sources(possrcs, srctf, f0)
     recs = Receivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-
-    return params, srcs, recs, vel
+    shots = [Shot(srcs=srcs,recs=recs)]
+    return params, shots, vel
 end
 
 function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
@@ -43,8 +43,8 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     posrecs[1, :] = [lx / 4, ly / 2]
     srcs = Sources(possrcs, srctf, f0)
     recs = Receivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-
-    return params, srcs, recs, vel
+    shots = [Shot(srcs=srcs,recs=recs)]
+    return params, shots, vel
 end
 
 function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
@@ -68,8 +68,8 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     posrecs[1, :] = [lx / 4, ly / 2, lz / 2]
     srcs = Sources(possrcs, srctf, f0)
     recs = Receivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-
-    return params, srcs, recs, vel
+    shots = [Shot(srcs=srcs,recs=recs)]
+    return params, shots, vel
 end
 
 function analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)

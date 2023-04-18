@@ -27,13 +27,13 @@ with_logger(error_logger) do
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
-                params, srcs, recs, vel =
+                params, shots, vel =
                     setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
-                times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)
+                times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
-                swforward!(params, vel, [srcs => recs]; parall=parall)
-                numerical_trace = recs.seismograms[:, 1]
+                swforward!(params, vel, shots; parall=parall)
+                numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
@@ -51,12 +51,12 @@ with_logger(error_logger) do
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
-                params, srcs, recs, vel =
+                params, shots, vel =
                     setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
-                times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)
+                times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, shots[1].srcs, shots[1].recs)
                 # numerical solution
-                swforward!(params, vel, [srcs => recs]; parall=parall)
-                numerical_trace = recs.seismograms[:, 1]
+                swforward!(params, vel, shots; parall=parall)
+                numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
@@ -76,14 +76,14 @@ with_logger(error_logger) do
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
-                params, srcs, recs, vel =
+                params, shots, vel =
                     setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy,
                         c0, f0, halo, rcoef)
-                times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, srcs, recs)
+                times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
-                swforward!(params, vel, [srcs => recs]; parall=parall)
-                numerical_trace = recs.seismograms[:, 1]
+                swforward!(params, vel, shots; parall=parall)
+                numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
@@ -101,13 +101,13 @@ with_logger(error_logger) do
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
-                params, srcs, recs, vel =
+                params, shots, vel =
                     setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
-                times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, srcs, recs)
+                times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
-                swforward!(params, vel, [srcs => recs]; parall=parall)
-                numerical_trace = recs.seismograms[:, 1]
+                swforward!(params, vel, shots; parall=parall)
+                numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
@@ -127,13 +127,13 @@ with_logger(error_logger) do
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
-                params, srcs, recs, vel =
+                params, shots, vel =
                     setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
-                times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, srcs, recs)
+                times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
-                swforward!(params, vel, [srcs => recs]; parall=parall)
-                numerical_trace = recs.seismograms[:, 1]
+                swforward!(params, vel, shots; parall=parall)
+                numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
@@ -151,13 +151,13 @@ with_logger(error_logger) do
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
-                params, srcs, recs, vel =
+                params, shots, vel =
                     setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
-                times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, srcs, recs)
+                times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
-                swforward!(params, vel, [srcs => recs]; parall=parall)
-                numerical_trace = recs.seismograms[:, 1]
+                swforward!(params, vel, shots; parall=parall)
+                numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution

@@ -3,7 +3,7 @@
 @views function run_swforward!(
     wavsim::WaveSimul,
     backend::Module,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
+    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
 )::Union{Vector{Array}, Nothing}
     # Check wavsim
     @info "Checking wavsim"
@@ -19,15 +19,17 @@
     end
 
     # Shots loop
-    for (shot, (srcs, recs)) in enumerate(shots)
-        @info "Shot #$(shot)"
+    for (s, singleshot) in enumerate(shots)
+        srcs = singleshot.srcs
+        recs = singleshot.recs
+        @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(wavsim, srcs, recs)
+        possrcs, posrecs, srctf, traces = init_shot!(wavsim, singleshot)
         # Compute forward solver
         @info "Forward modelling for one shot"
         swforward_1shot!(wavsim, backend, possrcs, posrecs, srctf, traces)
-        # Save traces in reeivers seismograms
+        # Save traces in receivers seismograms
         @info "Saving seismograms"
         copyto!(recs.seismograms, traces)
         # Save shot's snapshots
@@ -48,14 +50,16 @@ end
 @views function run_swmisfit!(
     wavsim::WaveSimul,
     backend::Module,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
+    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
 )::Real
     # Solve forward model for all shots
     run_swforward!(wavsim, backend, shots)
     # Compute total misfit for all shots
     totmisfit = 0
-    for (shot, (_, recs)) in enumerate(shots)
-        @info "Shot #$(shot)"
+    for (s, singleshot) in enumerate(shots)
+        srcs = singleshot.srcs
+        recs = singleshot.recs
+        @info "Shot #$(s)"
         @info "Checking invcov matrix"
         check_invcov_matrix(wavsim, recs.invcov)
         @info "Computing misfit"
@@ -73,7 +77,7 @@ end
 @views function run_swgradient!(
     wavsim::WaveSimul,
     backend::Module,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     check_freq::Union{Integer, Nothing}=nothing,
     compute_misfit::Bool=false
 )::Union{AbstractArray, Tuple{AbstractArray, Real}}
@@ -91,11 +95,13 @@ end
     totgrad = zero(wavsim.vel)
     totmisfit = 0
     # Shots loop
-    for (shot, (srcs, recs)) in enumerate(shots)
-        @info "Shot #$(shot)"
+    for (s, singleshot) in enumerate(shots)
+        srcs = singleshot.srcs
+        recs = singleshot.recs
+        @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(wavsim, srcs, recs)
+        possrcs, posrecs, srctf, traces = init_shot!(wavsim, singleshot)
         @info "Checking invcov matrix"
         check_invcov_matrix(wavsim, recs.invcov)
         # Compute forward solver

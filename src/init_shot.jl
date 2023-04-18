@@ -1,3 +1,15 @@
+
+
+"""
+Type representing a source-receiver pair, i.e., a \"shot\".
+"""
+Base.@kwdef struct Shot{T <: Real}
+    srcs::Sources{T}
+    recs::Receivers{T}
+end
+
+##################################################
+
 """
     @views function init_shot!(
         model::WaveSimul,
@@ -7,7 +19,9 @@
 
 Initialize the model for a new shot.
 """
-@views function init_shot!(model::WaveSimul, srcs::Sources{<:Real}, recs::Receivers{<:Real})
+@views function init_shot!(model::WaveSimul, shot::Shot ) 
+    srcs = shot.srcs
+    recs = shot.recs
     # Check shot configuration
     check_shot(model, srcs, recs)
     # Initialize boundary conditions based on current shot

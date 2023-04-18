@@ -1,7 +1,10 @@
+
+using Revise
 using SeismicWaves
 
 ###################################################################
-
+using Logging
+  
 function exacouprob()
 
     ##========================================
@@ -40,7 +43,7 @@ function exacouprob()
     ##========================================
     # shots definition
     nshots = 6
-    shots = Vector{Pair{Sources, Receivers}}()
+    shots = Vector{Shot{Float64}}()  #Pair{Sources, Receivers}}()
     # sources x-position (in grid points) (different for every shot)
     ixsrc = round.(Int, LinRange(32, nx - 31, nshots))
     for i in 1:nshots
@@ -73,7 +76,7 @@ function exacouprob()
         #@show recs.positions
 
         # add pair as shot
-        push!(shots, srcs => recs)
+        push!(shots, Shot(srcs=srcs,recs=recs)) # srcs => recs)
     end
 
     ##============================================
@@ -94,10 +97,20 @@ function exacouprob()
         infoevery=infoevery,
         snapevery=snapevery)
 
-    return params, velmod, collect(map(s -> s.second.seismograms, shots)), snapshots
+    return params, velmod, shots, snapshots  # collect(map(s -> s.recs.seismograms, shots))
 end
 
+##################################################################
+
+
+error_logger = ConsoleLogger(stderr, Logging.Warn)
+global_logger(error_logger)
+
 p, v, s, snaps = exacouprob()
+
+# with_logger(error_logger) do
+#     p, v, s, snaps = exacouprob()
+# end
 
 # using Plots
 # heatmap(snaps[6][:,:,20]'; aspect_ratio=:equal, cmap=:RdBu)

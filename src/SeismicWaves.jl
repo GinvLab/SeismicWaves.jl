@@ -11,7 +11,7 @@ export InputParametersAcoustic
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
 export VpAcousticCDMaterialProperty
 
-export Sources, Receivers
+export Sources, Receivers, Shot
 export swforward!, swmisfit!, swgradient!
 export gaussource1D, rickersource1D
 

@@ -24,3 +24,4 @@ end
 
 # Default type constructor
 Sources(positions, tf, domfreq) = Sources{Float64}(positions, tf, domfreq)
+

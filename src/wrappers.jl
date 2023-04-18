@@ -5,7 +5,7 @@
     swforward!(
         params::InputParameters,
         matprop::MaterialProperties
-        shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+        shots::Vector{<:Shot} ;  
         parall::Symbol= :threads,
         snapevery::Union{Int, Nothing} = nothing,
         infoevery::Union{Int, Nothing} = nothing
@@ -28,7 +28,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 """
 function swforward!(params::InputParameters,
     matprop::MaterialProperties,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot} ;  # <:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads,
     snapevery::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing)::Union{Vector{AbstractArray},
@@ -47,7 +47,7 @@ end
     swmisfit!(
         params::InputParameters,
         matprop::MaterialProperties,
-        shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+        shots::Vector{<:Shot} ;  
         parall::Symbol= :threads,
     )::Real
 
@@ -66,7 +66,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 function swmisfit!(
     params::InputParameters,
     matprop::MaterialProperties,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot} ;  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads
 )::Real
     # Build wavesim
@@ -83,7 +83,7 @@ end
     swgradient!(
         params::InputParameters,
         matprop::MaterialProperties,
-        shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+        shots::Vector{<:Shot} ;
         parall::Symbol = :threads,
         check_freq::Union{Int, Nothing} = nothing,
         infoevery::Union{Int, Nothing} = nothing
@@ -111,7 +111,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 function swgradient!(
     params::InputParameters,
     matprop::MaterialProperties,
-    shots::Vector{<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads,
     check_freq::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
