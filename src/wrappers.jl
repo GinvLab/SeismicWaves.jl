@@ -178,5 +178,5 @@ select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{2}, :
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{3}, ::Type{Val{:threads}}) = Acoustic3D_CD_CPML_Threads
 
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{1}, ::Type{Val{:GPU}}) = Acoustic1D_CD_CPML_GPU
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{2}, ::Type{Val{:GPU}}) = Acoustic21D_CD_CPML_GPU
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{2}, ::Type{Val{:GPU}}) = Acoustic2D_CD_CPML_GPU
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{3}, ::Type{Val{:GPU}}) = Acoustic3D_CD_CPML_GPU
