@@ -18,7 +18,6 @@ export gaussource1D, rickersource1D
 include("abstract_types.jl")
 include("sources.jl")
 include("receivers.jl")
-include("check.jl")
 include("init_shot.jl")
 include("solve.jl")
 

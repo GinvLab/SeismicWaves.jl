@@ -22,7 +22,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     pold = backend.zeros(model.ns...)
     pcur = backend.zeros(model.ns...)
     pnew = backend.zeros(model.ns...)
-    fact_a = backend.Data.Array(model.fact)
+    fact_a = model.fact
     # Initialize adjoint arrays
     adjold = backend.zeros(model.ns...)
     adjcur = backend.zeros(model.ns...)
@@ -42,20 +42,15 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         append!(ψ_adj, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
         append!(ξ_adj, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
     end
-    # Wrap CPML coefficient arrays
+    # CPML coefficient arrays
     a_coeffs = []
     b_K_coeffs = []
     for i in 1:N
-        append!(a_coeffs,
-            backend.Data.Array.([model.cpmlcoeffs[i].a_l,
-                model.cpmlcoeffs[i].a_r,
-                model.cpmlcoeffs[i].a_hl,
-                model.cpmlcoeffs[i].a_hr]))
-        append!(b_K_coeffs,
-            backend.Data.Array.([model.cpmlcoeffs[i].b_K_l,
-                model.cpmlcoeffs[i].b_K_r,
-                model.cpmlcoeffs[i].b_K_hl,
-                model.cpmlcoeffs[i].b_K_hr]))
+        append!(a_coeffs, [model.cpmlcoeffs[i].a_l, model.cpmlcoeffs[i].a_r, model.cpmlcoeffs[i].a_hl, model.cpmlcoeffs[i].a_hr])
+        append!(
+            b_K_coeffs,
+            [model.cpmlcoeffs[i].b_K_l, model.cpmlcoeffs[i].b_K_r, model.cpmlcoeffs[i].b_K_hl, model.cpmlcoeffs[i].b_K_hr]
+        )
     end
     # Add empty row to source time functions (fix for last timestep)
     srctf = [srctf; zeros(1, size(srctf, 2))]
@@ -206,6 +201,6 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
 
     # rescale gradient
     gradient = Array(curgrad)
-    gradient = (2.0 ./ (model.vel .^ 3)) .* gradient
+    gradient = (2.0 ./ (model.matprop.vp .^ 3)) .* gradient
     return gradient
 end

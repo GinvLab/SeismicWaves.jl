@@ -1,23 +1,23 @@
-struct CPMLCoefficients{T <: Real}
-    a_l::Vector{T}
-    a_r::Vector{T}
-    a_hl::Vector{T}
-    a_hr::Vector{T}
-    b_K_l::Vector{T}
-    b_K_r::Vector{T}
-    b_K_hl::Vector{T}
-    b_K_hr::Vector{T}
+struct CPMLCoefficients
+    a_l::Any
+    a_r::Any
+    a_hl::Any
+    a_hr::Any
+    b_K_l::Any
+    b_K_r::Any
+    b_K_hl::Any
+    b_K_hr::Any
 
-    function CPMLCoefficients{T}(halo::Integer) where {T <: Real}
+    function CPMLCoefficients(halo::Integer, backend::Module)
         return new(
-            zeros(T, halo),
-            zeros(T, halo),
-            zeros(T, halo + 1),
-            zeros(T, halo + 1),
-            zeros(T, halo),
-            zeros(T, halo),
-            zeros(T, halo + 1),
-            zeros(T, halo + 1)
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo + 1),
+            backend.zeros(halo + 1),
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo + 1),
+            backend.zeros(halo + 1)
         )
     end
 end
@@ -42,14 +42,14 @@ function compute_CPML_coefficients!(
     a_l, a_r, b_K_l, b_K_r = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, K_max, "ongrd")
     a_hl, a_hr, b_K_hl, b_K_hr = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, K_max, "halfgrd")
 
-    cpmlcoeffs.a_l .= a_l
-    cpmlcoeffs.a_r .= a_r
-    cpmlcoeffs.a_hl .= a_hl
-    cpmlcoeffs.a_hr .= a_hr
-    cpmlcoeffs.b_K_l .= b_K_l
-    cpmlcoeffs.b_K_r .= b_K_r
-    cpmlcoeffs.b_K_hl .= b_K_hl
-    return cpmlcoeffs.b_K_hr .= b_K_hr
+    copyto!(cpmlcoeffs.a_l, a_l)
+    copyto!(cpmlcoeffs.a_r, a_r)
+    copyto!(cpmlcoeffs.a_hl, a_hl)
+    copyto!(cpmlcoeffs.a_hr, a_hr)
+    copyto!(cpmlcoeffs.b_K_l, b_K_l)
+    copyto!(cpmlcoeffs.b_K_r, b_K_r)
+    copyto!(cpmlcoeffs.b_K_hl, b_K_hl)
+    copyto!(cpmlcoeffs.b_K_hr, b_K_hr)
 end
 
 function calc_Kab_CPML(

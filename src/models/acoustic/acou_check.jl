@@ -13,11 +13,10 @@ end
 
 function check_ppw(
     model::AcousticCDWaveSimul,
-    matprop::VpAcousticCDMaterialProperty,
     srcs::Sources{<:Real},
     min_ppw::Integer=10
 )
-    vel_min = get_minimum_func(model)(matprop.vp)
+    vel_min = get_minimum_func(model)(model.matprop.vp)
     h_max = maximum(model.gridspacing)
     ppw = vel_min / srcs.domfreq / h_max
     @debug "Points per wavelengh: $(ppw)"

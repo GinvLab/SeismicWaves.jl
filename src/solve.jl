@@ -5,12 +5,9 @@
     matprop::MaterialProperties,
     shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
 )::Union{Vector{Array}, Nothing}
-    # Check wavsim
-    @info "Checking wavsim"
-    check(wavsim, matprop)
-    # Precompute constant values
-    @info "Precomputing constant values"
-    precompute!(wavsim, matprop)
+    # Set wavesim material properties
+    @info "Setting wavesim material properties"
+    set_wavesim_matprop(wavsim, matprop)
 
     # Snapshots setup
     takesnapshots = snapenabled(wavsim)
@@ -25,7 +22,7 @@
         @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(wavsim, matprop, singleshot)
+        possrcs, posrecs, srctf, traces = init_shot!(wavsim, singleshot)
         # Compute forward solver
         @info "Forward modelling for one shot"
         swforward_1shot!(wavsim, possrcs, posrecs, srctf, traces)
@@ -81,18 +78,15 @@ end
     check_freq::Union{Integer, Nothing}=nothing,
     compute_misfit::Bool=false
 )::Union{AbstractArray, Tuple{AbstractArray, Real}}
-    # Check wavsim
-    @info "Checking wavsim"
-    check(wavsim, matprop)
-    # Precompute constant values
-    @info "Precomputing constant values"
-    precompute!(wavsim, matprop)
+    # Set wavesim material properties
+    @info "Setting wavesim material properties"
+    set_wavesim_matprop(wavsim, matprop)
     # Check checkpointing setup
     @info "Checking checkpointing frequency"
     check_checkpoint_frequency(wavsim, check_freq)
 
     # Initialize total gradient and total misfit
-    totgrad = zero(wavsim.vel)
+    totgrad = zero(matprop.vp)
     totmisfit = 0
     # Shots loop
     for (s, singleshot) in enumerate(shots)
@@ -101,7 +95,7 @@ end
         @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(wavsim, matprop, singleshot)
+        possrcs, posrecs, srctf, traces = init_shot!(wavsim, singleshot)
         @info "Checking invcov matrix"
         check_invcov_matrix(wavsim, recs.invcov)
         # Compute forward solver

@@ -18,7 +18,7 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
     pold = backend.zeros(model.ns...)
     pcur = backend.zeros(model.ns...)
     pnew = backend.zeros(model.ns...)
-    fact_a = backend.Data.Array(model.fact)
+    fact_a = model.fact
     # Initialize CPML arrays
     ψ = []
     ξ = []
@@ -30,20 +30,15 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
         append!(ψ, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
         append!(ξ, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
     end
-    # Wrap CPML coefficient arrays
+    # CPML coefficient arrays
     a_coeffs = []
     b_K_coeffs = []
     for i in 1:N
-        append!(a_coeffs,
-            backend.Data.Array.([model.cpmlcoeffs[i].a_l,
-                model.cpmlcoeffs[i].a_r,
-                model.cpmlcoeffs[i].a_hl,
-                model.cpmlcoeffs[i].a_hr]))
-        append!(b_K_coeffs,
-            backend.Data.Array.([model.cpmlcoeffs[i].b_K_l,
-                model.cpmlcoeffs[i].b_K_r,
-                model.cpmlcoeffs[i].b_K_hl,
-                model.cpmlcoeffs[i].b_K_hr]))
+        append!(a_coeffs, [model.cpmlcoeffs[i].a_l, model.cpmlcoeffs[i].a_r, model.cpmlcoeffs[i].a_hl, model.cpmlcoeffs[i].a_hr])
+        append!(
+            b_K_coeffs,
+            [model.cpmlcoeffs[i].b_K_l, model.cpmlcoeffs[i].b_K_r, model.cpmlcoeffs[i].b_K_hl, model.cpmlcoeffs[i].b_K_hr]
+        )
     end
     # Wrap sources and receivers arrays
     possrcs_a = backend.Data.Array(possrcs)

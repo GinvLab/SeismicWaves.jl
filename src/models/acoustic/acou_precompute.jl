@@ -1,15 +1,10 @@
 
-precompute!(model::AcousticCDWaveSimul, matprop::VpAcousticCDMaterialProperty) = precompute_fact!(model, matprop)
+@views precompute_fact!(model::AcousticCDWaveSimul) = copyto!(model.fact, (model.dt^2) .* (model.matprop.vp .^ 2))
 
-@views function precompute_fact!(model::AcousticCDWaveSimul, matprop::VpAcousticCDMaterialProperty)
-    model.vel .= matprop.vp
-    model.fact .= (model.dt^2) .* (matprop.vp .^ 2)
-end
-
-@views function prescale_srctf!(dt2srctf, possrcs, fact)
+@views function prescale_srctf!(dt2srctf, possrcs, model)
     nsrcs = size(dt2srctf, 2)
     for s in 1:nsrcs
-        dt2srctf[:, s] .*= fact[possrcs[s, :]...]
+        dt2srctf[:, s] .*= (model.dt^2) .* (model.matprop.vp[possrcs[s, :]...] .^ 2)
     end
 end
 
@@ -42,7 +37,7 @@ end
     # prescale with boxcar function 1/dx, 1/(dx*dy) or 1/(dx*dy*dz)
     dt2srctf = srcs.tf ./ prod(model.gridspacing)
     # prescale source time function with fact in source positions
-    prescale_srctf!(dt2srctf, possrcs, model.fact)
+    prescale_srctf!(dt2srctf, possrcs, model)
 
     return possrcs, posrecs, dt2srctf, traces
 end

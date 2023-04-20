@@ -13,15 +13,17 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     halo::Integer
     rcoef::Real
     freetop::Bool
-    # Snapshots paramters
+    # Snapshots
     snapevery::Union{<:Integer, Nothing}
     snapshots::Union{<:Array{<:Real}, Nothing}
     # Logging parameters
     infoevery::Integer
-    # Arrays
-    vel::Array{<:Real, N}
-    fact::Array{<:Real, N}
+    # Material properties
+    matprop::VpAcousticCDMaterialProperty
+    # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
+    # Computation arrays
+    fact::Any
     # Backend
     backend::Module
 
@@ -50,23 +52,24 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
 
         # Compute model sizes
         ls = gridspacing .* (ns .- 1)
+        # Initialize material properties
+        matprop = VpAcousticCDMaterialProperty(zeros(ns...))
 
-        # Initialize arrays
+        # Select backend
+        backend = select_backend(AcousticCDCPMLWaveSimul{N}, parall)
+        # Initialize CPML coefficients
+        cpmlcoeffs = tuple([CPMLCoefficients(halo, backend) for _ in 1:N]...)
+        # Initialize computational arrays
+        fact = backend.zeros(ns...)
 
-        vel = zeros(ns...)
-        fact = zeros(ns...)
+        # Initialize snapshots array
         snapshots = (snapevery !== nothing ? zeros(ns..., div(nt, snapevery)) : nothing)
-        # Create CPML coefficients
-        cpmlcoeffs = tuple([CPMLCoefficients(halo) for _ in 1:N]...)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
         else
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
-
-        # Select backend
-        backend = select_backend(AcousticCDCPMLWaveSimul{N}, parall)
 
         return new(
             ls,
@@ -80,12 +83,28 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
             snapevery,
             snapshots,
             infoevery,
-            vel,
-            fact,
+            matprop,
             cpmlcoeffs,
+            fact,
             backend
         )
     end
+end
+
+@views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+    # Checks
+    @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
+    @assert size(matprop.vp) == model.ns "Material property number of grid points must be the same as the wavesim!"
+    @assert all(matprop.vp .> 0) "Pressure velocity material property must be positive!"
+    # Check courant condition
+    check_courant_condition(model, matprop)
+end
+
+@views function update_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+    # Update material properties
+    model.matprop.vp .= matprop.vp
+    # Precompute factors
+    precompute_fact!(model)
 end
 
 # Traits for AcousticCDCPMLWaveSimul

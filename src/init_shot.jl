@@ -18,13 +18,13 @@ end
 
 Initialize the model for a new shot.
 """
-@views function init_shot!(model::WaveSimul, matprop::MaterialProperties, shot::Shot)
+@views function init_shot!(model::WaveSimul, shot::Shot)
     srcs = shot.srcs
     recs = shot.recs
     # Check shot configuration
-    check_shot(model, matprop, srcs, recs)
+    check_shot(model, srcs, recs)
     # Initialize boundary conditions based on current shot
-    init_bdc!(model, matprop, srcs)
+    init_bdc!(model, srcs)
     # Return allocated shot's arrays
     return setup_shot(model, srcs, recs)
 end
@@ -34,9 +34,9 @@ end
 
 Check shot configuration for a model.
 """
-function check_shot(model::WaveSimul, matprop::MaterialProperties, srcs::Sources{<:Real}, recs::Receivers{<:Real})
+function check_shot(model::WaveSimul, srcs::Sources{<:Real}, recs::Receivers{<:Real})
     @debug "Checking points per wavelengh"
-    check_ppw(model, matprop, srcs)
+    check_ppw(model, srcs)
     @debug "Checking sources positions"
     check_positions(model, srcs.positions)
     @debug "Checking receivers positions"
