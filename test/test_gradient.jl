@@ -2,7 +2,7 @@ using Test
 using SeismicWaves
 using CUDA: CUDA
 
-include("utils.jl")
+include("utils/setup_models.jl")
 
 using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)

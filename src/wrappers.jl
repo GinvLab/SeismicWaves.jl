@@ -37,7 +37,7 @@ function swforward!(
     # Build wavesim
     wavesim = build_wavesim(params; snapevery=snapevery, infoevery=infoevery)
     # Select backend
-    backend = select_backend(wavesim, parall)
+    backend = select_backend(typeof(wavesim), parall)
     # Solve simulation
     return run_swforward!(wavesim, matprop, backend, shots)
 end
@@ -73,7 +73,7 @@ function swmisfit!(
     # Build wavesim
     wavesim = build_wavesim(params)
     # Select backend
-    backend = select_backend(wavesim, parall)
+    backend = select_backend(typeof(wavesim), parall)
     # Compute misfit
     return run_swmisfit!(wavesim, matprop, backend, shots)
 end
@@ -121,7 +121,7 @@ function swgradient!(
     # Build wavesim
     wavesim = build_wavesim(params; infoevery=infoevery)
     # Select backend
-    backend = select_backend(wavesim, parall)
+    backend = select_backend(typeof(wavesim), parall)
     # Solve simulation
     return run_swgradient!(wavesim, matprop, backend, shots; check_freq=check_freq, compute_misfit=compute_misfit)
 end
@@ -152,29 +152,29 @@ end
 
 #######################################################
 
-select_backend(model::WaveSimul, parall::Symbol) =
-    select_backend(BoundaryConditionTrait(model), GridTrait(model), model, Val{parall})
+select_backend(wavesim_type::Type{<:WaveSimul}, parall::Symbol) =
+    select_backend(BoundaryConditionTrait(wavesim_type), GridTrait(wavesim_type), wavesim_type, Val{parall})
 
 function select_backend(
     ::BoundaryConditionTrait,
     ::GridTrait,
-    model::WaveSimul,
+    wavesim_type::Type{<:WaveSimul},
     ::Type{Val{parall}}
 ) where {parall}
     parasym = [:serial, :threads, :GPU]
     error(
-        "No backend found for model of type $(typeof(model)) and `parall` $(parall). Argument `parall` must be one of the following symbols: $parasym."
+        "No backend found for model of type $(wavesim_type) and `parall` $(parall). Argument `parall` must be one of the following symbols: $parasym."
     )
 end
 
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{1}, ::Type{Val{:serial}}) = Acoustic1D_CD_CPML_Serial
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{2}, ::Type{Val{:serial}}) = Acoustic2D_CD_CPML_Serial
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{3}, ::Type{Val{:serial}}) = Acoustic3D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDWaveSimul{1}}, ::Type{Val{:serial}}) = Acoustic1D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDWaveSimul{2}}, ::Type{Val{:serial}}) = Acoustic2D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDWaveSimul{3}}, ::Type{Val{:serial}}) = Acoustic3D_CD_CPML_Serial
 
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{1}, ::Type{Val{:threads}}) = Acoustic1D_CD_CPML_Threads
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{2}, ::Type{Val{:threads}}) = Acoustic2D_CD_CPML_Threads
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{3}, ::Type{Val{:threads}}) = Acoustic3D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDWaveSimul{1}}, ::Type{Val{:threads}}) = Acoustic1D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDWaveSimul{2}}, ::Type{Val{:threads}}) = Acoustic2D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDWaveSimul{3}}, ::Type{Val{:threads}}) = Acoustic3D_CD_CPML_Threads
 
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{1}, ::Type{Val{:GPU}}) = Acoustic1D_CD_CPML_GPU
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{2}, ::Type{Val{:GPU}}) = Acoustic2D_CD_CPML_GPU
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::AcousticCDWaveSimul{3}, ::Type{Val{:GPU}}) = Acoustic3D_CD_CPML_GPU
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDWaveSimul{1}}, ::Type{Val{:GPU}}) = Acoustic1D_CD_CPML_GPU
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDWaveSimul{2}}, ::Type{Val{:GPU}}) = Acoustic2D_CD_CPML_GPU
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDWaveSimul{3}}, ::Type{Val{:GPU}}) = Acoustic3D_CD_CPML_GPU

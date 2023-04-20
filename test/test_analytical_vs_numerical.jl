@@ -4,7 +4,7 @@ using CUDA: CUDA
 
 using SeismicWaves
 
-include("utils.jl")
+include("utils/setup_models.jl")
 
 using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
