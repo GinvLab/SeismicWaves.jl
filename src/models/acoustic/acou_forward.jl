@@ -3,12 +3,13 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimul,
-    backend::Module,
     possrcs,
     posrecs,
     srctf,
     traces
 )
+    # Backend
+    backend = model.backend
     # Numerics
     N = length(model.ns)
     nt = model.nt

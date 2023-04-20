@@ -3,7 +3,6 @@
 @views function run_swforward!(
     wavsim::WaveSimul,
     matprop::MaterialProperties,
-    backend::Module,
     shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
 )::Union{Vector{Array}, Nothing}
     # Check wavsim
@@ -29,7 +28,7 @@
         possrcs, posrecs, srctf, traces = init_shot!(wavsim, matprop, singleshot)
         # Compute forward solver
         @info "Forward modelling for one shot"
-        swforward_1shot!(wavsim, backend, possrcs, posrecs, srctf, traces)
+        swforward_1shot!(wavsim, possrcs, posrecs, srctf, traces)
         # Save traces in receivers seismograms
         @info "Saving seismograms"
         copyto!(recs.seismograms, traces)
@@ -51,11 +50,10 @@ end
 @views function run_swmisfit!(
     wavsim::WaveSimul,
     matprop::MaterialProperties,
-    backend::Module,
     shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
 )::Real
     # Solve forward model for all shots
-    run_swforward!(wavsim, matprop, backend, shots)
+    run_swforward!(wavsim, matprop, shots)
     # Compute total misfit for all shots
     totmisfit = 0
     for (s, singleshot) in enumerate(shots)
@@ -79,7 +77,6 @@ end
 @views function run_swgradient!(
     wavsim::WaveSimul,
     matprop::MaterialProperties,
-    backend::Module,
     shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     check_freq::Union{Integer, Nothing}=nothing,
     compute_misfit::Bool=false
@@ -110,7 +107,7 @@ end
         # Compute forward solver
         @info "Computing gradient solver"
         curgrad = swgradient_1shot!(
-            wavsim, backend, possrcs,
+            wavsim, possrcs,
             posrecs, srctf, traces,
             recs.observed, recs.invcov;
             check_freq=check_freq

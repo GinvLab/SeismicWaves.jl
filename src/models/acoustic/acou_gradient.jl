@@ -4,7 +4,6 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
 @views function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimul,
-    backend::Module,
     possrcs,
     posrecs,
     srctf,
@@ -13,6 +12,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     invcov;
     check_freq=nothing
 )
+    # Backend
+    backend = model.backend
     # Numerics
     N = length(model.ns)
     nt = model.nt
