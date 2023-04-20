@@ -1,7 +1,10 @@
 
-precompute!(model::AcousticCDWaveSimul) = precompute_fact!(model)
+precompute!(model::AcousticCDWaveSimul, matprop::VpAcousticCDMaterialProperty) = precompute_fact!(model, matprop)
 
-@views precompute_fact!(model::AcousticCDWaveSimul) = model.fact .= (model.dt^2) .* (model.vel .^ 2)
+@views function precompute_fact!(model::AcousticCDWaveSimul, matprop::VpAcousticCDMaterialProperty)
+    model.vel .= matprop.vp
+    model.fact .= (model.dt^2) .* (matprop.vp .^ 2)
+end
 
 @views function prescale_srctf!(dt2srctf, possrcs, fact)
     nsrcs = size(dt2srctf, 2)

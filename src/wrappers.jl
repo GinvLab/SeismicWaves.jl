@@ -26,19 +26,20 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 - `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays  
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-function swforward!(params::InputParameters,
+function swforward!(
+    params::InputParameters,
     matprop::MaterialProperties,
-    shots::Vector{<:Shot} ;  # <:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot};
     parall::Symbol=:threads,
     snapevery::Union{Int, Nothing}=nothing,
-    infoevery::Union{Int, Nothing}=nothing)::Union{Vector{AbstractArray},
-    Nothing}
+    infoevery::Union{Int, Nothing}=nothing
+)::Union{Vector{AbstractArray}, Nothing}
     # Build wavesim
-    wavesim = build_wavesim(params, matprop; snapevery=snapevery, infoevery=infoevery)
+    wavesim = build_wavesim(params; snapevery=snapevery, infoevery=infoevery)
     # Select backend
     backend = select_backend(wavesim, parall)
     # Solve simulation
-    return run_swforward!(wavesim, backend, shots)
+    return run_swforward!(wavesim, matprop, backend, shots)
 end
 
 #######################################################
@@ -66,15 +67,15 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 function swmisfit!(
     params::InputParameters,
     matprop::MaterialProperties,
-    shots::Vector{<:Shot} ;  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot};  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads
 )::Real
     # Build wavesim
-    wavesim = build_wavesim(params, matprop)
+    wavesim = build_wavesim(params)
     # Select backend
     backend = select_backend(wavesim, parall)
     # Compute misfit
-    return run_swmisfit!(wavesim, backend, shots)
+    return run_swmisfit!(wavesim, matprop, backend, shots)
 end
 
 #######################################################
@@ -111,41 +112,38 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 function swgradient!(
     params::InputParameters,
     matprop::MaterialProperties,
-    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads,
     check_freq::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
     compute_misfit::Bool=false
 )::Union{AbstractArray, Tuple{AbstractArray, Real}}
     # Build wavesim
-    wavesim = build_wavesim(params, matprop; infoevery=infoevery)
+    wavesim = build_wavesim(params; infoevery=infoevery)
     # Select backend
     backend = select_backend(wavesim, parall)
     # Solve simulation
-    return run_swgradient!(wavesim, backend, shots; check_freq=check_freq, compute_misfit=compute_misfit)
+    return run_swgradient!(wavesim, matprop, backend, shots; check_freq=check_freq, compute_misfit=compute_misfit)
 end
 
 #######################################################
 
-function build_wavesim(params::InputParametersAcoustic, matprop::MaterialProperties; kwargs...)
-    return build_wavesim(params, params.boundcond, matprop; kwargs...)
-end
+build_wavesim(params::InputParametersAcoustic; kwargs...) = build_wavesim(params, params.boundcond; kwargs...)
 
 function build_wavesim(
     params::InputParametersAcoustic,
-    cpmlparams::CPMLBoundaryConditionParameters,
-    matprop::VpAcousticCDMaterialProperty;
+    cpmlparams::CPMLBoundaryConditionParameters;
     kwargs...
 )
     N = length(params.gridsize)
 
     acoumod = AcousticCDCPMLWaveSimul{N}(
+        params.gridsize,
+        params.gridspacing,
         params.ntimesteps,
         params.dt,
-        params.gridspacing,
         cpmlparams.halo,
-        cpmlparams.rcoef,
-        matprop.vp;
+        cpmlparams.rcoef;
         freetop=cpmlparams.freeboundtop,
         kwargs...
     )

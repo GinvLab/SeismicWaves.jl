@@ -1,8 +1,8 @@
 
 ####################################################
 
-function check_courant_condition(model::AcousticCDWaveSimul)
-    vel_max = get_maximum_func(model)(model.vel)
+function check_courant_condition(model::AcousticCDWaveSimul, matprop::VpAcousticCDMaterialProperty)
+    vel_max = get_maximum_func(model)(matprop.vp)
     tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
     courant = vel_max * model.dt * tmp
     @debug "Courant number: $(courant)"
@@ -11,10 +11,13 @@ end
 
 ####################################################
 
-function check_ppw(model::AcousticCDWaveSimul,
+function check_ppw(
+    model::AcousticCDWaveSimul,
+    matprop::VpAcousticCDMaterialProperty,
     srcs::Sources{<:Real},
-    min_ppw::Integer=10)
-    vel_min = get_minimum_func(model)(model.vel)
+    min_ppw::Integer=10
+)
+    vel_min = get_minimum_func(model)(matprop.vp)
     h_max = maximum(model.gridspacing)
     ppw = vel_min / srcs.domfreq / h_max
     @debug "Points per wavelengh: $(ppw)"

@@ -1,5 +1,4 @@
 
-
 """
 Type representing a source-receiver pair, i.e., a \"shot\".
 """
@@ -19,13 +18,13 @@ end
 
 Initialize the model for a new shot.
 """
-@views function init_shot!(model::WaveSimul, shot::Shot ) 
+@views function init_shot!(model::WaveSimul, matprop::MaterialProperties, shot::Shot)
     srcs = shot.srcs
     recs = shot.recs
     # Check shot configuration
-    check_shot(model, srcs, recs)
+    check_shot(model, matprop, srcs, recs)
     # Initialize boundary conditions based on current shot
-    init_bdc!(model, srcs)
+    init_bdc!(model, matprop, srcs)
     # Return allocated shot's arrays
     return setup_shot(model, srcs, recs)
 end
@@ -35,9 +34,9 @@ end
 
 Check shot configuration for a model.
 """
-function check_shot(model::WaveSimul, srcs::Sources{<:Real}, recs::Receivers{<:Real})
+function check_shot(model::WaveSimul, matprop::MaterialProperties, srcs::Sources{<:Real}, recs::Receivers{<:Real})
     @debug "Checking points per wavelengh"
-    check_ppw(model, srcs)
+    check_ppw(model, matprop, srcs)
     @debug "Checking sources positions"
     check_positions(model, srcs.positions)
     @debug "Checking receivers positions"

@@ -2,15 +2,16 @@
 
 @views function run_swforward!(
     wavsim::WaveSimul,
+    matprop::MaterialProperties,
     backend::Module,
-    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
+    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
 )::Union{Vector{Array}, Nothing}
     # Check wavsim
     @info "Checking wavsim"
-    check(wavsim)
+    check(wavsim, matprop)
     # Precompute constant values
     @info "Precomputing constant values"
-    precompute!(wavsim)
+    precompute!(wavsim, matprop)
 
     # Snapshots setup
     takesnapshots = snapenabled(wavsim)
@@ -25,7 +26,7 @@
         @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(wavsim, singleshot)
+        possrcs, posrecs, srctf, traces = init_shot!(wavsim, matprop, singleshot)
         # Compute forward solver
         @info "Forward modelling for one shot"
         swforward_1shot!(wavsim, backend, possrcs, posrecs, srctf, traces)
@@ -49,11 +50,12 @@ end
 
 @views function run_swmisfit!(
     wavsim::WaveSimul,
+    matprop::MaterialProperties,
     backend::Module,
-    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
+    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
 )::Real
     # Solve forward model for all shots
-    run_swforward!(wavsim, backend, shots)
+    run_swforward!(wavsim, matprop, backend, shots)
     # Compute total misfit for all shots
     totmisfit = 0
     for (s, singleshot) in enumerate(shots)
@@ -76,17 +78,18 @@ end
 
 @views function run_swgradient!(
     wavsim::WaveSimul,
+    matprop::MaterialProperties,
     backend::Module,
-    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     check_freq::Union{Integer, Nothing}=nothing,
     compute_misfit::Bool=false
 )::Union{AbstractArray, Tuple{AbstractArray, Real}}
     # Check wavsim
     @info "Checking wavsim"
-    check(wavsim)
+    check(wavsim, matprop)
     # Precompute constant values
     @info "Precomputing constant values"
-    precompute!(wavsim)
+    precompute!(wavsim, matprop)
     # Check checkpointing setup
     @info "Checking checkpointing frequency"
     check_checkpoint_frequency(wavsim, check_freq)
@@ -101,7 +104,7 @@ end
         @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(wavsim, singleshot)
+        possrcs, posrecs, srctf, traces = init_shot!(wavsim, matprop, singleshot)
         @info "Checking invcov matrix"
         check_invcov_matrix(wavsim, recs.invcov)
         # Compute forward solver

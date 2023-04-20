@@ -4,7 +4,7 @@ using SeismicWaves
 
 ###################################################################
 using Logging
-  
+
 function exacouprob()
 
     ##========================================
@@ -76,7 +76,7 @@ function exacouprob()
         #@show recs.positions
 
         # add pair as shot
-        push!(shots, Shot(srcs=srcs,recs=recs)) # srcs => recs)
+        push!(shots, Shot(; srcs=srcs, recs=recs)) # srcs => recs)
     end
 
     ##============================================
@@ -101,7 +101,6 @@ function exacouprob()
 end
 
 ##################################################################
-
 
 error_logger = ConsoleLogger(stderr, Logging.Warn)
 global_logger(error_logger)

@@ -1,11 +1,5 @@
-"""
-    check(model::WaveSimul)
 
-Check model for possible assertions based on configuration and model traits.
-"""
-#check(model::WaveSimul) = check(WaveEquationTrait(model), model)
-
-function check(model::WaveSimul)
+function check(model::WaveSimul, matprop::MaterialProperties)
     @debug "Checking CFL condition"
-    return check_courant_condition(model)
+    return check_courant_condition(model, matprop)
 end
