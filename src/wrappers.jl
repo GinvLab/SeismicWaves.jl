@@ -35,7 +35,7 @@ function swforward!(
     infoevery::Union{Int, Nothing}=nothing
 )::Union{Vector{AbstractArray}, Nothing}
     # Build wavesim
-    wavesim = build_wavesim(params, parall; snapevery=snapevery, infoevery=infoevery)
+    wavesim = build_wavesim(params, parall; snapevery=snapevery, infoevery=infoevery, gradient=false)
     # Solve simulation
     return run_swforward!(wavesim, matprop, shots)
 end
@@ -69,7 +69,7 @@ function swmisfit!(
     parall::Symbol=:threads
 )::Real
     # Build wavesim
-    wavesim = build_wavesim(params, parall)
+    wavesim = build_wavesim(params, parall; gradient=false)
     # Compute misfit
     return run_swmisfit!(wavesim, matprop, shots)
 end
@@ -115,9 +115,9 @@ function swgradient!(
     compute_misfit::Bool=false
 )::Union{AbstractArray, Tuple{AbstractArray, Real}}
     # Build wavesim
-    wavesim = build_wavesim(params, parall; infoevery=infoevery)
+    wavesim = build_wavesim(params, parall; infoevery=infoevery, gradient=true, check_freq=check_freq)
     # Solve simulation
-    return run_swgradient!(wavesim, matprop, shots; check_freq=check_freq, compute_misfit=compute_misfit)
+    return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit)
 end
 
 #######################################################
@@ -163,3 +163,25 @@ function select_backend(
         "No backend found for model of type $(wavesim_type) and `parall` $(parall). Argument `parall` must be one of the following symbols: $parasym."
     )
 end
+
+# Backend selections for AcousticCDCPMLWaveSimul
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:serial}}) =
+    Acoustic1D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:serial}}) =
+    Acoustic2D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:serial}}) =
+    Acoustic3D_CD_CPML_Serial
+
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:threads}}) =
+    Acoustic1D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:threads}}) =
+    Acoustic2D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:threads}}) =
+    Acoustic3D_CD_CPML_Threads
+
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:GPU}}) =
+    Acoustic1D_CD_CPML_GPU
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:GPU}}) =
+    Acoustic2D_CD_CPML_GPU
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:GPU}}) =
+    Acoustic3D_CD_CPML_GPU

@@ -75,15 +75,11 @@ end
     wavsim::WaveSimul,
     matprop::MaterialProperties,
     shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    check_freq::Union{Integer, Nothing}=nothing,
     compute_misfit::Bool=false
 )::Union{AbstractArray, Tuple{AbstractArray, Real}}
     # Set wavesim material properties
     @info "Setting wavesim material properties"
     set_wavesim_matprop(wavsim, matprop)
-    # Check checkpointing setup
-    @info "Checking checkpointing frequency"
-    check_checkpoint_frequency(wavsim, check_freq)
 
     # Initialize total gradient and total misfit
     totgrad = zero(matprop.vp)
@@ -103,8 +99,7 @@ end
         curgrad = swgradient_1shot!(
             wavsim, possrcs,
             posrecs, srctf, traces,
-            recs.observed, recs.invcov;
-            check_freq=check_freq
+            recs.observed, recs.invcov
         )
         # Compute misfit
         @info "Saving seismograms"

@@ -4,7 +4,7 @@ init_bdc!(model::AcousticWaveSimul, srcs::Sources{<:Real}) =
 
 init_bdc!(::ReflectiveBoundaryCondition, model::AcousticWaveSimul, srcs::Sources{<:Real}) = nothing
 
-function init_bdc!(
+@views function init_bdc!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimul,
     srcs::Sources{<:Real}

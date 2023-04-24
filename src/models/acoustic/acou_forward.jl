@@ -2,60 +2,34 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
 
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
-    model::AcousticCDWaveSimul,
+    model::AcousticCDWaveSimul{N},
     possrcs,
     posrecs,
     srctf,
     traces
-)
-    # Backend
-    backend = model.backend
+) where {N}
+    # Pressure arrays
+    pold = model.pold
+    pcur = model.pcur
+    pnew = model.pnew
     # Numerics
-    N = length(model.ns)
     nt = model.nt
-    halo = model.halo
-    # Initialize pressure and factors arrays
-    pold = backend.zeros(model.ns...)
-    pcur = backend.zeros(model.ns...)
-    pnew = backend.zeros(model.ns...)
-    fact_a = model.fact
-    # Initialize CPML arrays
-    ψ = []
-    ξ = []
-    for i in 1:N
-        ψ_ns = [model.ns...]
-        ξ_ns = [model.ns...]
-        ψ_ns[i] = halo + 1
-        ξ_ns[i] = halo
-        append!(ψ, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
-        append!(ξ, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
-    end
-    # CPML coefficient arrays
-    a_coeffs = []
-    b_K_coeffs = []
-    for i in 1:N
-        append!(a_coeffs, [model.cpmlcoeffs[i].a_l, model.cpmlcoeffs[i].a_r, model.cpmlcoeffs[i].a_hl, model.cpmlcoeffs[i].a_hr])
-        append!(
-            b_K_coeffs,
-            [model.cpmlcoeffs[i].b_K_l, model.cpmlcoeffs[i].b_K_r, model.cpmlcoeffs[i].b_K_hl, model.cpmlcoeffs[i].b_K_hr]
-        )
-    end
     # Wrap sources and receivers arrays
-    possrcs_a = backend.Data.Array(possrcs)
-    posrecs_a = backend.Data.Array(posrecs)
-    srctf_a = backend.Data.Array(srctf)
-    traces_a = backend.Data.Array(traces)
+    possrcs_a = model.backend.Data.Array(possrcs)
+    posrecs_a = model.backend.Data.Array(posrecs)
+    srctf_a = model.backend.Data.Array(srctf)
+    traces_a = model.backend.Data.Array(traces)
+    # Reset wavesim
+    reset!(model)
 
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, fact_a,
-            model.gridspacing..., halo,
-            ψ..., ξ..., a_coeffs...,
-            b_K_coeffs...,
-            possrcs_a, srctf_a, posrecs_a,
-            traces_a, it
+        pold, pcur, pnew = model.backend.forward_onestep_CPML!(
+            pold, pcur, pnew, model.fact,
+            model.gridspacing..., model.halo,
+            model.ψ..., model.ξ..., model.a_coeffs..., model.b_K_coeffs...,
+            possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
         # Print timestep info
         if it % model.infoevery == 0

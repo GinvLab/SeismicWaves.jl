@@ -16,7 +16,7 @@ TODO
 """
 function set_wavesim_matprop(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}) where {N}
     @debug "Checking new material properties"
-    check_matprop(wavesim, matprop)
+    check_matprop!(wavesim, matprop)
     @debug "Updating new material properties"
-    update_matprop(wavesim, matprop)
+    update_matprop!(wavesim, matprop)
 end

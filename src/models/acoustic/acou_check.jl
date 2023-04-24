@@ -70,11 +70,4 @@ function check_invcov_matrix(model::WaveSimul, invcov)
     @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"
 end
 
-function check_checkpoint_frequency(model::WaveSimul, check_freq)
-    if check_freq !== nothing
-        @assert check_freq > 2 "Checkpointing frequency must be bigger than 2!"
-        @assert check_freq < model.nt "Checkpointing frequency must be smaller than the number of timesteps!"
-    end
-end
-
 #####################################################
