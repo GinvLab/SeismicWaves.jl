@@ -56,8 +56,8 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         nt::Integer,
         dt::Real,
         halo::Integer,
-        rcoef::Real,
-        parall::Symbol;
+        rcoef::Real;
+        parall::Symbol=:threads,
         freetop::Bool=true,
         gradient::Bool=false,
         check_freq::Union{<:Integer, Nothing}=nothing,

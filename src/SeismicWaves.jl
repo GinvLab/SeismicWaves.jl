@@ -13,6 +13,7 @@ export VpAcousticCDMaterialProperty
 
 export Sources, Receivers, Shot
 export swforward!, swmisfit!, swgradient!
+export build_wavesim
 export gaussource1D, rickersource1D
 
 include("abstract_types.jl")
