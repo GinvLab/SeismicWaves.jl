@@ -77,7 +77,8 @@ function swmisfit!(
     return run_swmisfit!(wavesim, matprop, shots)
 end
 
-swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} = run_swmisfit!(wavesim, matprop, shots)
+swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} =
+    run_swmisfit!(wavesim, matprop, shots)
 
 #######################################################
 
@@ -125,7 +126,8 @@ function swgradient!(
     return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit)
 end
 
-swgradient!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} = run_swgradient!(wavesim, matprop, shots)
+swgradient!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} =
+    run_swgradient!(wavesim, matprop, shots)
 
 #######################################################
 
