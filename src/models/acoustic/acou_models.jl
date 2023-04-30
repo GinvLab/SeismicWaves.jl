@@ -1,3 +1,51 @@
+###########################################################
+
+# Functions for all AcousticCDWaveSimul subtypes
+
+@views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+    # Checks
+    @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
+    @assert size(matprop.vp) == model.ns "Material property number of grid points must be the same as the wavesim!"
+    @assert all(matprop.vp .> 0) "Pressure velocity material property must be positive!"
+    # Check courant condition
+    vel_max = get_maximum_func(model)(matprop.vp)
+    tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
+    courant = vel_max * model.dt * tmp
+    @debug "Courant number: $(courant)"
+    @assert courant <= 1.0 "Courant condition not satisfied! [$(courant)]"
+end
+
+function check_numerics(
+    model::AcousticCDWaveSimul,
+    shot::Shot;
+    min_ppw::Integer=10
+)
+    # Check points per wavelengh
+    vel_min = get_minimum_func(model)(model.matprop.vp)
+    h_max = maximum(model.gridspacing)
+    ppw = vel_min / shot.srcs.domfreq / h_max
+    @debug "Points per wavelengh: $(ppw)"
+    @assert ppw >= min_ppw "Not enough points per wavelengh!"
+end
+
+@views function update_matprop!(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+    # Update material properties
+    model.matprop.vp .= matprop.vp
+    # Precompute factors
+    precompute_fact!(model)
+end
+
+@views precompute_fact!(model::AcousticCDWaveSimul) = copyto!(model.fact, (model.dt^2) .* (model.matprop.vp .^ 2))
+
+@views function scale_srctf(model::AcousticCDWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
+    # scale with boxcar and timestep size
+    scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt^2)
+    # scale with velocity squared at each source position
+    for s in size(scaled_tf, 2)
+        scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] .^ 2
+    end
+    return scaled_tf
+end
 
 ###########################################################
 
@@ -212,23 +260,11 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     end
 end
 
-@views function check_matprop!(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
-    # Checks
-    @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
-    @assert size(matprop.vp) == model.ns "Material property number of grid points must be the same as the wavesim!"
-    @assert all(matprop.vp .> 0) "Pressure velocity material property must be positive!"
-    # Check courant condition
-    check_courant_condition(model, matprop)
-end
+###########################################################
 
-@views function update_matprop!(model::AcousticCDWaveSimul, matprop::VpAcousticCDMaterialProperty)
-    # Update material properties
-    model.matprop.vp .= matprop.vp
-    # Precompute factors
-    precompute_fact!(model)
-end
+# Specific functions for AcousticCDCPMLWaveSimul
 
-@views function reset!(model::AcousticCDWaveSimul{N}) where {N}
+@views function reset!(model::AcousticCDCPMLWaveSimul{N}) where {N}
     # Reset computational arrays
     model.pold .= 0.0
     model.pcur .= 0.0
@@ -253,16 +289,24 @@ end
         end
     end
 end
+###########################################################
 
 # Traits for AcousticCDCPMLWaveSimul
+
 IsSnappableTrait(::Type{<:AcousticCDCPMLWaveSimul}) = Snappable()
 BoundaryConditionTrait(::Type{<:AcousticCDCPMLWaveSimul}) = CPMLBoundaryCondition()
 GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
 
-#######################################################################
+###########################################################
 
 struct AcousticCDReflWaveSimul{N} <: AcousticCDWaveSimul{N} end    # TODO implementation
+
+###########################################################
+
+# Traits for AcousticCDReflWaveSimul
 
 IsSnappableTrait(::Type{<:AcousticCDReflWaveSimul}) = Snappable()
 BoundaryConditionTrait(::Type{<:AcousticCDReflWaveSimul}) = ReflectiveBoundaryCondition()
 GridTrait(::Type{<:AcousticCDReflWaveSimul}) = LocalGrid()
+
+###########################################################

@@ -60,7 +60,7 @@ function calc_Kab_CPML(
     alpha_max_pml::Float64,
     K_max_pml::Float64,
     onwhere::String
-)
+)::Tuple{Array{<:Real}, Array{<:Real}, Array{<:Real}, Array{<:Real}}
     @assert halo >= 0.0
 
     Kab_size = halo

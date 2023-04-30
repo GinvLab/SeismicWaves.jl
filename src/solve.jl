@@ -1,13 +1,22 @@
+### UPDATE MATERIAL PROPERTIES ##
+
+function set_wavesim_matprop!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}) where {N}
+    @debug "Checking new material properties"
+    check_matprop(wavesim, matprop)
+    @debug "Updating WaveSimul material properties"
+    update_matprop!(wavesim, matprop)
+end
+
 ### FORWARDS ###
 
 @views function run_swforward!(
-    wavsim::WaveSimul,
-    matprop::MaterialProperties,
+    wavsim::WaveSimul{N},
+    matprop::MaterialProperties{N},
     shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
-)::Union{Vector{Array}, Nothing}
+)::Union{Vector{Array}, Nothing} where {N}
     # Set wavesim material properties
     @info "Setting wavesim material properties"
-    set_wavesim_matprop(wavsim, matprop)
+    set_wavesim_matprop!(wavsim, matprop)
 
     # Snapshots setup
     takesnapshots = snapenabled(wavsim)
@@ -45,10 +54,10 @@ end
 ### MISFITS ###
 
 @views function run_swmisfit!(
-    wavsim::WaveSimul,
-    matprop::MaterialProperties,
+    wavsim::WaveSimul{N},
+    matprop::MaterialProperties{N},
     shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
-)::Real
+)::Real where {N}
     # Solve forward model for all shots
     run_swforward!(wavsim, matprop, shots)
     # Compute total misfit for all shots
@@ -72,14 +81,14 @@ end
 ### GRADIENTS ###
 
 @views function run_swgradient!(
-    wavsim::WaveSimul,
-    matprop::MaterialProperties,
+    wavsim::WaveSimul{N},
+    matprop::MaterialProperties{N},
     shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     compute_misfit::Bool=false
-)::Union{AbstractArray, Tuple{AbstractArray, Real}}
+)::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
     # Set wavesim material properties
     @info "Setting wavesim material properties"
-    set_wavesim_matprop(wavsim, matprop)
+    set_wavesim_matprop!(wavsim, matprop)
 
     # Initialize total gradient and total misfit
     totgrad = zero(matprop.vp)

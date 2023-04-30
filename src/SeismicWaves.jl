@@ -17,23 +17,24 @@ export build_wavesim
 export gaussource1D, rickersource1D
 
 include("abstract_types.jl")
-include("sources.jl")
-include("receivers.jl")
-include("init_shot.jl")
-include("solve.jl")
-
-include("models/cpmlcoeffs.jl")
 
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
 include("traits/snappable.jl")
 include("traits/grid.jl")
 
+include("sources.jl")
+include("receivers.jl")
+include("shot.jl")
+include("checks.jl")
+include("solve.jl")
+
+include("models/cpmlcoeffs.jl")
+
+include("models/acoustic/acou_abstract_types.jl")
 include("models/acoustic/material_properties.jl")
 include("models/acoustic/acou_models.jl")
 include("models/acoustic/acou_params.jl")
-include("models/acoustic/acou_check.jl")
-include("models/acoustic/acou_precompute.jl")
 include("models/acoustic/acou_forward.jl")
 include("models/acoustic/acou_gradient.jl")
 include("models/acoustic/acou_init_bc.jl")

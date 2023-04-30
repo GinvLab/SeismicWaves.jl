@@ -3,13 +3,13 @@
 
 @doc raw"""
     swforward!(
-        params::InputParameters,
-        matprop::MaterialProperties
+        params::InputParameters{N},
+        matprop::MaterialProperties{N}
         shots::Vector{<:Shot} ;  
         parall::Symbol= :threads,
         snapevery::Union{Int, Nothing} = nothing,
         infoevery::Union{Int, Nothing} = nothing
-    )::Union{Vector{AbstractArray}, Nothing}
+    )::Union{Vector{AbstractArray}, Nothing} where {N}
 
 Compute forward simulation using the given input parameters `params` and material properties `matprop` on multiple shots.
 Receivers traces are stored in the `Receivers` object for each shot. See also [`Receivers`](@ref).
@@ -27,30 +27,31 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
 function swforward!(
-    params::InputParameters,
-    matprop::MaterialProperties,
+    params::InputParameters{N},
+    matprop::MaterialProperties{N},
     shots::Vector{<:Shot};
     parall::Symbol=:threads,
     snapevery::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing
-)::Union{Vector{AbstractArray}, Nothing}
+)::Union{Vector{AbstractArray}, Nothing} where {N}
     # Build wavesim
     wavesim = build_wavesim(params; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
     # Solve simulation
     return run_swforward!(wavesim, matprop, shots)
 end
 
-swforward!(wavesim::WaveSimul, matprop::MaterialProperties, shots::Vector{<:Shot}) = run_swforward!(wavesim, matprop, shots)
+swforward!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} =
+    run_swforward!(wavesim, matprop, shots)
 
 #######################################################
 
 @doc raw"""
     swmisfit!(
-        params::InputParameters,
-        matprop::MaterialProperties,
+        params::InputParameters{N},
+        matprop::MaterialProperties{N},
         shots::Vector{<:Shot} ;  
         parall::Symbol= :threads,
-    )::Real
+    )::Real where {N}
 
 Return the misfit w.r.t. observed data by running a forward simulation using the given input parameters `params` and material properties `matprop` on multiple shots.
 
@@ -65,30 +66,30 @@ Receivers traces are stored in the `Receivers` object for each shot.
 See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 """
 function swmisfit!(
-    params::InputParameters,
-    matprop::MaterialProperties,
+    params::InputParameters{N},
+    matprop::MaterialProperties{N},
     shots::Vector{<:Shot};  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads
-)::Real
+)::Real where {N}
     # Build wavesim
     wavesim = build_wavesim(params; parall=parall, gradient=false)
     # Compute misfit
     return run_swmisfit!(wavesim, matprop, shots)
 end
 
-swmisfit!(wavesim::WaveSimul, matprop::MaterialProperties, shots::Vector{<:Shot}) = run_swmisfit!(wavesim, matprop, shots)
+swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} = run_swmisfit!(wavesim, matprop, shots)
 
 #######################################################
 
 @doc raw"""
     swgradient!(
-        params::InputParameters,
-        matprop::MaterialProperties,
+        params::InputParameters{N},
+        matprop::MaterialProperties{N},
         shots::Vector{<:Shot} ;
         parall::Symbol = :threads,
         check_freq::Union{Int, Nothing} = nothing,
         infoevery::Union{Int, Nothing} = nothing
-    )::AbstractArray
+    ):Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
 
 Compute gradients w.r.t. model parameters using the given input parameters `params` and material parameters `matprop` on multiple shots.
 
@@ -110,27 +111,26 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `compute_misfit::Bool = false`: if true, also computes and return misfit value.
 """
 function swgradient!(
-    params::InputParameters,
-    matprop::MaterialProperties,
+    params::InputParameters{N},
+    matprop::MaterialProperties{N},
     shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads,
     check_freq::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
     compute_misfit::Bool=false
-)::Union{AbstractArray, Tuple{AbstractArray, Real}}
+)::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
     # Build wavesim
     wavesim = build_wavesim(params; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq)
     # Solve simulation
     return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit)
 end
 
-swgradient!(wavesim::WaveSimul, matprop::MaterialProperties, shots::Vector{<:Shot}) = run_swgradient!(wavesim, matprop, shots)
+swgradient!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} = run_swgradient!(wavesim, matprop, shots)
 
 #######################################################
 
 @doc raw"""
-    build_wavesim(params::InputParameters, kwargs...)::WaveSimul
-
+    build_wavesim(params::InputParameters{N}, kwargs...)::WaveSimul{N} where {N}
 
 Builds a wave similation based on the input paramters `params` and keyword arguments `kwargs`.
 
@@ -146,25 +146,20 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 """
 build_wavesim(params::InputParameters; kwargs...) = build_wavesim(params, params.boundcond; kwargs...)
 
-function build_wavesim(
-    params::InputParametersAcoustic,
+build_wavesim(
+    params::InputParametersAcoustic{N},
     cpmlparams::CPMLBoundaryConditionParameters;
     kwargs...
-)::AcousticCDCPMLWaveSimul
-    N = length(params.gridsize)
-
-    acoumod = AcousticCDCPMLWaveSimul{N}(
-        params.gridsize,
-        params.gridspacing,
-        params.ntimesteps,
-        params.dt,
-        cpmlparams.halo,
-        cpmlparams.rcoef;
-        freetop=cpmlparams.freeboundtop,
-        kwargs...
-    )
-    return acoumod
-end
+) where {N} = AcousticCDCPMLWaveSimul{N}(
+    params.gridsize,
+    params.gridspacing,
+    params.ntimesteps,
+    params.dt,
+    cpmlparams.halo,
+    cpmlparams.rcoef;
+    freetop=cpmlparams.freeboundtop,
+    kwargs...
+)
 
 #######################################################
 

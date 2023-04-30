@@ -10,7 +10,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     traces,
     observed,
     invcov
-) where {N}
+)::Array{<:Real} where {N}
     # Numerics
     nt = model.nt
     # Initialize pressure and factors arrays

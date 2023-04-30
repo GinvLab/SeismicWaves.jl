@@ -1,29 +1,12 @@
 
-####################################################
-
-function check_courant_condition(model::AcousticCDWaveSimul, matprop::VpAcousticCDMaterialProperty)
-    vel_max = get_maximum_func(model)(matprop.vp)
-    tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
-    courant = vel_max * model.dt * tmp
-    @debug "Courant number: $(courant)"
-    @assert courant <= 1.0 "Courant condition not satisfied! [$(courant)]"
+function check_shot(model::WaveSimul, shot::Shot; kwargs...)
+    @debug "Checking model/shot numerics"
+    check_numerics(model, shot; kwargs...)
+    @debug "Checking sources positions"
+    check_positions(model, shot.srcs.positions)
+    @debug "Checking receivers positions"
+    return check_positions(model, shot.recs.positions)
 end
-
-####################################################
-
-function check_ppw(
-    model::AcousticCDWaveSimul,
-    srcs::Sources{<:Real},
-    min_ppw::Integer=10
-)
-    vel_min = get_minimum_func(model)(model.matprop.vp)
-    h_max = maximum(model.gridspacing)
-    ppw = vel_min / srcs.domfreq / h_max
-    @debug "Points per wavelengh: $(ppw)"
-    @assert ppw >= min_ppw "Not enough points per wavelengh!"
-end
-
-####################################################
 
 check_positions(model::WaveSimul, positions::Matrix{<:Real}) = check_positions(BoundaryConditionTrait(model), model, positions)
 
@@ -64,10 +47,6 @@ function check_positions(
     end
 end
 
-####################################################
-
 function check_invcov_matrix(model::WaveSimul, invcov)
     @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"
 end
-
-#####################################################
