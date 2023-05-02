@@ -4,38 +4,9 @@
 push!(LOAD_PATH, "../src")
 using SeismicWaves: SeismicWaves
 
-# list of files to NOT be tested
-excludedfiles = []
+using Test, TestSetExtensions
 
-function runtests()
-    exename = joinpath(Sys.BINDIR, Base.julia_exename())
-    testdir = pwd()
-    # getting all test files to run tests on
-    istest(f) = endswith(f, ".jl") && startswith(basename(f), "test_")
-    dirfiles = sort(vcat([joinpath.(root, files)
-                          for (root, dirs, files) in walkdir(testdir)]...))
-    testfiles = filter(istest, dirfiles)
-
-    printstyled("Testing package SeismicWaves.jl\n"; bold=true, color=:white)
-
-    nfails = 0
-    for f in testfiles
-        println("")
-        # skip excluded files
-        if f in excludedfiles
-            printstyled("Skipping $(basename(f))\n"; bold=true, color=:white)
-            continue
-        end
-        # run tests on file
-        try
-            printstyled("Testing $(basename(f))\n"; bold=true, color=:white)
-            run(`$exename -O3 --startup-file=no --check-bounds=yes $f`)
-        catch ex
-            nfails += 1
-        end
-    end
-
-    return nfails
+# Run all specified tests
+@testset ExtendedTestSet "SeismicWaves Tests" begin
+    @includetests ARGS
 end
-
-exit(runtests())

@@ -2,7 +2,7 @@ using Test
 using SeismicWaves
 using CUDA: CUDA
 
-include("utils.jl")
+include("utils/setup_models.jl")
 
 using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
@@ -44,7 +44,7 @@ with_logger(error_logger) do
             # Check that misfits are equivalent
             @test misfit ≈ misfit_check
         end
-        
+
         @testset "Test 2D $(parall) swgradient! with compute misfit" begin
             # Physics
             c0 = 2000.0

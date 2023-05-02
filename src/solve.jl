@@ -1,16 +1,22 @@
+### UPDATE MATERIAL PROPERTIES ##
+
+function set_wavesim_matprop!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}) where {N}
+    @debug "Checking new material properties"
+    check_matprop(wavesim, matprop)
+    @debug "Updating WaveSimul material properties"
+    update_matprop!(wavesim, matprop)
+end
+
 ### FORWARDS ###
 
 @views function run_swforward!(
-    wavsim::WaveSimul,
-    backend::Module,
-    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
-)::Union{Vector{Array}, Nothing}
-    # Check wavsim
-    @info "Checking wavsim"
-    check(wavsim)
-    # Precompute constant values
-    @info "Precomputing constant values"
-    precompute!(wavsim)
+    wavsim::WaveSimul{N},
+    matprop::MaterialProperties{N},
+    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
+)::Union{Vector{Array}, Nothing} where {N}
+    # Set wavesim material properties
+    @info "Setting wavesim material properties"
+    set_wavesim_matprop!(wavsim, matprop)
 
     # Snapshots setup
     takesnapshots = snapenabled(wavsim)
@@ -28,7 +34,7 @@
         possrcs, posrecs, srctf, traces = init_shot!(wavsim, singleshot)
         # Compute forward solver
         @info "Forward modelling for one shot"
-        swforward_1shot!(wavsim, backend, possrcs, posrecs, srctf, traces)
+        swforward_1shot!(wavsim, possrcs, posrecs, srctf, traces)
         # Save traces in receivers seismograms
         @info "Saving seismograms"
         copyto!(recs.seismograms, traces)
@@ -48,12 +54,12 @@ end
 ### MISFITS ###
 
 @views function run_swmisfit!(
-    wavsim::WaveSimul,
-    backend::Module,
-    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
-)::Real
+    wavsim::WaveSimul{N},
+    matprop::MaterialProperties{N},
+    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
+)::Real where {N}
     # Solve forward model for all shots
-    run_swforward!(wavsim, backend, shots)
+    run_swforward!(wavsim, matprop, shots)
     # Compute total misfit for all shots
     totmisfit = 0
     for (s, singleshot) in enumerate(shots)
@@ -75,24 +81,17 @@ end
 ### GRADIENTS ###
 
 @views function run_swgradient!(
-    wavsim::WaveSimul,
-    backend::Module,
-    shots::Vector{<:Shot} ; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    check_freq::Union{Integer, Nothing}=nothing,
+    wavsim::WaveSimul{N},
+    matprop::MaterialProperties{N},
+    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     compute_misfit::Bool=false
-)::Union{AbstractArray, Tuple{AbstractArray, Real}}
-    # Check wavsim
-    @info "Checking wavsim"
-    check(wavsim)
-    # Precompute constant values
-    @info "Precomputing constant values"
-    precompute!(wavsim)
-    # Check checkpointing setup
-    @info "Checking checkpointing frequency"
-    check_checkpoint_frequency(wavsim, check_freq)
+)::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
+    # Set wavesim material properties
+    @info "Setting wavesim material properties"
+    set_wavesim_matprop!(wavsim, matprop)
 
     # Initialize total gradient and total misfit
-    totgrad = zero(wavsim.vel)
+    totgrad = zero(matprop.vp)
     totmisfit = 0
     # Shots loop
     for (s, singleshot) in enumerate(shots)
@@ -107,10 +106,9 @@ end
         # Compute forward solver
         @info "Computing gradient solver"
         curgrad = swgradient_1shot!(
-            wavsim, backend, possrcs,
+            wavsim, possrcs,
             posrecs, srctf, traces,
-            recs.observed, recs.invcov;
-            check_freq=check_freq
+            recs.observed, recs.invcov
         )
         # Compute misfit
         @info "Saving seismograms"

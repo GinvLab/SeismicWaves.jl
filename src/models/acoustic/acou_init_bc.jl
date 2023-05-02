@@ -1,22 +1,25 @@
 
-init_bdc!(model::AcousticWaveSimul, srcs::Sources{<:Real}) = init_bdc!(BoundaryConditionTrait(model), model, srcs)
+init_bdc!(model::AcousticWaveSimul, srcs::Sources{<:Real}) =
+    init_bdc!(BoundaryConditionTrait(model), model, srcs)
 
 init_bdc!(::ReflectiveBoundaryCondition, model::AcousticWaveSimul, srcs::Sources{<:Real}) = nothing
 
-function init_bdc!(
+@views function init_bdc!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimul,
     srcs::Sources{<:Real}
 )
     N = length(model.cpmlcoeffs)
     for n in 1:N
-        compute_CPML_coefficients!(model.cpmlcoeffs[n],
-            get_maximum_func(model)(model.vel),
+        compute_CPML_coefficients!(
+            model.cpmlcoeffs[n],
+            get_maximum_func(model)(model.matprop.vp),
             model.dt,
             model.halo,
             model.rcoef,
             model.gridspacing[n] * model.halo,
-            srcs.domfreq)
+            srcs.domfreq
+        )
     end
 
     if model.freetop && N >= 1
