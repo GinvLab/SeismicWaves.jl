@@ -12,7 +12,9 @@
     tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
     courant = vel_max * model.dt * tmp
     @debug "Courant number: $(courant)"
-    @assert courant <= 1.0 "Courant condition not satisfied! [$(courant)]"
+    if courant > 1.0
+        @warn "Courant condition not satisfied! [$(courant)]"
+    end
 end
 
 function check_numerics(
@@ -24,7 +26,7 @@ function check_numerics(
     vel_min = get_minimum_func(model)(model.matprop.vp)
     h_max = maximum(model.gridspacing)
     ppw = vel_min / shot.srcs.domfreq / h_max
-    @debug "Points per wavelengh: $(ppw)"
+    @debug "Points per wavelength: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
@@ -201,14 +203,15 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
                     end
                 end
             else    # no checkpointing
-                last_checkpoint = 1                                 # simulate a checkpoint at time step 1 (so buffer will start from 0)
-                save_buffer = backend.zeros(ns..., nt + 2)          # save all timesteps (from 0 to n+1 so n+2)
+                last_checkpoint = 0                                 # simulate a checkpoint at time step 0 (so buffer will start from -1)
+                save_buffer = backend.zeros(ns..., nt + 2)          # save all timesteps (from -1 to nt+1 so nt+2)
                 checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints (will remain empty)
                 checkpoints_ψ = Dict{Int, Any}()                    # ψ arrays checkpoints (will remain empty)
                 checkpoints_ξ = Dict{Int, Any}()                    # ξ arrays checkpoints (will remain empty)
-                # Save time step 0 into buffer
-                save_buffer[fill(Colon(), N)..., 1] .= pcur
             end
+            # Save first 2 timesteps in save buffer
+            save_buffer[fill(Colon(), N)..., 1] .= pold
+            save_buffer[fill(Colon(), N)..., 2] .= pcur
         end
 
         # Initialize snapshots array

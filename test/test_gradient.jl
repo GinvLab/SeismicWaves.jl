@@ -53,7 +53,7 @@ with_logger(error_logger) do
             nt = 1000
             nx = ny = 101
             dx = dy = 10.0
-            dt = sqrt(2) / (c0 * (1 / dx + 1 / dy)) / 2
+            dt = dx / c0 / sqrt(2)
             halo = 20
             rcoef = 0.0001
             params, shots, vel = setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
@@ -84,7 +84,7 @@ with_logger(error_logger) do
             nt = 100
             nx = ny = nz = 81
             dx = dy = dz = 10.0
-            dt = sqrt(3) / (c0 * (1 / dx + 1 / dy + 1 / dz)) / 3
+            dt = dx / c0 / sqrt(3)
             halo = 20
             rcoef = 0.0001
             params, shots, vel = setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
@@ -151,7 +151,7 @@ with_logger(error_logger) do
             nt = 1000
             nx = ny = 101
             dx = dy = 10.0
-            dt = sqrt(2) / (c0 * (1 / dx + 1 / dy)) / 2
+            dt = dx / c0 / sqrt(2)
             halo = 20
             rcoef = 0.0001
             params, shots, vel = setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
@@ -184,10 +184,10 @@ with_logger(error_logger) do
             c0 = 2000.0
             f0 = 10.0
             # Numerics
-            nt = 100
+            nt = 150
             nx = ny = nz = 81
             dx = dy = dz = 10.0
-            dt = sqrt(3) / (c0 * (1 / dx + 1 / dy + 1 / dz)) / 3
+            dt = dx / c0 / sqrt(3)
             halo = 20
             rcoef = 0.0001
             params, shots, vel = setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
