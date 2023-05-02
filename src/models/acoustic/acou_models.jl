@@ -53,7 +53,7 @@ end
 
 struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     # Physics
-    ls::NTuple{N, <:Integer}
+    ls::NTuple{N, <:Real}
     # Numerics
     ns::NTuple{N, <:Integer}
     gridspacing::NTuple{N, <:Real}
