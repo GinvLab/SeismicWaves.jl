@@ -24,8 +24,8 @@ end
     posrecs = find_nearest_grid_points(model, shot.recs.positions)
     # prescale source time function
     scaled_tf = scale_srctf(model, shot.srcs.tf, possrcs)
-    # initialize traces array (same shape as source time function)
-    traces = zero(shot.srcs.tf)
+    # initialize traces array (same shape as receivers seismograms)
+    traces = zero(shot.recs.seismograms)
 
     return possrcs, posrecs, scaled_tf, traces
 end

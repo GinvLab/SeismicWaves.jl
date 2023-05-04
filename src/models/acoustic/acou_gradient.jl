@@ -21,8 +21,6 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     adjold = model.adjold
     adjcur = model.adjcur
     adjnew = model.adjnew
-    # Add empty row to source time functions (fix for last timestep)
-    srctf = [srctf; zeros(1, size(srctf, 2))]
     # Wrap sources and receivers arrays
     possrcs_a = model.backend.Data.Array(possrcs)
     posrecs_a = model.backend.Data.Array(posrecs)
@@ -35,15 +33,14 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     # Reset wavesim
     reset!(model)
 
-    # Forward time loop (nt+1 timesteps)
-    for it in 1:(nt+1)
+    # Forward time loop
+    for it in 1:nt
         # Compute one forward step
         pold, pcur, pnew = model.backend.forward_onestep_CPML!(
             pold, pcur, pnew, model.fact,
             model.gridspacing..., model.halo,
             model.ψ..., model.ξ..., model.a_coeffs..., model.b_K_coeffs...,
-            possrcs_a, srctf_a, posrecs_a, traces_a, it;
-            save_trace=(it <= nt)
+            possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
         # Print timestep info
         if it % model.infoevery == 0
@@ -65,7 +62,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         end
         # Start populating save buffer just before last checkpoint
         if it >= model.last_checkpoint - 1
-            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1)+1] .= pcur
+            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1) + 1] .= pcur
         end
     end
 
@@ -96,7 +93,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             @debug @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
-        if it < curr_checkpoint
+        if (it-1) < curr_checkpoint
             @debug @sprintf("Out of save buffer at iteration: %d", it)
             # Shift last checkpoint
             old_checkpoint = curr_checkpoint
@@ -134,9 +131,9 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             end
         end
         # Get pressure fields from saved buffer
-        pcur_corr = model.save_buffer[fill(Colon(), N)..., it-curr_checkpoint+1]
-        pold_corr = model.save_buffer[fill(Colon(), N)..., it-curr_checkpoint+2]
-        pveryold_corr = model.save_buffer[fill(Colon(), N)..., it-curr_checkpoint+3]
+        pcur_corr = model.save_buffer[fill(Colon(), N)..., ((it-1)-curr_checkpoint)+1]
+        pold_corr = model.save_buffer[fill(Colon(), N)..., ((it-1)-curr_checkpoint)+2]
+        pveryold_corr = model.save_buffer[fill(Colon(), N)..., ((it-1)-curr_checkpoint)+3]
         # Correlate for gradient computation
         model.backend.correlate_gradient!(model.curgrad, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
     end

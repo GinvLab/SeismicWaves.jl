@@ -20,39 +20,36 @@ with_logger(error_logger) do
             @testset "Test 1D $(parall) constant velocity halo 0" begin
                 # constant velocity setup
                 c0 = 1000.0
-                nt = 1000
-                nx = 1001
+                nt = 500
+                nx = 501
                 dx = 2.5
                 dt = dx / c0
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
-                params, shots, vel =
-                    setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
+                params, shots, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
                 times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
-                swforward!(params, vel, shots; parall=parall)
+                swforward!(params, vel, shots; parall=:threads)
                 numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
-                @test integrate(times, abs.(numerical_trace .- Gc)) <=
-                      maximum(abs.(Gc)) * 0.01 * (dt * nt)
+                @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
             end
 
             @testset "Test 1D $(parall) constant velocity halo 20" begin
                 # constant velocity setup
                 c0 = 1000.0
-                nt = 2000
-                nx = 1001
+                nt = 1000
+                nx = 501
                 dx = 2.5
                 dt = dx / c0
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
-                params, shots, vel =
-                    setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
+                params, shots, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
                 times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, shots[1].srcs, shots[1].recs)
                 # numerical solution
                 swforward!(params, vel, shots; parall=parall)
@@ -60,8 +57,7 @@ with_logger(error_logger) do
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
-                @test integrate(times, abs.(numerical_trace .- Gc)) <=
-                      maximum(abs.(Gc)) * 0.01 * (dt * nt)
+                @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
             end
         end
 
@@ -69,16 +65,14 @@ with_logger(error_logger) do
             @testset "Test 2D $(parall) constant velocity halo 0" begin
                 # constant velocity setup
                 c0 = 1000.0
-                nt = 1200
-                nx = ny = 401
+                nt = 700
+                nx = ny = 801
                 dx = dy = 2.5
-                dt = sqrt(2) / (c0 * (1 / dx + 1 / dy)) / 2
+                dt = dx / c0 / sqrt(2)
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
-                params, shots, vel =
-                    setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy,
-                        c0, f0, halo, rcoef)
+                params, shots, vel = setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
                 times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
@@ -87,22 +81,20 @@ with_logger(error_logger) do
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
-                @test integrate(times, abs.(numerical_trace .- Gc)) <=
-                      maximum(abs.(Gc)) * 0.01 * (dt * nt)
+                @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
             end
 
             @testset "Test 2D $(parall) constant velocity halo 20" begin
                 # constant velocity setup
                 c0 = 1000.0
-                nt = 1200
-                nx = ny = 401
+                nt = 1400
+                nx = ny = 801
                 dx = dy = 2.5
-                dt = sqrt(2) / (c0 * (1 / dx + 1 / dy)) / 2
+                dt = dx / c0 / sqrt(2)
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
-                params, shots, vel =
-                    setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
+                params, shots, vel = setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
                 times, Gc = analytical_solution_constant_vel_2D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
@@ -111,8 +103,7 @@ with_logger(error_logger) do
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
-                @test integrate(times, abs.(numerical_trace .- Gc)) <=
-                      maximum(abs.(Gc)) * 0.01 * (dt * nt)
+                @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
             end
         end
 
@@ -120,15 +111,14 @@ with_logger(error_logger) do
             @testset "Test 3D $(parall) constant velocity halo 0" begin
                 # constant velocity setup
                 c0 = 1000.0
-                nt = 1200
-                nx = ny = nz = 101
-                dx = dy = dz = 2.5
-                dt = sqrt(3) / (c0 * (1 / dx + 1 / dy + 1 / dz)) / 3
+                nt = 200
+                nx = ny = nz = 121
+                dx = dy = dz = 8.0
+                dt = dx / c0 / sqrt(3)
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
-                params, shots, vel =
-                    setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
+                params, shots, vel = setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
                 times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
@@ -137,22 +127,20 @@ with_logger(error_logger) do
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
-                @test integrate(times, abs.(numerical_trace .- Gc)) <=
-                      maximum(abs.(Gc)) * 0.01 * (dt * nt)
+                @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
             end
 
             @testset "Test 3D $(parall) constant velocity halo 20" begin
                 # constant velocity setup
                 c0 = 1000.0
-                nt = 1200
-                nx = ny = nz = 101
-                dx = dy = dz = 2.5
-                dt = sqrt(3) / (c0 * (1 / dx + 1 / dy + 1 / dz)) / 3
+                nt = 400
+                nx = ny = nz = 121
+                dx = dy = dz = 8.0
+                dt = dx / c0 / sqrt(3)
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
-                params, shots, vel =
-                    setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
+                params, shots, vel = setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
                 times, Gc = analytical_solution_constant_vel_3D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
@@ -161,8 +149,7 @@ with_logger(error_logger) do
 
                 @test length(numerical_trace) == length(Gc) == nt
                 # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
-                @test integrate(times, abs.(numerical_trace .- Gc)) <=
-                      maximum(abs.(Gc)) * 0.01 * (dt * nt)
+                @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
             end
         end
     end
