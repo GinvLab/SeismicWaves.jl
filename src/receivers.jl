@@ -1,7 +1,7 @@
 @doc raw"""
 Type representing a multi-receiver configuration for a wave propagation shot.
 """
-struct Receivers{T <: Real}
+struct ScalarReceivers{T <: Real} <: Receivers
     positions::Matrix{<:Real}
     seismograms::Matrix{T}
     observed::Matrix{T}
@@ -12,7 +12,7 @@ struct Receivers{T <: Real}
 
     Create a single shot wave propagation receivers configuration from receivers positions.
     """
-    function Receivers{T}(
+    function ScalarReceivers{T}(
         positions::Matrix{<:Real},
         nt::Integer;
         observed::Union{Matrix{T}, Nothing}=nothing,
@@ -35,4 +35,4 @@ struct Receivers{T <: Real}
 end
 
 # Default type constructor
-Receivers(positions, nt; observed=nothing, invcov=nothing) = Receivers{Float64}(positions, nt; observed=observed, invcov=invcov)
+ScalarReceivers(positions, nt; observed=nothing, invcov=nothing) = ScalarReceivers{Float64}(positions, nt; observed=observed, invcov=invcov)

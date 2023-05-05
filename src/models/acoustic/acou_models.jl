@@ -5,7 +5,7 @@
 @views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
     # Checks
     @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
-    @assert size(matprop.vp) == model.ns "Material property number of grid points must be the same as the wavesim!"
+    @assert size(matprop.vp) == model.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.ns)"
     @assert all(matprop.vp .> 0) "Pressure velocity material property must be positive!"
     # Check courant condition
     vel_max = get_maximum_func(model)(matprop.vp)
