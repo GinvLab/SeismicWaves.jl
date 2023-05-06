@@ -102,10 +102,13 @@ end
 
 ##################################################################
 
-#error_logger = ConsoleLogger(stderr, Logging.Warn)
 
-debug_logger = ConsoleLogger(stderr, Logging.Debug)
-global_logger(debug_logger)
+# debug_logger = ConsoleLogger(stderr, Logging.Debug)
+# global_logger(debug_logger)
+# error_logger = ConsoleLogger(stderr, Logging.Error)
+# global_logger(error_logger)
+info_logger = ConsoleLogger(stderr, Logging.Info)
+global_logger(info_logger)
 
 p, v, s, snaps = exacouprob()
 
