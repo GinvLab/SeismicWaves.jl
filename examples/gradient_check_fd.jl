@@ -66,7 +66,7 @@ params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy], boundcond)
 wavesim = build_wavesim(params; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)))
 
 # compute forward gaussian
-with_logger(info_logger) do
+with_logger(error_logger) do
     swforward!(wavesim, matprop_gauss, shots)
 end
 
@@ -80,7 +80,7 @@ for i in 1:nshots
 end
 
 # compute gradients and misfit
-gradient, misfit = with_logger(info_logger) do
+gradient, misfit = with_logger(error_logger) do
     swgradient!(wavesim, matprop_const, shots_obs; compute_misfit=true)
 end
 
@@ -97,7 +97,9 @@ for i in 1:nx
         vp_perturbed = copy(matprop_const.vp)
         vp_perturbed[i,j] += dm
         matprop_perturbed = VpAcousticCDMaterialProperty(vp_perturbed)
-        new_misfit = swmisfit!(wavesim, matprop_perturbed, shots_obs)
+        new_misfit = with_logger(error_logger) do
+            swmisfit!(wavesim, matprop_perturbed, shots_obs)
+        end
         println("New misfit: $new_misfit")
         fd_gradient[i,j] = (misfit - new_misfit) / dm
     end
