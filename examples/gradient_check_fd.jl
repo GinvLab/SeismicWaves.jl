@@ -6,86 +6,55 @@ using LinearAlgebra
 using Logging
 using Plots
 
-error_logger = ConsoleLogger(stderr, Logging.Debug)
+info_logger = ConsoleLogger(stderr, Logging.Info)
+warn_logger = ConsoleLogger(stderr, Logging.Warn)
+error_logger = ConsoleLogger(stderr, Logging.Error)
+debug_logger = ConsoleLogger(stderr, Logging.Debug)
 
-function gaussian_vel_1D(nx, c0, c0max, r, origin=(nx+1)/2)
-    sigma = r / 3
-    amp = c0max - c0
-    f(x) = amp * exp(-(0.5 * (x - origin)^2 / sigma^2))
-    return c0 .+ [f(x) for x in 1:nx]
-end
-
-function gaussian_vel_2D(nx, ny, c0, c0max, r, origin=[(nx+1)/2, (ny+1)/2])
-    sigma = r / 3
-    amp = c0max - c0
-    f(x,y) = amp * exp(-(0.5 * ((x - origin[1])^2 + (y - origin[2])^2) / sigma^2))
-    return c0 .+ [f(x,y) for x in 1:nx, y in 1:ny]
-end
-
-function gaussian_vel_3D(nx, ny, nz, c0, c0max, r, origin=[(nx+1)/2, (ny+1)/2, (nz+1)/2])
-    sigma = r / 3
-    amp = c0max - c0
-    f(x,y,z) = amp * exp(-(0.5 * ((x - origin[1])^2 + (y - origin[2])^2 + (z - origin[3])^2) / sigma^2))
-    return c0 .+ [f(x,y,z) for x in 1:nx, y in 1:ny, z in 1:nz]
-end
+include("models.jl")
+include("geometries.jl")
 
 ##========================================
 # time stuff
 nt = 1000
 c0 = 1000
 c0max = 1300
-r = 250
-dh = 5.0
+r = 75
+dh = dx = dy = 5.0
 dt = dh / sqrt(2) / c0max
+halo = 20
+rcoef = 0.0001
 t = collect(Float64, range(0.0; step=dt, length=nt)) # seconds
 
 ##========================================
-# create a velocity model
+# create constant and gaussian velocity model
 nx = 201
-nz = 201
-matprop_const = VpAcousticCDMaterialProperty(c0 .* ones(nx, nz))
+ny = 201
+lx = (nx-1) * dx
+ly = (ny-1) * dy
+matprop_const = VpAcousticCDMaterialProperty(c0 .* ones(nx, ny))
 # gaussian perturbed model
-matprop_gauss = VpAcousticCDMaterialProperty(gaussian_vel_2D(nx, nz, c0, c0max, r))
+matprop_gauss = VpAcousticCDMaterialProperty(gaussian_vel_2D(nx, ny, c0, c0max, r))
 
 ##========================================
 # shots definition
-nshots = 1
-shots = Vector{Shot{Float64}}()  #Pair{Sources, Receivers}}()
-# sources and receivers positions (in meters)
-ixs = LinRange(100, 900, 9)
-izsrc = 100
-izrec = 900
-# source time function
+nshots = 10
 f0 = 10
 t0 = 4 / f0
-srcstf = reshape(1000.0 .* rickersource1D.(t, t0, f0), nt, 1)
-
-for i in 1:nshots
-    # sources definition
-    possrcs = [ixs[i] izsrc]
-    srcs = Sources(possrcs, copy(srcstf), f0)
-
-    # receivers definition
-    nrecs = 9
-    posrecs = zeros(nrecs, 2)
-    posrecs[:, 1] .= reverse(ixs)         # x-positions in meters
-    posrecs[:, 2] .= izrec                # y-positions in meters
-    recs = Receivers(posrecs, nt)
-
-    # add pair as shot
-    push!(shots, Shot(; srcs=srcs, recs=recs)) # srcs => recs)
-end
+srctf = 1000.0 .* rickersource1D.(t, t0, f0)
+dd = 75
+shots = linear_2D_geometry(nshots, matprop_gauss.vp, f0, nt, srctf, dd, 1000, 1000, dx, dy, halo; plot_geometry=true)
 
 ##============================================
 ## Input parameters for acoustic simulation
-boundcond = CPMLBoundaryConditionParameters(; halo=40, rcoef=0.00001, freeboundtop=false)
-params = InputParametersAcoustic(nt, dt, [nx, nz], [dh, dh], boundcond)
+boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false)
+params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy], boundcond)
 
 # Wave simulation builder
-wavesim = build_wavesim(params; gradient=true, parall=:threads, infoevery=250, check_freq=ceil(Int, sqrt(nt)))
+wavesim = build_wavesim(params; gradient=true, parall=:threads, check_freq=ceil(Int, sqrt(nt)))
 
 # compute forward gaussian
-with_logger(error_logger) do
+with_logger(info_logger) do
     swforward!(wavesim, matprop_gauss, shots)
 end
 
@@ -99,7 +68,7 @@ for i in 1:nshots
 end
 
 # compute gradients and misfit
-gradient, misfit = with_logger(error_logger) do
+gradient, misfit = with_logger(info_logger) do
     swgradient!(wavesim, matprop_const, shots_obs; compute_misfit=true)
 end
 
