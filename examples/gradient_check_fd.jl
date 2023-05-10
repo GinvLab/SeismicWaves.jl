@@ -13,6 +13,7 @@ debug_logger = ConsoleLogger(stderr, Logging.Debug)
 
 include("models.jl")
 include("geometries.jl")
+include("plotting_utils.jl")
 
 ##========================================
 # backend selection
@@ -82,5 +83,28 @@ end
 gradient, misfit = with_logger(info_logger) do
     swgradient!(wavesim, matprop_const, shots_obs; compute_misfit=true)
 end
+
+println("Initial misfit: $misfit")
+plot_nice_heatmap_grad(gradient; lx=lx, ly=ly, dx=dx, dy=dy)
+savefig("grad.png")
+
+# Compute gradient with finite differences
+fd_gradient = zeros(nx, ny)
+dm = 1e-3
+for i in 1:nx
+    for j in 1:ny
+        vp_perturbed = copy(matprop_const.vp)
+        vp_perturbed[i,j] += dm
+        matprop_perturbed = VpAcousticCDMaterialProperty(vp_perturbed)
+        new_misfit = swmisfit!(wavesim, matprop_perturbed, shots_obs)
+        fd_gradient[i,j] = (misfit - new_misfit) / dm
+    end
+end
+
+plot_nice_heatmap_grad(fd_gradient; lx=lx, ly=ly, dx=dx, dy=dy)
+savefig("fdgrad.png")
+
+plot_nice_heatmap_grad(fd_gradient .- gradient; lx=lx, ly=ly, dx=dx, dy=dy)
+savefig("grad_diff.png")
 
 ##################################################################
