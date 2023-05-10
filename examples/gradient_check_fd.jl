@@ -15,6 +15,17 @@ include("models.jl")
 include("geometries.jl")
 
 ##========================================
+# backend selection
+parall = :serial
+if length(ARGS) >= 1
+    if ARGS[1] == "--threads"
+        parall = :threads
+    elseif ARGS[1] == "--GPU"
+        parall = :GPU
+    end
+end
+
+##========================================
 # time stuff
 nt = 1000
 c0 = 1000
@@ -51,7 +62,7 @@ boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundt
 params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy], boundcond)
 
 # Wave simulation builder
-wavesim = build_wavesim(params; gradient=true, parall=:threads, check_freq=ceil(Int, sqrt(nt)))
+wavesim = build_wavesim(params; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)))
 
 # compute forward gaussian
 with_logger(info_logger) do
