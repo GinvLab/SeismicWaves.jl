@@ -21,8 +21,8 @@ function gaussian_vel_3D(nx, ny, nz, c0, c0max, r, origin=[(nx+1)/2, (ny+1)/2, (
     return c0 .+ [f(x,y,z) for x in 1:nx, y in 1:ny, z in 1:nz]
 end
 
-function setup_gaussian_vel_1D_CPML(nt, dt, nx, dx, c0, c0max, sigma, halo, rcoef)
-    # gaussian velocity setup
+function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, c0max, sigma, halo, rcoef)
+    # constant velocity setup
     lx = (nx - 1) * dx
     vel = VpAcousticCDMaterialProperty(c0 .* ones(nx))
     # input parameters
