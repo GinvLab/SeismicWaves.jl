@@ -23,6 +23,11 @@ if length(ARGS) >= 1
         parall = :threads
     elseif ARGS[1] == "--GPU"
         parall = :GPU
+        devs = devices()
+        if length(devs) >= 1 && length(ARGS) >= 2
+            device!(parse(Int, ARGS[2]))
+        end
+        @show device()
     end
 end
 
@@ -97,11 +102,11 @@ for i in 1:nx
         vp_perturbed = copy(matprop_const.vp)
         vp_perturbed[i,j] += dm
         matprop_perturbed = VpAcousticCDMaterialProperty(vp_perturbed)
-        new_misfit = with_logger(error_logger) do
+        @time new_misfit = with_logger(error_logger) do
             swmisfit!(wavesim, matprop_perturbed, shots_obs)
         end
         println("New misfit: $new_misfit")
-        fd_gradient[i,j] = (misfit - new_misfit) / dm
+        fd_gradient[i,j] = (new_misfit - misfit) / dm
     end
 end
 
