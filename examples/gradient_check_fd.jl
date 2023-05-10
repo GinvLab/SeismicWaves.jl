@@ -7,6 +7,7 @@ using Logging
 using Plots
 
 using CUDA
+using Serialization
 
 info_logger = ConsoleLogger(stderr, Logging.Info)
 warn_logger = ConsoleLogger(stderr, Logging.Warn)
@@ -115,6 +116,10 @@ for i in 1:nx
         fd_gradient[i,j] = (new_misfit - misfit) / dm
     end
 end
+
+# save FD gradient into file
+serialize("fdgrad.dat", fd_gradient)
+serialize("fdgrad_diff.dat", fd_gradient .- gradient)
 
 plot_nice_heatmap_grad(fd_gradient; lx=lx, ly=ly, dx=dx, dy=dy)
 savefig("fdgrad.png")
