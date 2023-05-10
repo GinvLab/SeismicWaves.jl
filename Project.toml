@@ -1,6 +1,6 @@
 name = "SeismicWaves"
 uuid = "f2cc81fa-a164-11e9-3f65-e3f851c759e3"
-authors = ["Andrea Zunino","Giacomo Aloisi"]
+authors = ["Andrea Zunino", "Giacomo Aloisi"]
 version = "0.4.0"
 
 [deps]
@@ -14,7 +14,6 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [compat]
 julia = "1.7"
-
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
