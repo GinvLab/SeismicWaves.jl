@@ -93,10 +93,12 @@ fd_gradient = zeros(nx, ny)
 dm = 1e-3
 for i in 1:nx
     for j in 1:ny
+        println("Computing ($i, $j) gradient with FD")
         vp_perturbed = copy(matprop_const.vp)
         vp_perturbed[i,j] += dm
         matprop_perturbed = VpAcousticCDMaterialProperty(vp_perturbed)
         new_misfit = swmisfit!(wavesim, matprop_perturbed, shots_obs)
+        println("New misfit: $new_misfit")
         fd_gradient[i,j] = (misfit - new_misfit) / dm
     end
 end
