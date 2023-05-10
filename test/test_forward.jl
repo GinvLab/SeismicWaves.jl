@@ -1,6 +1,5 @@
 using Test
 using DSP, NumericalIntegration, LinearAlgebra
-using Distributions
 using CUDA: CUDA
 
 using SeismicWaves
