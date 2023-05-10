@@ -38,7 +38,7 @@ end
 nt = 1000
 c0 = 1000
 c0max = 1300
-r = 75
+r = 35
 dh = dx = dy = 5.0
 dt = dh / sqrt(2) / c0max
 halo = 20
@@ -61,7 +61,7 @@ nshots = 10
 f0 = 10
 t0 = 4 / f0
 srctf = 1000.0 .* rickersource1D.(t, t0, f0)
-dd = 75
+dd = 60
 shots = linear_2D_geometry(nshots, matprop_gauss.vp, f0, nt, srctf, dd, 1000, 1000, dx, dy, halo; plot_geometry=true, save_file="tmp.png")
 
 ##============================================
