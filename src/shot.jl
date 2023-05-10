@@ -2,9 +2,9 @@
 """
 Type representing a source-receiver pair, i.e., a \"shot\".
 """
-Base.@kwdef struct Shot{T <: Real}
-    srcs::Sources{T}
-    recs::Receivers{T}
+Base.@kwdef struct Shot #{T <: Real}
+    srcs::Sources #{T}
+    recs::Receivers #{T}
 end
 
 ##################################################

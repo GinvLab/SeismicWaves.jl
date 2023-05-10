@@ -12,8 +12,12 @@ end
 @views function run_swforward!(
     wavsim::WaveSimul{N},
     matprop::MaterialProperties{N},
-    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
+    shots::Vector{<:Shot}; 
 )::Union{Vector{Array}, Nothing} where {N}
+    
+    @debug "Checking consistency across simulation type, material parameters and source-receiver types"
+    check_sim_consistency(wavsim,matprop,shots)
+
     # Set wavesim material properties
     @info "Setting wavesim material properties"
     set_wavesim_matprop!(wavsim, matprop)
@@ -56,7 +60,7 @@ end
 @views function run_swmisfit!(
     wavsim::WaveSimul{N},
     matprop::MaterialProperties{N},
-    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}}
+    shots::Vector{<:Shot};
 )::Real where {N}
     # Solve forward model for all shots
     run_swforward!(wavsim, matprop, shots)
@@ -83,9 +87,10 @@ end
 @views function run_swgradient!(
     wavsim::WaveSimul{N},
     matprop::MaterialProperties{N},
-    shots::Vector{<:Shot}; #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot}; 
     compute_misfit::Bool=false
-)::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
+    )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
+    
     # Set wavesim material properties
     @info "Setting wavesim material properties"
     set_wavesim_matprop!(wavsim, matprop)
