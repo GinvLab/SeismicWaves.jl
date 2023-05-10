@@ -72,6 +72,8 @@ params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy], boundcond)
 # Wave simulation builder
 wavesim = build_wavesim(params; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)))
 
+println("Computing forward solver")
+
 # compute forward gaussian
 with_logger(error_logger) do
     swforward!(wavesim, matprop_gauss, shots)
@@ -85,6 +87,8 @@ for i in 1:nshots
     # add pair as shot
     push!(shots_obs, Shot(; srcs=shots[i].srcs, recs=recs)) # srcs => recs)
 end
+
+println("Computing gradients")
 
 # compute gradients and misfit
 gradient, misfit = with_logger(error_logger) do

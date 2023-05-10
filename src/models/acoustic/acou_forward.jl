@@ -23,7 +23,7 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
     reset!(model)
 
     # Time loop
-    for it in 1:nt
+    @time "Main loop" for it in 1:nt
         # Compute one forward step
         pold, pcur, pnew = model.backend.forward_onestep_CPML!(
             pold, pcur, pnew, model.fact,
