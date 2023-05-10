@@ -71,11 +71,11 @@ end
     end
 end
 
-@views prescale_residuals!(residuals, possrcs, fact) =
-    for is in axes(possrcs, 1)
-        isrc = floor(Int, possrcs[is, 1])
+@views prescale_residuals!(residuals, posrecs, fact) =
+    for ir in axes(posrecs, 1)
+        irec = floor(Int, posrecs[ir, 1])
         for it in axes(residuals, 1) # nt
-            residuals[it, is] *= fact[isrc]
+            residuals[it, ir] *= fact[irec]
         end
     end
 

@@ -72,8 +72,9 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     @debug "Computing residuals"
     # Compute residuals
     mul!(residuals_a, invcov_a, traces_a - observed_a)
+
     # Prescale residuals (fact = vel^2 * dt^2)
-    model.backend.prescale_residuals!(residuals_a, possrcs_a, model.fact)
+    model.backend.prescale_residuals!(residuals_a, posrecs_a, model.fact)
 
     @debug "Computing gradients"
     # Current checkpoint
@@ -82,8 +83,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     for it in nt:-1:1
         # Compute one adjoint step
         adjold, adjcur, adjnew = model.backend.forward_onestep_CPML!(
-            adjold, adjcur, adjnew,
-            model.fact, model.gridspacing..., model.halo,
+            adjold, adjcur, adjnew, model.fact,
+            model.gridspacing..., model.halo,
             model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_K_coeffs...,
             posrecs_a, residuals_a, nothing, nothing, it;   # adjoint sources positions are receivers
             save_trace=false

@@ -90,18 +90,18 @@ end
     return nothing
 end
 
-@parallel_indices (it, is) function prescale_residuals_kernel!(residuals, possrcs, fact)
-    isrc = floor(Int, possrcs[is, 1])
-    jsrc = floor(Int, possrcs[is, 2])
-    residuals[it, is] *= fact[isrc, jsrc]
+@parallel_indices (it, ir) function prescale_residuals_kernel!(residuals, posrecs, fact)
+    irec = floor(Int, posrecs[ir, 1])
+    jrec = floor(Int, posrecs[ir, 2])
+    residuals[it, ir] *= fact[irec, jrec]
 
     return nothing
 end
 
-@views function prescale_residuals!(residuals, possrcs, fact)
-    nsrcs = size(possrcs, 1)
+@views function prescale_residuals!(residuals, posrecs, fact)
+    nrecs = size(posrecs, 1)
     nt = size(residuals, 1)
-    @parallel (1:nt, 1:nsrcs) prescale_residuals_kernel!(residuals, possrcs, fact)
+    @parallel (1:nt, 1:nrecs) prescale_residuals_kernel!(residuals, posrecs, fact)
 end
 
 @views function forward_onestep_CPML!(
