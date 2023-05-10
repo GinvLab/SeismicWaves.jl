@@ -54,7 +54,7 @@ f0 = 10
 t0 = 4 / f0
 srctf = 1000.0 .* rickersource1D.(t, t0, f0)
 dd = 75
-shots = linear_2D_geometry(nshots, matprop_gauss.vp, f0, nt, srctf, dd, 1000, 1000, dx, dy, halo; plot_geometry=true)
+shots = linear_2D_geometry(nshots, matprop_gauss.vp, f0, nt, srctf, dd, 1000, 1000, dx, dy, halo)
 
 ##============================================
 ## Input parameters for acoustic simulation
