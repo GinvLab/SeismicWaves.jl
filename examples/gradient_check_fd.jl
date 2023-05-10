@@ -6,6 +6,8 @@ using LinearAlgebra
 using Logging
 using Plots
 
+using CUDA
+
 info_logger = ConsoleLogger(stderr, Logging.Info)
 warn_logger = ConsoleLogger(stderr, Logging.Warn)
 error_logger = ConsoleLogger(stderr, Logging.Error)
