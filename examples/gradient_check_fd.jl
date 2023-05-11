@@ -102,7 +102,7 @@ savefig("grad.png")
 
 # Compute gradient with finite differences
 fd_gradient = zeros(nx, ny)
-dm = 1e-3
+dm = -1e-3
 for i in 1:nx
     for j in 1:ny
         println("Computing ($i, $j) gradient with FD")
