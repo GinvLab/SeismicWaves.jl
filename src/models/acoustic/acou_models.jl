@@ -83,7 +83,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     ψ::Any
     ξ::Any
     a_coeffs::Any
-    b_K_coeffs::Any
+    b_coeffs::Any
     # Gradient computation arrays
     curgrad::Any
     adjold::Any
@@ -153,10 +153,10 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         cpmlcoeffs = tuple([CPMLCoefficients(halo, backend) for _ in 1:N]...)
         # Build CPML coefficient arrays for computations (they are just references to cpmlcoeffs)
         a_coeffs = []
-        b_K_coeffs = []
+        b_coeffs = []
         for i in 1:N
             append!(a_coeffs, [cpmlcoeffs[i].a_l, cpmlcoeffs[i].a_r, cpmlcoeffs[i].a_hl, cpmlcoeffs[i].a_hr])
-            append!(b_K_coeffs, [cpmlcoeffs[i].b_K_l, cpmlcoeffs[i].b_K_r, cpmlcoeffs[i].b_K_hl, cpmlcoeffs[i].b_K_hr])
+            append!(b_coeffs, [cpmlcoeffs[i].b_l, cpmlcoeffs[i].b_r, cpmlcoeffs[i].b_hl, cpmlcoeffs[i].b_hr])
         end
         # Initialize gradient arrays if needed
         if gradient
@@ -246,7 +246,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
             ψ,
             ξ,
             a_coeffs,
-            b_K_coeffs,
+            b_coeffs,
             gradient ? curgrad : nothing,
             gradient ? adjold : nothing,
             gradient ? adjcur : nothing,

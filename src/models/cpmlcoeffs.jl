@@ -3,10 +3,10 @@ struct CPMLCoefficients
     a_r::Any
     a_hl::Any
     a_hr::Any
-    b_K_l::Any
-    b_K_r::Any
-    b_K_hl::Any
-    b_K_hr::Any
+    b_l::Any
+    b_r::Any
+    b_hl::Any
+    b_hr::Any
 
     function CPMLCoefficients(halo::Integer, backend::Module)
         return new(
@@ -37,19 +37,18 @@ function compute_CPML_coefficients!(
     # CPML coefficients (l = left, r = right, h = staggered in betweeen grid points)
     alpha_max = π * f0          # CPML α multiplicative factor (half of dominating angular frequency)
     npower = 2.0                # CPML power coefficient
-    K_max = 1.0                 # CPML K coefficient value
     d0 = -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness)     # damping profile
-    a_l, a_r, b_K_l, b_K_r = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, K_max, "ongrd")
-    a_hl, a_hr, b_K_hl, b_K_hr = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, K_max, "halfgrd")
+    a_l, a_r, b_l, b_r = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "ongrd")
+    a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "halfgrd")
 
     copyto!(cpmlcoeffs.a_l, a_l)
     copyto!(cpmlcoeffs.a_r, a_r)
     copyto!(cpmlcoeffs.a_hl, a_hl)
     copyto!(cpmlcoeffs.a_hr, a_hr)
-    copyto!(cpmlcoeffs.b_K_l, b_K_l)
-    copyto!(cpmlcoeffs.b_K_r, b_K_r)
-    copyto!(cpmlcoeffs.b_K_hl, b_K_hl)
-    copyto!(cpmlcoeffs.b_K_hr, b_K_hr)
+    copyto!(cpmlcoeffs.b_l, b_l)
+    copyto!(cpmlcoeffs.b_r, b_r)
+    copyto!(cpmlcoeffs.b_hl, b_hl)
+    copyto!(cpmlcoeffs.b_hr, b_hr)
 end
 
 function calc_Kab_CPML(
@@ -58,8 +57,8 @@ function calc_Kab_CPML(
     npower::Float64,
     d0::Float64,
     alpha_max_pml::Float64,
-    K_max_pml::Float64,
-    onwhere::String
+    onwhere::String ;
+    K_max_pml::Union{Float64,Nothing} = nothing
 )::Tuple{Array{<:Real}, Array{<:Real}, Array{<:Real}, Array{<:Real}}
     @assert halo >= 0.0
 
@@ -82,21 +81,29 @@ function calc_Kab_CPML(
     normdist_left = reverse(dist) ./ Kab_size
     normdist_right = dist ./ Kab_size
 
+    if K_max_pml==nothing
+        K_left = 1.0
+    else
+        K_left = 1.0 .+ (K_max_pml - 1.0) .* (normdist_left .^ npower)
+    end
     d_left = d0 .* (normdist_left .^ npower)
     alpha_left = alpha_max_pml .* (1.0 .- normdist_left)
-    K_left = 1.0 .+ (K_max_pml - 1.0) .* (normdist_left .^ npower)
     b_left = exp.(.-(d_left ./ K_left .+ alpha_left) .* dt)
     a_left = d_left .* (b_left .- 1.0) ./ (K_left .* (d_left .+ K_left .* alpha_left))
-    b_K_left = b_left ./ K_left
 
+    if K_max_pml==nothing
+        K_right = 1.0
+    else
+        K_right = 1.0 .+ (K_max_pml - 1.0) .* (normdist_right .^ npower)
+    end
     d_right = d0 .* (normdist_right .^ npower)
     alpha_right = alpha_max_pml .* (1.0 .- normdist_right)
-    K_right = 1.0 .+ (K_max_pml - 1.0) .* (normdist_right .^ npower)
     b_right = exp.(.-(d_right ./ K_right .+ alpha_right) .* dt)
-    a_right =
-        d_right .* (b_right .- 1.0) ./
-        (K_right .* (d_right .+ K_right .* alpha_right))
-    b_K_right = b_right ./ K_right
+    a_right = d_right .* (b_right .- 1.0) ./ (K_right .* (d_right .+ K_right .* alpha_right))
 
-    return a_left, a_right, b_K_left, b_K_right
+    if K_max_pml==nothing
+        return a_left, a_right, b_left, b_right
+    else
+        return a_left, a_right, b_left, b_right, K_left, K_right
+    end
 end
