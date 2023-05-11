@@ -97,7 +97,25 @@ function exacouprob()
         infoevery=infoevery,
         snapevery=snapevery)
 
-    return params, velmod, shots, snapshots  # collect(map(s -> s.recs.seismograms, shots))
+        ##===============================================
+    ## compute the gradient
+    shots_grad = Vector{Shot}()
+    for i in 1:nshots
+        seis = shots[i].recs.seismograms
+        nt = size(seis,1)
+        @show size(seis)
+        recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
+                                    invcov=Diagonal(ones(nt)))
+        push!(shots_grad, Shot(; srcs=shots[i].srcs, recs=recs_grad))
+    end
+
+    grad = swgradient!(params,
+                       matprop,
+                       shots_grad;
+                       parall=:threads )
+
+
+    return params, velmod, shots, snapshots, grad
 end
 
 ##################################################################
