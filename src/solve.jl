@@ -15,6 +15,7 @@ end
     shots::Vector{<:Shot}; 
 )::Union{Vector{Array}, Nothing} where {N}
     
+    # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
     check_sim_consistency(wavsim,matprop,shots)
 
@@ -91,6 +92,10 @@ end
     compute_misfit::Bool=false
     )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
     
+    # Check wavesim consistency
+    @debug "Checking consistency across simulation type, material parameters and source-receiver types"
+    check_sim_consistency(wavsim, matprop, shots)
+
     # Set wavesim material properties
     @info "Setting wavesim material properties"
     set_wavesim_matprop!(wavsim, matprop)
