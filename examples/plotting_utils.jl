@@ -1,4 +1,4 @@
-using Plots, Plots.Measures
+using Plots, Plots.Measures; pyplot()
 
 function plot_nice_heatmap(A; lx=size(A,1), ly=size(A,2), dx=1, dy=1, shift=0)
     heatmap(
@@ -17,6 +17,15 @@ function plot_nice_heatmap_grad(A; lx=size(A,1), ly=size(A,2), dx=1, dy=1, shift
     )
 end
 
+function plot_zoom(g, corner, plotfunc; lx=lx, ly=ly, dx=dx, dy=dy, shift=0)
+    p = plotfunc(g; lx=lx, ly=ly, dx=dx, dy=dy, shift=shift)
+    plot!([corner*dx, (lx - 2shift)-corner*dx], [corner*dy, corner*dy]; color=:black)
+    plot!([corner*dx, (lx - 2shift)-corner*dx], [(ly - 2shift)-corner*dy, (ly - 2shift)-corner*dy]; color=:black)
+    plot!([corner*dx, corner*dx], [corner*dy, (ly - 2shift)-corner*dy]; color=:black)
+    plot!([(lx - 2shift)-corner*dx, (lx - 2shift)-corner*dx], [corner*dy, (ly - 2shift)-corner*dy]; color=:black)
+    return p
+end
+
 function plot_rays_2D(shots, model, lx, ly, dx, dy, halo; save_file=nothing)
     # plot velocity model
     p = plot_nice_heatmap(model; lx=lx, ly=ly, dx=dx, dy=dy)
@@ -33,8 +42,8 @@ function plot_rays_2D(shots, model, lx, ly, dx, dy, halo; save_file=nothing)
             end
         end
         # display sources and receivers positions
-        scatter!(s.srcs.positions[:,1], s.srcs.positions[:,2]; markershape=:star4, markersize=5, markercolor=:white)
-        scatter!(s.recs.positions[:,1], s.recs.positions[:,2]; markershape=:utriangle, markersize=4, markercolor=:white)
+        scatter!(s.srcs.positions[:,1], s.srcs.positions[:,2]; markershape=:star4, markersize=8, markercolor=:white)
+        scatter!(s.recs.positions[:,1], s.recs.positions[:,2]; markershape=:utriangle, markersize=8, markercolor=:white)
     end
     # display CPML boundaries
     plot!([halo*dx, lx-halo*dx], [halo*dy, halo*dy]; color=:white)
