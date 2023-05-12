@@ -6,9 +6,9 @@ function linear_2D_geometry(nshots, model, f0, nt, srctf, dd, lx, ly, dx, dy, ha
     # shots definition
     shots = Vector{Shot{Float64}}()  #Pair{ScalarSources, ScalarReceivers}}()
     # straight line positions
-    xs = (lx/2) .- dd .* ((nshots+1)/2 .- collect(1:nshots))
-    ysrc  = (halo + 10) * dy
-    yrec  = ly - ysrc
+    xs = (lx / 2) .- dd .* ((nshots + 1) / 2 .- collect(1:nshots))
+    ysrc = (halo + 10) * dy
+    yrec = ly - ysrc
 
     for i in 1:nshots
         # sources definition

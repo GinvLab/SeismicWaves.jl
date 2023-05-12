@@ -62,7 +62,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         end
         # Start populating save buffer just before last checkpoint
         if it >= model.last_checkpoint - 1
-            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1) + 1] .= pcur
+            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1)+1] .= pcur
         end
     end
 
@@ -94,7 +94,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             @debug @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
-        if (it-1) < curr_checkpoint
+        if (it - 1) < curr_checkpoint
             @debug @sprintf("Out of save buffer at iteration: %d", it)
             # Shift last checkpoint
             old_checkpoint = curr_checkpoint

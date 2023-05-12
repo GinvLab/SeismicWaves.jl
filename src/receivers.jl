@@ -35,4 +35,5 @@ struct ScalarReceivers{T <: Real} <: Receivers
 end
 
 # Default type constructor
-ScalarReceivers(positions, nt; observed=nothing, invcov=nothing) = ScalarReceivers{Float64}(positions, nt; observed=observed, invcov=invcov)
+ScalarReceivers(positions, nt; observed=nothing, invcov=nothing) =
+    ScalarReceivers{Float64}(positions, nt; observed=observed, invcov=invcov)

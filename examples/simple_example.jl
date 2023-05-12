@@ -102,7 +102,6 @@ end
 
 ##################################################################
 
-
 # debug_logger = ConsoleLogger(stderr, Logging.Debug)
 # global_logger(debug_logger)
 # error_logger = ConsoleLogger(stderr, Logging.Error)

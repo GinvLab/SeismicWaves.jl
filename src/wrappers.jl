@@ -126,7 +126,6 @@ function swgradient!(
     return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit)
 end
 
-
 @doc raw"""
     swgradient!(wavesim::WaveSimul{N},
                 matprop::MaterialProperties{N},

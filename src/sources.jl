@@ -24,5 +24,3 @@ end
 
 # Default type constructor {Float64}
 ScalarSources(positions, tf, domfreq) = ScalarSources{Float64}(positions, tf, domfreq)
-
-
