@@ -126,6 +126,14 @@ function swgradient!(
     return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit)
 end
 
+
+@doc raw"""
+    swgradient!(wavesim::WaveSimul{N},
+                matprop::MaterialProperties{N},
+                shots::Vector{<:Shot})
+
+    Compute gradients w.r.t. model parameters using the *previously* built WaveSimul. This avoids re-initializing and re-allocating several arrays in case of multiple gradient calculations.
+"""
 swgradient!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; kwargs...) where {N} =
     run_swgradient!(wavesim, matprop, shots; kwargs...)
 

@@ -29,21 +29,21 @@ function exacouprob()
         end
     end
 
-    # pad the lateral borders because there will be some PML layers there
-    npad = 34
-    left = repeat(velmod[1:1, :], npad, 1)
-    right = repeat(velmod[end:end, :], npad, 1)
-    velmod = vcat(left, velmod, right)
-    # pad also the bottom...
-    bottom = repeat(velmod[:, end:end], 1, npad)
-    velmod = hcat(velmod, bottom)
+    # # pad the lateral borders because there will be some PML layers there
+    # npad = 34
+    # left = repeat(velmod[1:1, :], npad, 1)
+    # right = repeat(velmod[end:end, :], npad, 1)
+    # velmod = vcat(left, velmod, right)
+    # # pad also the bottom...
+    # bottom = repeat(velmod[:, end:end], 1, npad)
+    # velmod = hcat(velmod, bottom)
 
     matprop = VpAcousticCDMaterialProperty(velmod)
 
     ##========================================
     # shots definition
     nshots = 6
-    shots = Vector{Shot{Float64}}()  #Pair{Sources, Receivers}}()
+    shots = Vector{Shot}()  #Pair{Sources, Receivers}}()
     # sources x-position (in grid points) (different for every shot)
     ixsrc = round.(Int, LinRange(32, nx - 31, nshots))
     for i in 1:nshots
@@ -60,7 +60,7 @@ function exacouprob()
         for s in 1:nsrc
             srcstf[:, s] .= 1000.0 .* rickersource1D.(t, t0, f0)
         end
-        srcs = Sources(possrcs, srcstf, f0)
+        srcs = ScalarSources(possrcs, srcstf, f0)
 
         #@show srcs.positions
 
@@ -71,7 +71,7 @@ function exacouprob()
         posrecs = zeros(nrecs, 2)    # 20 receivers, 2 dimensions
         posrecs[:, 1] .= (ixrec .- 1) .* dh    # x-positions in meters
         posrecs[:, 2] .= 2 * dh                # y-positions in meters
-        recs = Receivers(posrecs, nt)
+        recs = ScalarReceivers(posrecs, nt)
 
         #@show recs.positions
 
@@ -102,8 +102,13 @@ end
 
 ##################################################################
 
-error_logger = ConsoleLogger(stderr, Logging.Warn)
-global_logger(error_logger)
+
+# debug_logger = ConsoleLogger(stderr, Logging.Debug)
+# global_logger(debug_logger)
+# error_logger = ConsoleLogger(stderr, Logging.Error)
+# global_logger(error_logger)
+info_logger = ConsoleLogger(stderr, Logging.Info)
+global_logger(info_logger)
 
 p, v, s, snaps = exacouprob()
 
