@@ -40,7 +40,7 @@ with_logger(error_logger) do
             # single source at 10 grid points from CPML boundary
             times = collect(range(0.0; step=dt, length=nt))
             xsrc = (halo + 10) * dx
-            srcs = Sources(
+            srcs = ScalarSources(
                 reshape([xsrc], 1, 1),
                 reshape(rickersource1D.(times, 2/f0, f0), nt, 1),
                 f0
@@ -48,7 +48,7 @@ with_logger(error_logger) do
             # multiple receivers at different distances
             nrecs = 4
             dist = 50
-            recs = Receivers(
+            recs = ScalarReceivers(
                 reshape(xsrc .+ dist .* collect(1:nrecs) .* fill(dx, nrecs), nrecs, 1),
                 nt
             )
@@ -95,7 +95,7 @@ with_logger(error_logger) do
             xsrc = (halo + 10) * dx
             nsrcs = 3
             distsrcs = 10
-            srcs = Sources(
+            srcs = ScalarSources(
                 reshape(xsrc .+ distsrcs .* collect(1:nsrcs) .* fill(dx, nsrcs), nsrcs, 1),
                 repeat(rickersource1D.(times, 2/f0, f0), 1, nsrcs),
                 f0
@@ -103,7 +103,7 @@ with_logger(error_logger) do
             # multiple receivers at different distances
             nrecs = 6
             distrecs = 50
-            recs = Receivers(
+            recs = ScalarReceivers(
                 reshape(xsrc .+ distrecs .* collect(1:nrecs) .* fill(dx, nrecs), nrecs, 1),
                 nt
             )
@@ -151,7 +151,7 @@ with_logger(error_logger) do
             times = collect(range(0.0; step=dt, length=nt))
             xsrc = lx / 2
             ysrc = (halo + 10) * dy
-            srcs = Sources(
+            srcs = ScalarSources(
                 reshape([xsrc, ysrc], 1, 2),
                 reshape(rickersource1D.(times, 2/f0, f0), nt, 1),
                 f0
@@ -161,7 +161,7 @@ with_logger(error_logger) do
             dist = 50
             xrecs = (lx/2) .- dist .* ((nrecs+1)/2 .- collect(1:nrecs)) .* dx
             yrec  = ly - (halo + 10) * dy  
-            recs = Receivers(
+            recs = ScalarReceivers(
                 hcat(xrecs, fill(yrec, nrecs)),
                 nt
             )
@@ -209,7 +209,7 @@ with_logger(error_logger) do
             distsrcs = 20
             xsrcs = (lx/2) .- distsrcs .* ((nsrcs+1)/2 .- collect(1:nsrcs)) .* dx
             ysrc  = (halo + 10) * dy
-            srcs = Sources(
+            srcs = ScalarSources(
                 hcat(xsrcs, fill(ysrc, nsrcs)),
                 repeat(rickersource1D.(times, 2/f0, f0), 1, nsrcs),
                 f0
@@ -219,7 +219,7 @@ with_logger(error_logger) do
             distrecs = 50
             xrecs = (lx/2) .- distrecs .* ((nrecs+1)/2 .- collect(1:nrecs)) .* dx
             yrec  = ly - (halo + 10) * dy  
-            recs = Receivers(
+            recs = ScalarReceivers(
                 hcat(xrecs, fill(yrec, nrecs)),
                 nt
             )
