@@ -31,13 +31,13 @@ end
         pnew[i] = 2.0 * pcur[i] - pold[i] + fact[i] * (d2p_dx2)
     end
 
-@views function update_ψ!(ψ_l, ψ_r, pcur, halo, nx, _dx, a_x_hl, a_x_hr, b_K_x_hl, b_K_x_hr)
+@views function update_ψ!(ψ_l, ψ_r, pcur, halo, nx, _dx, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
     for i in 1:(halo+1)
         ii = i + nx - halo - 2  # shift for right boundary pressure indices
         # left boundary
-        ψ_l[i] = b_K_x_hl[i] * ψ_l[i] + a_x_hl[i] * (pcur[i+1] - pcur[i]) * _dx
+        ψ_l[i] = b_x_hl[i] * ψ_l[i] + a_x_hl[i] * (pcur[i+1] - pcur[i]) * _dx
         # right boundary
-        ψ_r[i] = b_K_x_hr[i] * ψ_r[i] + a_x_hr[i] * (pcur[ii+1] - pcur[ii]) * _dx
+        ψ_r[i] = b_x_hr[i] * ψ_r[i] + a_x_hr[i] * (pcur[ii+1] - pcur[ii]) * _dx
     end
 end
 
@@ -46,7 +46,7 @@ end
     ψ_l, ψ_r,
     ξ_l, ξ_r,
     a_x_l, a_x_r,
-    b_K_x_l, b_K_x_r
+    b_x_l, b_x_r
 )
     for i in 2:(nx-1)
         d2p_dx2 = (pcur[i+1] - 2.0 * pcur[i] + pcur[i-1]) * _dx2
@@ -54,13 +54,13 @@ end
         if i <= halo + 1
             # left boundary
             dψ_dx = (ψ_l[i] - ψ_l[i-1]) * _dx
-            ξ_l[i-1] = b_K_x_l[i-1] * ξ_l[i-1] + a_x_l[i-1] * (d2p_dx2 + dψ_dx)
+            ξ_l[i-1] = b_x_l[i-1] * ξ_l[i-1] + a_x_l[i-1] * (d2p_dx2 + dψ_dx)
             damp = fact[i] * (dψ_dx + ξ_l[i-1])
         elseif i >= nx - halo
             # right boundary
             ii = i - (nx - halo) + 2
             dψ_dx = (ψ_r[ii] - ψ_r[ii-1]) * _dx
-            ξ_r[ii-1] = b_K_x_r[ii-1] * ξ_r[ii-1] + a_x_r[ii-1] * (d2p_dx2 + dψ_dx)
+            ξ_r[ii-1] = b_x_r[ii-1] * ξ_r[ii-1] + a_x_r[ii-1] * (d2p_dx2 + dψ_dx)
             damp = fact[i] * (dψ_dx + ξ_r[ii-1])
         else
             damp = 0.0
@@ -97,7 +97,7 @@ end
     pold, pcur, pnew, fact, dx,
     halo, ψ_l, ψ_r, ξ_l, ξ_r,
     a_x_l, a_x_r, a_x_hl, a_x_hr,
-    b_K_x_l, b_K_x_r, b_K_x_hl, b_K_x_hr,
+    b_x_l, b_x_r, b_x_hl, b_x_hr,
     possrcs, dt2srctf, posrecs, traces, it;
     save_trace=true
 )
@@ -108,12 +108,12 @@ end
     update_ψ!(ψ_l, ψ_r, pcur,
         halo, nx, _dx,
         a_x_hl, a_x_hr,
-        b_K_x_hl, b_K_x_hr)
+        b_x_hl, b_x_hr)
     update_p_CPML!(pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
         ψ_l, ψ_r,
         ξ_l, ξ_r,
         a_x_l, a_x_r,
-        b_K_x_l, b_K_x_r)
+        b_x_l, b_x_r)
     inject_sources!(pnew, dt2srctf, possrcs, it)
     if save_trace
         record_receivers!(pnew, traces, posrecs, it)

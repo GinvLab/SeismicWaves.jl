@@ -25,7 +25,7 @@ init_bdc!(::ReflectiveBoundaryCondition, model::AcousticWaveSimul, srcs::Sources
     if model.freetop && N >= 1
         model.cpmlcoeffs[N].a_l .= 0.0
         model.cpmlcoeffs[N].a_hl .= 0.0
-        model.cpmlcoeffs[N].b_K_l .= 1.0
-        model.cpmlcoeffs[N].b_K_hl .= 1.0
+        model.cpmlcoeffs[N].b_l .= 1.0
+        model.cpmlcoeffs[N].b_hl .= 1.0
     end
 end

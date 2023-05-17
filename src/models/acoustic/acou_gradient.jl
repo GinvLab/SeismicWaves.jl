@@ -39,7 +39,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         pold, pcur, pnew = model.backend.forward_onestep_CPML!(
             pold, pcur, pnew, model.fact,
             model.gridspacing..., model.halo,
-            model.ψ..., model.ξ..., model.a_coeffs..., model.b_K_coeffs...,
+            model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
         # Print timestep info
@@ -84,7 +84,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         adjold, adjcur, adjnew = model.backend.forward_onestep_CPML!(
             adjold, adjcur, adjnew,
             model.fact, model.gridspacing..., model.halo,
-            model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_K_coeffs...,
+            model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_coeffs...,
             posrecs_a, residuals_a, nothing, nothing, it;   # adjoint sources positions are receivers
             save_trace=false
         )
@@ -119,7 +119,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
                 pold, pcur, pnew = model.backend.forward_onestep_CPML!(
                     pold, pcur, pnew, model.fact,
                     model.gridspacing..., model.halo,
-                    model.ψ..., model.ξ..., model.a_coeffs..., model.b_K_coeffs...,
+                    model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
                     possrcs_a, srctf_a, nothing, nothing, recit;
                     save_trace=false
                 )
