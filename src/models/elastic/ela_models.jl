@@ -90,18 +90,19 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     λ::Any
     μ::Any
     ρ::Any
-    ρ_ihalf_jhalf::Any
-    μ_ihalf::Any
-    μ_jhalf::Any
-    λ_ihalf::Any
-    ψ_∂σxx∂x::Any
-    ψ_∂σxz∂z::Any
-    ψ_∂σxz∂x::Any
-    ψ_∂σzz∂z::Any
-    ψ_∂vx∂x::Any
-    ψ_∂vz∂z::Any
-    ψ_∂vz∂x::Any
-    ψ_∂vx∂z::Any
+    # ρ_ihalf_jhalf::Any
+    # μ_ihalf::Any
+    # μ_jhalf::Any
+    # λ_ihalf::Any
+    ψ::Elaψ
+    # ψ_∂σxx∂x::Any
+    # ψ_∂σxz∂z::Any
+    # ψ_∂σxz∂x::Any
+    # ψ_∂σzz∂z::Any
+    # ψ_∂vx∂x::Any
+    # ψ_∂vz∂z::Any
+    # ψ_∂vz∂x::Any
+    # ψ_∂vx∂z::Any
     a_coeffs::Any
     b_coeffs::Any
     # Gradient computation arrays
