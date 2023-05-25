@@ -89,7 +89,7 @@ zeros = Base.zeros
 
 
 
-function precomp_prop(ρ,μ,λ,dh)
+function precomp_prop!(ρ,μ,λ,dh,μ_ihalf,μ_jhalf,λ_ihalf,fact)
 
    fact::Float64 = 1.0/(24.0*dh)
     
@@ -97,21 +97,21 @@ function precomp_prop(ρ,μ,λ,dh)
     # pre-interpolate properties at half distances between nodes
     #-------------------------------------------------------------
     # ρ_ihalf_jhalf (nx-1,ny-1) ??
-    ρ_ihalf_jhalf = (ρ[2:end,2:end]+ρ[2:end,1:end-1]+ρ[1:end-1,2:end]+ρ[1:end-1,1:end-1])/4.0
+    @. ρ_ihalf_jhalf = (ρ[2:end,2:end]+ρ[2:end,1:end-1]+ρ[1:end-1,2:end]+ρ[1:end-1,1:end-1])/4.0
     # μ_ihalf (nx-1,ny) ??
     # μ_ihalf (nx,ny-1) ??
     if harmonicaver_μ==true 
         # harmonic mean
-        μ_ihalf = 1.0./( 1.0./μ[2:end,:] + 1.0./μ[1:end-1,:] )
-        μ_jhalf = 1.0./( 1.0./μ[:,2:end] + 1.0./μ[:,1:end-1] )
+        @. μ_ihalf = 1.0 / ( 1.0./μ[2:end,:] + 1.0 / μ[1:end-1,:] )
+        @. μ_jhalf = 1.0 / ( 1.0./μ[:,2:end] + 1.0 / μ[:,1:end-1] )
     else
-        μ_ihalf = (μ[2:end,:]+μ[1:end-1,:])/2.0 ###?????
-        μ_jhalf = (μ[:,2:end]+μ[:,1:end-1])/2.0 ###?????
+        @. μ_ihalf = (μ[2:end,:] + μ[1:end-1,:]) / 2.0
+        @. μ_jhalf = (μ[:,2:end] + μ[:,1:end-1]) / 2.0 
     end
     # λ_ihalf (nx-1,ny) ??
-    λ_ihalf = (λ[2:end,:]+λ[1:end-1,:])/2.0 ###?????
+    @. λ_ihalf = (λ[2:end,:] + λ[1:end-1,:]) / 2.0
 
-    return μ_ihalf,μ_jhalf,λ_ihalf,fact
+    return fact
 end
 
 
@@ -136,18 +136,46 @@ function update_vx!(vx,fact,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_
     
     #  vx
     for j = 3:nz-1
-        for i = 3:nx-1        
+        for i = 3:nx-1
             
             # Vx
             ∂σxx∂x_bkw = fact * ( σxx[i-2,j] -27.0*σxx[i-1,j] +27.0*σxx[i,j] -σxx[i+1,j] )
             ∂σxz∂z_bkw = fact * ( σxz[i,j-2] -27.0*σxz[i,j-1] +27.0*σxz[i,j] -σxz[i,j+1] )
 
-            # C-PML stuff 
-            ψ_∂σxx∂x[i,j] = b_x[i] * ψ_∂σxx∂x[i,j] + a_x[i] * ∂σxx∂x_bkw
-            ψ_∂σxz∂z[i,j] = b_z[j] * ψ_∂σxz∂z[i,j] + a_z[j] * ∂σxz∂z_bkw
-
-            ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[i,j]
-            ∂σxz∂z_bkw = ∂σxz∂z_bkw + ψ_∂σxz∂z[i,j]
+            ##=======================
+            # C-PML stuff
+            ##=======================
+            # x boundaries
+            if i <= halo 
+                # left boundary
+                ψ_∂σxx∂x[i,j] = b_x_l[i] * ψ_∂σxx∂x[i,j] + a_x_l[i] * ∂σxx∂x_bkw
+                ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[i,j]
+            elseif i >= nx - halo + 1 
+                # right boundary
+                ii = i - (nx - halo) + 1 
+                ψ_∂σxx∂x[ii,j] = b_x_r[ii] * ψ_∂σxx∂x[ii,j] + a_x_r[ii] * ∂σxx∂x_bkw
+                ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[ii,j]
+            end
+            # y boundaries
+            if j <= halo && freetop==false 
+                # top boundary
+                ψ_∂σxz∂z[i,j] = b_z_l[j] * ψ_∂σxz∂z[i,j] + a_z_l[j] * ∂σxz∂z_bkw
+                ∂σxz∂z_bkw = ∂σxz∂z_bkw + ψ_∂σxz∂z[i,j]
+            elseif j >= ny - halo + 1 
+                # bottom boundary
+                jj = j - (ny - halo) + 1 
+                ψ_∂σxz∂z[i,jj] = b_z_r[jj] * ψ_∂σxz∂z[i,jj] + a_z_r[jj] * ∂σxz∂z_bkw
+                ∂σxz∂z_bkw = ∂σxz∂z_bkw + ψ_∂σxz∂z[i,jj]
+            end
+            ##=======================
+            
+            # # C-PML stuff 
+            # ψ_∂σxx∂x[i,j] = b_x[i] * ψ_∂σxx∂x[i,j] + a_x[i] * ∂σxx∂x_bkw
+            # ψ_∂σxz∂z[i,j] = b_z[j] * ψ_∂σxz∂z[i,j] + a_z[j] * ∂σxz∂z_bkw
+            
+            # # derivatives
+            # ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[i,j]
+            # ∂σxz∂z_bkw = ∂σxz∂z_bkw + ψ_∂σxz∂z[i,j]
 
             # update velocity
             vx[i,j] = vx[i,j] + (dt/ρ[i,j]) * (∂σxx∂x_bkw + ∂σxz∂z_bkw)
@@ -160,7 +188,7 @@ end
 
 
 
-function update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,b_x_half,b_z_half,a_x_half,a_z_half,
+function update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,
                     freetop)
 
     if freetop
@@ -186,13 +214,41 @@ function update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,b_x_half,b_z_half,a_x_ha
             # Vz
             ∂σxz∂x_fwd = fact * ( σxz[i-1,j] -27.0*σxz[i,j] +27.0*σxz[i+1,j] -σxz[i+2,j] )
             ∂σzz∂z_fwd = fact * ( σzz[i,j-1] -27.0*σzz[i,j] +27.0*σzz[i,j+1] -σzz[i,j+2] )
+
+
+            ##=======================
+            # C-PML stuff
+            ##=======================
+            # x boundaries
+            if i <= halo + 1
+                # left boundary
+                ψ_∂σxz∂x[i,j] = b_x_l_half[i] * ψ_∂σxx∂x[i,j] + ψ_∂σxz∂x[i,j] + a_x_l_half[i]*∂σxz∂x_fwd
+                ∂σxz∂x_fwd = ∂σxz∂x_fwd + ψ_∂σxz∂x[i,j]
+            elseif i >= nx - halo
+                # right boundary
+                ii = i - (nx - halo) + 1
+                ψ_∂σxz∂x[ii,j] = b_x_l_half[ii] * ψ_∂σxx∂x[ii,j] + ψ_∂σxz∂x[ii,j] + a_x_l_half[ii]*∂σxz∂x_fwd
+                ∂σxz∂x_fwd = ∂σxz∂x_fwd + ψ_∂σxz∂x[ii,j]
+            end
+            # y boundaries
+            if j <= halo +1 && freetop==false # + 1
+                # top boundary
+                ψ_∂σzz∂z[i,j] = b_z_r_half[j] * ψ_∂σzz∂z[i,j] + a_z_r_half[j]*∂σzz∂z_fwd
+                ∂σzz∂z_fwd = ∂σzz∂z_fwd + ψ_∂σzz∂z[i,j]
+            elseif j >= ny - halo
+                # bottom boundary
+                jj = j - (ny - halo) + 1
+                ψ_∂σzz∂z[i,jj] = b_z_r_half[jj] * ψ_∂σzz∂z[i,jj] + a_z_r_half[jj]*∂σzz∂z_fwd
+                ∂σzz∂z_fwd = ∂σzz∂z_fwd + ψ_∂σzz∂z[i,jj]
+            end
+            ##=======================
+
+            # # C-PML stuff 
+            # ψ_∂σxz∂x[i,j] = b_x_half[i] * ψ_∂σxz∂x[i,j] + a_x_half[i]*∂σxz∂x_fwd
+            # ψ_∂σzz∂z[i,j] = b_z_half[j] * ψ_∂σzz∂z[i,j] + a_z_half[j]*∂σzz∂z_fwd
             
-            # C-PML stuff 
-            ψ_∂σxz∂x[i,j] = b_x_half[i] * ψ_∂σxz∂x[i,j] + a_x_half[i]*∂σxz∂x_fwd
-            ψ_∂σzz∂z[i,j] = b_z_half[j] * ψ_∂σzz∂z[i,j] + a_z_half[j]*∂σzz∂z_fwd
-            
-            ∂σxz∂x_fwd = ∂σxz∂x_fwd + ψ_∂σxz∂x[i,j]
-            ∂σzz∂z_fwd = ∂σzz∂z_fwd + ψ_∂σzz∂z[i,j]
+            # ∂σxz∂x_fwd = ∂σxz∂x_fwd + ψ_∂σxz∂x[i,j]
+            # ∂σzz∂z_fwd = ∂σzz∂z_fwd + ψ_∂σzz∂z[i,j]
 
             # update velocity (ρ has been interpolated in advance)
             vz[i,j] = vz[i,j] + (dt/ρ_ihalf_jhalf[i,j]) * (∂σxz∂x_fwd + ∂σzz∂z_fwd)
@@ -204,8 +260,8 @@ function update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,b_x_half,b_z_half,a_x_ha
 end
 
 
-function update_σxxσzz!(σxx,σzz,fact,vx,λ_ihalf,μ_ihalf,dt,b_x_half,b_z,a_x_half,a_z,
-                        freetop)
+function update_σxxσzz!(σxx,σzz,fact,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x,ψ_∂vz∂z,
+                        b_x_half,b_z,a_x_half,a_z,freetop)
 
     if freetop==true
         # σxx, σzz
@@ -251,13 +307,41 @@ function update_σxxσzz!(σxx,σzz,fact,vx,λ_ihalf,μ_ihalf,dt,b_x_half,b_z,a_
             # σxx,σzz
             ∂vx∂x_fwd = fact * ( vx[i-1,j] -27.0*vx[i,j] +27.0*vx[i+1,j] -vx[i+2,j] )
             ∂vz∂z_bkd = fact * ( vz[i,j-2] -27.0*vz[i,j-1] +27.0*vz[i,j] -vz[i,j+1] )
-            
-            # C-PML stuff 
-            ψ_∂vx∂x[i,j] = b_x_half[i] * ψ_∂vx∂x[i,j] + a_x_half[i]*∂vx∂x_fwd
-            ψ_∂vz∂z[i,j] = b_z[j] * ψ_∂vz∂z[i,j] + a_z[j]*∂vz∂z_bkd
 
-            ∂vx∂x_fwd = ∂vx∂x_fwd + ψ_∂vx∂x[i,j]
-            ∂vz∂z_bkd = ∂vz∂z_bkd + ψ_∂vz∂z[i,j]
+            ##=======================
+            # C-PML stuff
+            ##=======================
+            # x boundaries
+            if i <= halo + 1
+                # left boundary
+                ψ_∂vx∂x[i,j] = b_x_l_half[i] * ψ_∂vx∂x[i,j] + a_x_l_half[i]*∂vx∂x_fwd
+                ∂vx∂x_fwd = ∂vx∂x_fwd + ψ_∂vx∂x[i,j]
+            elseif i >= nx - halo
+                # right boundary
+                ii = i - (nx - halo) + 1
+                ψ_∂vx∂x[ii,j] = b_x_l_half[ii] * ψ_∂vx∂x[ii,j] + a_x_l_half[ii]*∂vx∂x_fwd
+                ∂vx∂x_fwd = ∂vx∂x_fwd + ψ_∂vx∂x[ii,j]
+            end
+            # y boundaries
+            if j <= halo && freetop==false 
+                # top boundary
+                ψ_∂vz∂z[i,j] = b_z_r[j] * ψ_∂vz∂z[i,j] + a_z_r[j]*∂vz∂z_bkd
+                ∂vz∂z_bkd = ∂vz∂z_bkd + ψ_∂vz∂z[i,j]
+
+            elseif j >= ny - halo + 1
+                # bottom boundary
+                jj = j - (ny - halo) + 1 
+                ψ_∂vz∂z[i,jj] = b_z_r[jj] * ψ_∂vz∂z[i,jj] + a_z_r[jj]*∂vz∂z_bkd
+                ∂vz∂z_bkd = ∂vz∂z_bkd + ψ_∂vz∂z[i,jj]
+            end
+            ##=======================
+            
+            # # C-PML stuff 
+            # ψ_∂vx∂x[i,j] = b_x_half[i] * ψ_∂vx∂x[i,j] + a_x_half[i]*∂vx∂x_fwd
+            # ψ_∂vz∂z[i,j] = b_z[j] * ψ_∂vz∂z[i,j] + a_z[j]*∂vz∂z_bkd
+
+            # ∂vx∂x_fwd = ∂vx∂x_fwd + ψ_∂vx∂x[i,j]
+            # ∂vz∂z_bkd = ∂vz∂z_bkd + ψ_∂vz∂z[i,j]
             
             # σxx
             σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd +
@@ -274,7 +358,7 @@ function update_σxxσzz!(σxx,σzz,fact,vx,λ_ihalf,μ_ihalf,dt,b_x_half,b_z,a_
 end
 
 
-function update_σxz!(σxz,fact,vx,vz,μ_jhalf,dt,b_x,b_z_half,a_x,a_z_half,
+function update_σxz!(σxz,fact,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,a_x,a_z_half,
                      freetop)
     
     if freetop
@@ -299,13 +383,40 @@ function update_σxz!(σxz,fact,vx,vz,μ_jhalf,dt,b_x,b_z_half,a_x,a_z_half,
             # σxz
             ∂vx∂z_fwd = fact * ( vx[i,j-1] -27.0*vx[i,j] +27.0*vx[i,j+1] -vx[i,j+2] )
             ∂vz∂x_bkd = fact * ( vz[i-2,j] -27.0*vz[i-1,j] +27.0*vz[i,j] -vz[i+1,j] )
-
-            # C-PML stuff 
-            ψ_∂vx∂z[i,j] = b_z_half[j] * ψ_∂vx∂z[i,j] + a_z_half[j]*∂vx∂z_fwd
-            ψ_∂vz∂x[i,j] = b_x[i] * ψ_∂vz∂x[i,j] + a_x[i]*∂vz∂x_bkd
-
-            ∂vx∂z_fwd = ∂vx∂z_fwd + ψ_∂vx∂z[i,j]
-            ∂vz∂x_bkd = ∂vz∂x_bkd + ψ_∂vz∂x[i,j]
+            
+            ##=======================
+            # C-PML stuff
+            ##=======================
+            # x boundaries
+            if i <= halo 
+                # left boundary
+                ψ_∂vz∂x[i,j] = b_x_l[i] * ψ_∂vz∂x[i,j] + a_x_l[i]*∂vz∂x_bkd
+                ∂vz∂x_bkd = ∂vz∂x_bkd + ψ_∂vz∂x[i,j]
+            elseif i >= nx - halo + 1
+                # right boundary
+                ii = i - (nx - halo) + 1
+                ψ_∂vz∂x[ii,j] = b_x_r[ii] * ψ_∂vz∂x[ii,j] + a_x_r[ii]*∂vz∂x_bkd
+                ∂vz∂x_bkd = ∂vz∂x_bkd + ψ_∂vz∂x[ii,j]
+            end
+            # y boundaries
+            if j <= halo +1 && freetop==false 
+                # top boundary
+                ψ_∂vx∂z[i,j] = b_z_half[j] * ψ_∂vx∂z[i,j] + a_z_half[j]*∂vx∂z_fwd
+                ∂vx∂z_fwd = ∂vx∂z_fwd + ψ_∂vx∂z[i,j]
+            elseif j >= ny - halo 
+                # bottom boundary
+                jj = j - (ny - halo) + 1 
+                ψ_∂vx∂z[i,jj] = b_z_half[jj] * ψ_∂vx∂z[i,jj] + a_z_half[jj]*∂vx∂z_fwd
+                ∂vx∂z_fwd = ∂vx∂z_fwd + ψ_∂vx∂z[i,jj]
+            end
+            ##=======================
+            
+            # # C-PML stuff 
+            # ψ_∂vz∂x[i,j] = b_x[i] * ψ_∂vz∂x[i,j] + a_x[i]*∂vz∂x_bkd
+            # ψ_∂vx∂z[i,j] = b_z_half[j] * ψ_∂vx∂z[i,j] + a_z_half[j]*∂vx∂z_fwd
+            
+            # ∂vz∂x_bkd = ∂vz∂x_bkd + ψ_∂vz∂x[i,j]
+            # ∂vx∂z_fwd = ∂vx∂z_fwd + ψ_∂vx∂z[i,j]
             
             # σxz
             σxz[i,j] = σxz[i,j] + μ_jhalf[i,j] * dt * (∂vx∂z_fwd + ∂vz∂x_bkd)
@@ -322,26 +433,32 @@ function forward_onestep_CPML!(vx,vz,σxx,σzz,σxz,
                                ρ,ρ_ihalf_jhalf,
                                μ,μ_ihalf,μ_jhalf,
                                dt,
-                               b_x,b_z,b_x_half,b_z_half,
-                               a_x,a_z,a_x_half,a_z_half,
+                               ψ_∂σxx∂x,ψ_∂σxz∂z,
+                               ψ_∂σxz∂x,ψ_∂σzz∂z,
+                               ψ_∂vx∂x,ψ_∂vz∂z,
+                               ψ_∂vx∂z,ψ_∂vz∂x,
+                               a_x_l, a_x_r, b_x_l, b_x_r,
+                               a_z_l, a_z_r, b_z_l, b_z_r,
+                               a_x_l_half, a_x_r_half, b_x_l_half, b_x_r_half,
+                               a_z_l_half, a_z_r_half, b_z_l_half, b_z_r_half,
                                freetop,save_trace)
                                
 
     # precompute some stuff
-    μ_ihalf,μ_jhalf,λ_ihalf,fact = precomp_prop(ρ,μ,λ,dh)
+    fact = precomp_prop!(ρ,μ,λ,dh,μ_ihalf,μ_jhalf,λ_ihalf)
 
     # update velocities vx and vz
-    update_vx!(vx,fact,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_z,a_x,a_z,
-               freetop)
+    update_vx!(vx,fact,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,
+               b_x,b_z,a_x,a_z,freetop)
 
-    update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,b_x_half,b_z_half,
-               a_x_half,a_z_half,freetop)
+    update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,
+               b_x_half,b_z_half,a_x_half,a_z_half,freetop)
 
     # update stresses σxx, σzz and σxz
-    update_σxxσzz!(σxx,σzz,fact,vx,λ_ihalf,μ_ihalf,dt,b_x_half,
+    update_σxxσzz!(σxx,σzz,fact,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,ψ_∂vx∂x,ψ_∂vz∂z,
                    b_z,a_x_half,a_z,freetop)
 
-    update_σxz!(σxz,fact,vx,vz,μ_jhalf,dt,b_x,b_z_half,
+    update_σxz!(σxz,fact,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,ψ_∂vx∂z,ψ_∂vz∂x,
                 a_x,a_z_half,freetop)
     
 
@@ -352,6 +469,38 @@ function forward_onestep_CPML!(vx,vz,σxx,σzz,σxz,
         record_receivers!( ??????, traces, posrecs, it)
     end
     
+    return
+end
+
+
+function inject_sources!( )
+
+    ## Inject the source as stress from moment tensor
+    ##  See Igel 2017 Computational Seismology (book) page 31, 2.6.1
+    if it<=lensrctf
+
+        for ir in axes(possrcs, 1)
+            irec = floor(Int, possrcs[ir, 1])
+            jrec = floor(Int, possrcs[ir, 2])
+
+            σxx[isrc,jsrc] = σxx[isrc,jsrc] + momtens.σxx * sourcetf[t]* dt 
+            σzz[isrc,jsrc] = σzz[isrc,jsrc] + momtens.σzz * sourcetf[t]* dt 
+            σxz[isrc,jsrc] = σxz[isrc,jsrc] + momtens.σxz * sourcetf[t]* dt
+        end
+        
+    end
+    
+    return
+end
+
+
+function record_receivers!(vx,vz,traces, posrecs, it)
+    for ir in axes(posrecs, 1)
+        irec = floor(Int, posrecs[ir, 1])
+        jrec = floor(Int, posrecs[ir, 2])
+        # interpolate velocities on the same grid?
+        # ????? traces_vx[it, ir ???] = vx[irec, jrec]
+    end
     return
 end
 
