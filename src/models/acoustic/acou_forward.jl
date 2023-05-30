@@ -28,7 +28,7 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
         pold, pcur, pnew = model.backend.forward_onestep_CPML!(
             pold, pcur, pnew, model.fact,
             model.gridspacing..., model.halo,
-            model.ψ..., model.ξ..., model.a_coeffs..., model.b_K_coeffs...,
+            model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
         )
         # Print timestep info

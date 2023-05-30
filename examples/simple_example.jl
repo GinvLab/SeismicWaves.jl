@@ -1,6 +1,7 @@
 
 using Revise
 using SeismicWaves
+using LinearAlgebra
 
 ###################################################################
 using Logging
@@ -97,7 +98,28 @@ function exacouprob()
         infoevery=infoevery,
         snapevery=snapevery)
 
-    return params, velmod, shots, snapshots  # collect(map(s -> s.recs.seismograms, shots))
+    ##===============================================
+    ## compute the gradient
+    shots_grad = Vector{Shot}()
+    for i in 1:nshots
+        seis = shots[i].recs.seismograms
+        nt = size(seis,1)
+        recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
+                                    invcov=Diagonal(ones(nt)))
+        push!(shots_grad, Shot(; srcs=shots[i].srcs, recs=recs_grad))
+    end
+
+    newvelmod = matprop.vp .- 0.2
+    newvelmod[30:40,33:44] *= 0.9
+    matprop_grad = VpAcousticCDMaterialProperty(newvelmod)
+
+    grad = swgradient!(params,
+                       matprop_grad,
+                       shots_grad;
+                       parall=:threads )
+
+
+    return params, velmod, shots, snapshots, grad
 end
 
 ##################################################################
@@ -109,7 +131,7 @@ end
 info_logger = ConsoleLogger(stderr, Logging.Info)
 global_logger(info_logger)
 
-p, v, s, snaps = exacouprob()
+par, vel, sh, snaps, grad = exacouprob()
 
 # with_logger(error_logger) do
 #     p, v, s, snaps = exacouprob()
