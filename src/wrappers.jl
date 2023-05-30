@@ -89,7 +89,9 @@ swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<
         shots::Vector{<:Shot} ;
         parall::Symbol = :threads,
         check_freq::Union{Int, Nothing} = nothing,
-        infoevery::Union{Int, Nothing} = nothing
+        infoevery::Union{Int, Nothing} = nothing,
+        compute_misfit::Bool = false,
+        smooth_radius::Integer = 5
     ):Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
 
 Compute gradients w.r.t. model parameters using the given input parameters `params` and material parameters `matprop` on multiple shots.
@@ -110,6 +112,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `check_freq::Union{Int, Nothing} = nothing`: if specified, enables checkpointing and specifies the checkpointing frequency.
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 - `compute_misfit::Bool = false`: if true, also computes and return misfit value.
+- `smooth_radius::Integer = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
 """
 function swgradient!(
     params::InputParameters{N},
@@ -118,10 +121,11 @@ function swgradient!(
     parall::Symbol=:threads,
     check_freq::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
-    compute_misfit::Bool=false
+    compute_misfit::Bool=false,
+    smooth_radius::Integer=5
 )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
     # Build wavesim
-    wavesim = build_wavesim(params; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq)
+    wavesim = build_wavesim(params; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
     # Solve simulation
     return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit)
 end

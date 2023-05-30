@@ -71,6 +71,8 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     snapshots::Union{<:Array{<:Real}, Nothing}
     # Logging parameters
     infoevery::Integer
+    # Gradient smoothing parameters
+    smooth_radius::Integer
     # Material properties
     matprop::VpAcousticCDMaterialProperty
     # CPML coefficients
@@ -112,7 +114,8 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         gradient::Bool=false,
         check_freq::Union{<:Integer, Nothing}=nothing,
         snapevery::Union{<:Integer, Nothing}=nothing,
-        infoevery::Union{<:Integer, Nothing}=nothing
+        infoevery::Union{<:Integer, Nothing}=nothing,
+        smooth_radius::Integer=5
     ) where {N}
         # Check numerics
         @assert all(ns .> 0) "All numbers of grid points must be positive!"
@@ -237,6 +240,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
             snapevery,
             snapshots,
             infoevery,
+            smooth_radius,
             matprop,
             cpmlcoeffs,
             fact,
