@@ -4,20 +4,20 @@ function smooth_gradient!(grad, possrcs, radius)
     for s in 1:nsources
         isrc = possrcs[s,1]
         jsrc = possrcs[s,2]
-        zsrc = possrcs[s,3]
+        ksrc = possrcs[s,3]
         imin = isrc - radius
         imax = isrc + radius
         jmin = jsrc - radius
         jmax = jsrc + radius
-        zmin = zsrc - radius
-        zmax = zsrc + radius
+        kmin = ksrc - radius
+        kmax = ksrc + radius
         for i in imin:imax
             for j in jmin:jmax
-                for z in zmin:zmax
-                    if 1 <= i <= nx && 1 <= j <= ny && 1 <= z <= nz
-                        r = sqrt((i - isrc)^2 + (j - jsrc)^2 + (z - zsrc)^2)
+                for k in kmin:kmax
+                    if 1 <= i <= nx && 1 <= j <= ny && 1 <= k <= nz
+                        r = sqrt((i - isrc)^2 + (j - jsrc)^2 + (k - ksrc)^2)
                         if r <= radius
-                            grad[i] *= r / radius
+                            grad[i, j, k] *= r / radius
                         end
                     end
                 end
