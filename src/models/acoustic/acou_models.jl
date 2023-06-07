@@ -150,7 +150,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
             append!(ξ, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
         end
         # Initialize CPML coefficients
-        cpmlcoeffs = tuple([CPMLCoefficients(halo, backend) for _ in 1:N]...)
+        cpmlcoeffs = tuple([CPMLCoefficients(halo, backend, sizehalfgrdplusone=true) for _ in 1:N]...)
         # Build CPML coefficient arrays for computations (they are just references to cpmlcoeffs)
         a_coeffs = []
         b_coeffs = []

@@ -23,6 +23,7 @@
     return
 end
 
+
 function check_numerics(
     model::ElasticIsoWaveSimul,
     shot::Shot;
@@ -36,24 +37,27 @@ function check_numerics(
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
+
 @views function update_matprop!(model::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperty{N}) where {N}
     # Update material properties
     model.matprop.λ .= matprop.λ
     model.matprop.μ .= matprop.μ
     model.matprop.ρ .= matprop.ρ
+
+    # the following on device?
+    precomp_elaprop!(model.matprop.ρ,model.matprop.μ,model.matprop.λ,
+                     model.matprop.ρ_ihalf_jhalf,
+                     model.matprop.μ_ihalf,model.matprop.μ_jhalf,
+                     model.matprop.λ_ihalf)
+
     return
 end
 
 
-# @views function scale_srctf(model::ElasticIsoWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
-#     # scale with boxcar and timestep size
-#     scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt^2)
-#     # scale with velocity squared at each source position
-#     for s in axes(scaled_tf, 2)
-#         scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] .^ 2
-#     end
-#     return scaled_tf
-# end
+@views function scale_srctf(model::ElasticIsoWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
+    scaled_tf = copy(srctf)
+    return scaled_tf
+end
 
 ###########################################################
 
@@ -74,64 +78,28 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     check_freq::Union{<:Integer, Nothing}
     # Snapshots
     snapevery::Union{<:Integer, Nothing}
-    snapshots::Union{<:Array{<:Real}, Nothing}
+    snapshots::Union{Vector{<:Array{<:Real}}, Nothing}
     # Logging parameters
     infoevery::Integer
     # Material properties
-    matprop::VpElasticIsoMaterialProperty
-    # CPML coefficients
-    cpmlcoeffs::NTuple{N, CPMLCoefficients}
+    matprop::ElasticIsoMaterialProperty
+    # # CPML coefficients
+    # cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Forward computation arrays
-    vx::Any
-    vz::Any
-    σxx::Any
-    σzz::Any
-    σxz::Any
-    λ::Any
-    μ::Any
-    ρ::Any
-    # ρ_ihalf_jhalf::Any
-    # μ_ihalf::Any
-    # μ_jhalf::Any
-    # λ_ihalf::Any
-    ψ::Elaψ
-    # ψ_∂σxx∂x::Any
-    # ψ_∂σxz∂z::Any
-    # ψ_∂σxz∂x::Any
-    # ψ_∂σzz∂z::Any
-    # ψ_∂vx∂x::Any
-    # ψ_∂vz∂z::Any
-    # ψ_∂vz∂x::Any
-    # ψ_∂vx∂z::Any
+    velpartic::Any # 2D: 2 comp, 3D: 3 comp
+    stress::Any # 2D: 3 arrays, 3D: 6 arrays
+    ψ::Any
     a_coeffs::Any
     b_coeffs::Any
     # Gradient computation arrays
-    grad::Any
     adj::Any
-    ψ_∂σxx∂x_adj::Any
-    ψ_∂σxz∂z_adj::Any
-    ψ_∂σxz∂x_adj::Any
-    ψ_∂σzz∂z_adj::Any
-    ψ_∂vx∂x_adj::Any
-    ψ_∂vz∂z_adj::Any
-    ψ_∂vz∂x_adj::Any
-    ψ_∂vx∂z_adj::Any
+    ψ_adj::Any
+    grad::Any
     # Checkpointing setup
     last_checkpoint::Union{<:Integer, Nothing}
     save_buffer::Any
     checkpoints::Any
-    checkpoints_ψ_∂σxx∂x::Any
-    checkpoints_ψ_∂σxz∂z::Any
-    checkpoints_ψ_∂σxz∂x::Any
-    checkpoints_ψ_∂σzz∂z::Any
-    checkpoints_ψ_∂vx∂x::Any
-    checkpoints_ψ_∂vz∂z::Any
-    checkpoints_ψ_∂vz∂x::Any
-    checkpoints_ψ_∂vx∂z::Any
-    a_coeffs::Any
-    b_coeffs::Any
-
-    
+    checkpoints_ψ::Any
     # Backend
     backend::Module
 
@@ -163,26 +131,49 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         # Compute model sizes
         ls = gridspacing .* (ns .- 1)
         # Initialize material properties
-        matprop = VpElasticIsoMaterialProperty(zeros(ns...))
+        if N==2
+            matprop = ElasticIsoMaterialProperty_Compute2D(λ=backend.zeros(ns...),
+                                                           μ=backend.zeros(ns...),
+                                                           ρ=backend.zerons(ns...),
+                                                           λ_ihalf=backend.zeros((ns.-1)...),
+                                                           μ_ihalf=backend.zeros((ns.-[1,0])...),
+                                                           μ_jhalf=backend.zeros((ns.-[0,1])...),
+                                                           ρ_ihalf_jhalf=backend.zeros((ns.-1)...),
+                                                           )
+
+        else
+            error("Only elastic 2D is currently implemented.")
+        end
 
         # Select backend
         backend = select_backend(ElasticIsoCPMLWaveSimul{N}, parall)
 
         # Initialize computational arrays
-        fact = backend.zeros(ns...)
-        pold = backend.zeros(ns...)
-        pcur = backend.zeros(ns...)
-        pnew = backend.zeros(ns...)
+        velpartic = [backend.zeros(ns...) for _ in 1:N] # vx, vy[, vz]
+        stress = [backend.zeros(ns...) for _ in 1:(N-1)*3] # σxx, σxz, σzz[, σyz, σxy, σyy]
+        
+        ## 2D:
+        # ρ_ihalf_jhalf::Any
+        # μ_ihalf::Any
+        # μ_jhalf::Any
+        # λ_ihalf::Any
+        ##
         # Initialize CPML arrays
-        ψ = []
-        ξ = []
+        ## 2D:
+        # ψ_∂σxx∂x  halo
+        # ψ_∂σxz∂z  halo
+        # ψ_∂σxz∂x  halo
+        # ψ_∂σzz∂z  halo
+        # ψ_∂vx∂x   halo
+        # ψ_∂vz∂z   halo
+        # ψ_∂vz∂x   halo 
+        # ψ_∂vx∂z   halo
+        ##
+        ψ = []        
         for i in 1:N
             ψ_ns = [ns...]
-            ξ_ns = [ns...]
-            ψ_ns[i] = halo + 1
-            ξ_ns[i] = halo
-            append!(ψ, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
-            append!(ξ, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
+            ψ_ns[i] = halo 
+            append!(ψ, [backend.zeros(ψ_ns...) for _ in 1:(N*2^N)])
         end
         # Initialize CPML coefficients
         cpmlcoeffs = tuple([CPMLCoefficients(halo, backend) for _ in 1:N]...)
@@ -195,62 +186,62 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         end
         # Initialize gradient arrays if needed
         if gradient
-            # Current gradient array
-            curgrad = backend.zeros(ns...)
-            # Adjoint arrays
-            adjold = backend.zeros(ns...)
-            adjcur = backend.zeros(ns...)
-            adjnew = backend.zeros(ns...)
-            # Initialize CPML arrays
-            ψ_adj = []
-            ξ_adj = []
-            for i in 1:N
-                ψ_ns = [ns...]
-                ξ_ns = [ns...]
-                ψ_ns[i] = halo + 1
-                ξ_ns[i] = halo
-                append!(ψ_adj, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
-                append!(ξ_adj, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
-            end
-            # Checkpointing setup
-            if check_freq !== nothing
-                @assert check_freq > 2 "Checkpointing frequency must be bigger than 2!"
-                @assert check_freq < nt "Checkpointing frequency must be smaller than the number of timesteps!"
-                # Time step of last checkpoint
-                last_checkpoint = floor(Int, nt / check_freq) * check_freq
-                # Checkpointing arrays
-                save_buffer = backend.zeros(ns..., check_freq + 2)      # pressure window buffer
-                checkpoints = Dict{Int, backend.Data.Array}()           # pressure checkpoints
-                checkpoints_ψ = Dict{Int, Any}()                        # ψ arrays checkpoints
-                checkpoints_ξ = Dict{Int, Any}()                        # ξ arrays checkpoints
-                # Save initial conditions as first checkpoint
-                checkpoints[-1] = copy(pold)
-                checkpoints[0] = copy(pcur)
-                checkpoints_ψ[0] = copy.(ψ)
-                checkpoints_ξ[0] = copy.(ξ)
-                # Preallocate future checkpoints
-                for it in 1:(nt+1)
-                    if it % check_freq == 0
-                        checkpoints[it] = backend.zeros(ns...)
-                        checkpoints[it-1] = backend.zeros(ns...)
-                        checkpoints_ψ[it] = copy.(ψ)
-                        checkpoints_ξ[it] = copy.(ξ)
-                    end
-                end
-            else    # no checkpointing
-                last_checkpoint = 0                                 # simulate a checkpoint at time step 0 (so buffer will start from -1)
-                save_buffer = backend.zeros(ns..., nt + 2)          # save all timesteps (from -1 to nt+1 so nt+2)
-                checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints (will remain empty)
-                checkpoints_ψ = Dict{Int, Any}()                    # ψ arrays checkpoints (will remain empty)
-                checkpoints_ξ = Dict{Int, Any}()                    # ξ arrays checkpoints (will remain empty)
-            end
-            # Save first 2 timesteps in save buffer
-            save_buffer[fill(Colon(), N)..., 1] .= pold
-            save_buffer[fill(Colon(), N)..., 2] .= pcur
+            error("Gradient for elastic calculations not yet implemented!")
+
+            # # Current gradient array
+            # curgrad = backend.zeros(ns...)
+            # # Adjoint arrays
+            # adj = backend.zeros(ns...)
+            # # Initialize CPML arrays
+            # ψ_adj = []
+            # ξ_adj = []
+            # for i in 1:N
+            #     ψ_ns = [ns...]
+            #     ξ_ns = [ns...]
+            #     ψ_ns[i] = halo + 1
+            #     ξ_ns[i] = halo
+            #     append!(ψ_adj, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
+            #     append!(ξ_adj, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
+            # end
+            # # Checkpointing setup
+            # if check_freq !== nothing
+            #     @assert check_freq > 2 "Checkpointing frequency must be bigger than 2!"
+            #     @assert check_freq < nt "Checkpointing frequency must be smaller than the number of timesteps!"
+            #     # Time step of last checkpoint
+            #     last_checkpoint = floor(Int, nt / check_freq) * check_freq
+            #     # Checkpointing arrays
+            #     save_buffer = backend.zeros(ns..., check_freq + 2)      # pressure window buffer
+            #     checkpoints = Dict{Int, backend.Data.Array}()           # pressure checkpoints
+            #     checkpoints_ψ = Dict{Int, Any}()                        # ψ arrays checkpoints
+            #     checkpoints_ξ = Dict{Int, Any}()                        # ξ arrays checkpoints
+            #     # Save initial conditions as first checkpoint
+            #     checkpoints[-1] = copy(pold)
+            #     checkpoints[0] = copy(pcur)
+            #     checkpoints_ψ[0] = copy.(ψ)
+            #     checkpoints_ξ[0] = copy.(ξ)
+            #     # Preallocate future checkpoints
+            #     for it in 1:(nt+1)
+            #         if it % check_freq == 0
+            #             checkpoints[it] = backend.zeros(ns...)
+            #             checkpoints[it-1] = backend.zeros(ns...)
+            #             checkpoints_ψ[it] = copy.(ψ)
+            #             checkpoints_ξ[it] = copy.(ξ)
+            #         end
+            #     end
+            # else    # no checkpointing
+            #     last_checkpoint = 0                                 # simulate a checkpoint at time step 0 (so buffer will start from -1)
+            #     save_buffer = backend.zeros(ns..., nt + 2)          # save all timesteps (from -1 to nt+1 so nt+2)
+            #     checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints (will remain empty)
+            #     checkpoints_ψ = Dict{Int, Any}()                    # ψ arrays checkpoints (will remain empty)
+            #     checkpoints_ξ = Dict{Int, Any}()                    # ξ arrays checkpoints (will remain empty)
+            # end
+            # # Save first 2 timesteps in save buffer
+            # save_buffer[fill(Colon(), N)..., 1] .= pold
+            # save_buffer[fill(Colon(), N)..., 2] .= pcur
         end
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? zeros(ns..., div(nt, snapevery)) : nothing)
+        snapshots = (snapevery !== nothing ? [zeros(ns..., div(nt, snapevery)) for _ in 1:N] : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
@@ -273,26 +264,18 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
             snapshots,
             infoevery,
             matprop,
-            cpmlcoeffs,
-            fact,
-            pold,
-            pcur,
-            pnew,
+            velpartic,
+            stress,
             ψ,
-            ξ,
             a_coeffs,
             b_coeffs,
-            gradient ? curgrad : nothing,
-            gradient ? adjold : nothing,
-            gradient ? adjcur : nothing,
-            gradient ? adjnew : nothing,
+            gradient ? adj : nothing,
             gradient ? ψ_adj : nothing,
-            gradient ? ξ_adj : nothing,
+            gradient ? grad : nothing,
             gradient ? last_checkpoint : nothing,
             gradient ? save_buffer : nothing,
             gradient ? checkpoints : nothing,
             gradient ? checkpoints_ψ : nothing,
-            gradient ? checkpoints_ξ : nothing,
             backend
         )
     end
@@ -303,27 +286,28 @@ end
 # Specific functions for ElasticIsoCPMLWaveSimul
 
 @views function reset!(model::ElasticIsoCPMLWaveSimul{N}) where {N}
+
     # Reset computational arrays
-    model.pold .= 0.0
-    model.pcur .= 0.0
-    model.pnew .= 0.0
-    for i in eachindex(model.ψ)
-        model.ψ[i] .= 0.0
+    for p in eachindex(model.velpartics)
+        model.velpartic[p] .= 0.0
     end
-    for i in eachindex(model.ξ)
-        model.ξ[i] .= 0.0
+    for p in eachindex(model.stress)
+        model.stress[p] .= 0.0
     end
+    for p in eachindex(model.ψ)
+        model.ψ[p] .= 0.0
+    end
+
     # Reset gradient arrays
     if model.gradient
-        model.curgrad .= 0.0
-        model.adjold .= 0.0
-        model.adjcur .= 0.0
-        model.adjnew .= 0.0
-        for i in eachindex(model.ψ_adj)
-            model.ψ_adj[i] .= 0.0
+        for p in eachindex(model.adj)
+            model.adj[p][:] .= 0.0
         end
-        for i in eachindex(model.ξ_adj)
-            model.ξ_adj[i] .= 0.0
+        for p in eachindex(model.grad)
+            model.grad[p] .= 0.0
+        end
+        for p in eachindex(model.ψ_adj)
+            model.ψ_adj[p] .= 0.0
         end
     end
 end

@@ -8,8 +8,10 @@ struct CPMLCoefficients
     b_hl::Any
     b_hr::Any
 
-    function CPMLCoefficients(halo::Integer, backend::Module)
-        return new(
+    function CPMLCoefficients(halo::Integer, backend::Module,
+                              sizehalfgrdplusone::Bool=false)
+        if sizehalfgrdplusone
+            return new(
             backend.zeros(halo),
             backend.zeros(halo),
             backend.zeros(halo + 1),
@@ -18,7 +20,18 @@ struct CPMLCoefficients
             backend.zeros(halo),
             backend.zeros(halo + 1),
             backend.zeros(halo + 1)
-        )
+            )
+        else
+            return new(
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo)
+        end
     end
 end
 

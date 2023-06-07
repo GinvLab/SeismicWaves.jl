@@ -22,7 +22,7 @@ end
     # Remark: matprop in wavesim are mutated
     @info "Setting wavesim material properties"
     set_wavesim_matprop!(wavsim, matprop)
-    # Now onwards matprop from outside should not be used anymore!!!
+    # Now onwards matprop from "outside" should not be used anymore!!!
 
     # Snapshots setup
     takesnapshots = snapenabled(wavsim)

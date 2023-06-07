@@ -6,6 +6,7 @@ module SeismicWaves
 using LinearAlgebra
 using Printf
 using ParallelStencil
+using ComputedFieldTypes
 
 export InputParametersAcoustic
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters

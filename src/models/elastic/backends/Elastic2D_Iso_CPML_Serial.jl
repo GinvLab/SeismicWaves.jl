@@ -89,15 +89,14 @@ zeros = Base.zeros
 
 
 
-function precomp_prop!(ρ,μ,λ,dh,μ_ihalf,μ_jhalf,λ_ihalf,fact)
+function precomp_elaprop!(ρ,μ,λ,ρ_ihalf_jhalf,μ_ihalf,μ_jhalf,λ_ihalf)
 
-   fact::Float64 = 1.0/(24.0*dh)
-    
     #-------------------------------------------------------------
     # pre-interpolate properties at half distances between nodes
     #-------------------------------------------------------------
     # ρ_ihalf_jhalf (nx-1,ny-1) ??
-    @. ρ_ihalf_jhalf = (ρ[2:end,2:end]+ρ[2:end,1:end-1]+ρ[1:end-1,2:end]+ρ[1:end-1,1:end-1])/4.0
+    @. ρ_ihalf_jhalf = (ρ[2:end,2:end]+ρ[2:end,1:end-1]+
+        ρ[1:end-1,2:end]+ρ[1:end-1,1:end-1])/4.0
     # μ_ihalf (nx-1,ny) ??
     # μ_ihalf (nx,ny-1) ??
     if harmonicaver_μ==true 
@@ -111,22 +110,22 @@ function precomp_prop!(ρ,μ,λ,dh,μ_ihalf,μ_jhalf,λ_ihalf,fact)
     # λ_ihalf (nx-1,ny) ??
     @. λ_ihalf = (λ[2:end,:] + λ[1:end-1,:]) / 2.0
 
-    return fact
+    return
 end
 
 
-function update_vx!(vx,fact,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_z,a_x,a_z,
-                    freetop)
 
-    if freeop
+function update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_z,a_x,a_z,
+                    freetop)
+    if freetop
         for j = 1:2
             for i = 3:nx-1
                 
                 # Vx
                 # σxx derivative only in x so no problem
-                ∂σxx∂x_bkw = fact * ( σxx[i-2,j] -27.0*σxx[i-1,j] +27.0*σxx[i,j] -σxx[i+1,j] )
+                ∂σxx∂x_bkw = factx * ( σxx[i-2,j] -27.0*σxx[i-1,j] +27.0*σxx[i,j] -σxx[i+1,j] )
                 # image, mirroring σxz[i,j-2] = -σxz[i,j+1], etc.
-                ∂σxz∂z_bkw = fact * ( -σxz[i,j+1] +27.0*σxz[i,j] +27.0*σxz[i,j] -σxz[i,j+1] )
+                ∂σxz∂z_bkw = factz * ( -σxz[i,j+1] +27.0*σxz[i,j] +27.0*σxz[i,j] -σxz[i,j+1] )
                 # update velocity
                 vx[i,j] = vx[i,j] + (dt/ρ[i,j]) * (∂σxx∂x_bkw + ∂σxz∂z_bkw)
 
@@ -139,8 +138,8 @@ function update_vx!(vx,fact,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_
         for i = 3:nx-1
             
             # Vx
-            ∂σxx∂x_bkw = fact * ( σxx[i-2,j] -27.0*σxx[i-1,j] +27.0*σxx[i,j] -σxx[i+1,j] )
-            ∂σxz∂z_bkw = fact * ( σxz[i,j-2] -27.0*σxz[i,j-1] +27.0*σxz[i,j] -σxz[i,j+1] )
+            ∂σxx∂x_bkw = factx * ( σxx[i-2,j] -27.0*σxx[i-1,j] +27.0*σxx[i,j] -σxx[i+1,j] )
+            ∂σxz∂z_bkw = factz * ( σxz[i,j-2] -27.0*σxz[i,j-1] +27.0*σxz[i,j] -σxz[i,j+1] )
 
             ##=======================
             # C-PML stuff
@@ -188,8 +187,8 @@ end
 
 
 
-function update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,
-                    freetop)
+function update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,b_x_half,b_z_half,
+                    a_x_half,a_z_half,freetop)
 
     if freetop
         for j = 1:2         
@@ -197,9 +196,9 @@ function update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σz
 
                 # Vz
                 # σxz derivative only in x so no problem
-                ∂σxz∂x_fwd = fact * ( σxz[i-1,j] -27.0*σxz[i,j] +27.0*σxz[i+1,j] -σxz[i+2,j] )
+                ∂σxz∂x_fwd = factx * ( σxz[i-1,j] -27.0*σxz[i,j] +27.0*σxz[i+1,j] -σxz[i+2,j] )
                 # image, mirroring σzz[i,j-1] = -σxz[i,j+2], etc.
-                ∂σzz∂z_fwd = fact * ( -σzz[i,j+2] +27.0*σzz[i,j+1] +27.0*σzz[i,j+1] -σzz[i,j+2] )
+                ∂σzz∂z_fwd = factz * ( -σzz[i,j+2] +27.0*σzz[i,j+1] +27.0*σzz[i,j+1] -σzz[i,j+2] )
                 # update velocity (ρ has been interpolated in advance)
                 vz[i,j] = vz[i,j] + (dt/ρ_ihalf_jhalf[i,j]) * (∂σxz∂x_fwd + ∂σzz∂z_fwd)
                 
@@ -212,8 +211,8 @@ function update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σz
         for i = 2:nx-2
             
             # Vz
-            ∂σxz∂x_fwd = fact * ( σxz[i-1,j] -27.0*σxz[i,j] +27.0*σxz[i+1,j] -σxz[i+2,j] )
-            ∂σzz∂z_fwd = fact * ( σzz[i,j-1] -27.0*σzz[i,j] +27.0*σzz[i,j+1] -σzz[i,j+2] )
+            ∂σxz∂x_fwd = factx * ( σxz[i-1,j] -27.0*σxz[i,j] +27.0*σxz[i+1,j] -σxz[i+2,j] )
+            ∂σzz∂z_fwd = factz * ( σzz[i,j-1] -27.0*σzz[i,j] +27.0*σzz[i,j+1] -σzz[i,j+2] )
 
 
             ##=======================
@@ -260,7 +259,7 @@ function update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σz
 end
 
 
-function update_σxxσzz!(σxx,σzz,fact,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x,ψ_∂vz∂z,
+function update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x,ψ_∂vz∂z,
                         b_x_half,b_z,a_x_half,a_z,freetop)
 
     if freetop==true
@@ -270,7 +269,7 @@ function update_σxxσzz!(σxx,σzz,fact,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x
         for i = 2:nx-2                
             # σxx
             # vx derivative only in x so no problem
-            ∂vx∂x_fwd = fact * ( vx[i-1,j] -27.0*vx[i,j] +27.0*vx[i+1,j] -vx[i+2,j] )
+            ∂vx∂x_fwd = factx * ( vx[i-1,j] -27.0*vx[i,j] +27.0*vx[i+1,j] -vx[i+2,j] )
             # using boundary condition to calculate ∂vz∂z_bkd from ∂vx∂x_fwd
             ∂vz∂z_bkd = -(1.0-2.0*μ_ihalf[i,j]/λ_ihalf[i,j])*∂vx∂x_fwd
             # σxx
@@ -286,9 +285,9 @@ function update_σxxσzz!(σxx,σzz,fact,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x
         for i = 2:nx-2  
             # σxx
             # vx derivative only in x so no problem
-            ∂vx∂x_fwd = fact * ( vx[i-1,j] -27.0*vx[i,j] +27.0*vx[i+1,j] -vx[i+2,j] )
+            ∂vx∂x_fwd = factx * ( vx[i-1,j] -27.0*vx[i,j] +27.0*vx[i+1,j] -vx[i+2,j] )
             # zero velocity above the free surface
-            ∂vz∂z_bkd = fact * ( 0.0 -27.0*vz[i,j-1] +27.0*vz[i,j] -vz[i,j+1] )
+            ∂vz∂z_bkd = factz * ( 0.0 -27.0*vz[i,j-1] +27.0*vz[i,j] -vz[i,j+1] )
             # σxx
             σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd +
                 λ_ihalf[i,j] * dt * ∂vz∂z_bkd
@@ -305,8 +304,8 @@ function update_σxxσzz!(σxx,σzz,fact,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x
         for i = 2:nx-2                
             
             # σxx,σzz
-            ∂vx∂x_fwd = fact * ( vx[i-1,j] -27.0*vx[i,j] +27.0*vx[i+1,j] -vx[i+2,j] )
-            ∂vz∂z_bkd = fact * ( vz[i,j-2] -27.0*vz[i,j-1] +27.0*vz[i,j] -vz[i,j+1] )
+            ∂vx∂x_fwd = factx * ( vx[i-1,j] -27.0*vx[i,j] +27.0*vx[i+1,j] -vx[i+2,j] )
+            ∂vz∂z_bkd = factz * ( vz[i,j-2] -27.0*vz[i,j-1] +27.0*vz[i,j] -vz[i,j+1] )
 
             ##=======================
             # C-PML stuff
@@ -358,7 +357,7 @@ function update_σxxσzz!(σxx,σzz,fact,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x
 end
 
 
-function update_σxz!(σxz,fact,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,a_x,a_z_half,
+function update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,a_x,a_z_half,
                      freetop)
     
     if freetop
@@ -366,9 +365,9 @@ function update_σxz!(σxz,fact,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,a_x,a_z_half,
         j = 1
         for i=3:nx-1    
             # zero velocity above the free surface
-            ∂vx∂z_fwd = fact * ( 0.0 -27.0*vx[i,j] +27.0*vx[i,j+1] -vx[i,j+2] )
+            ∂vx∂z_fwd = factz * ( 0.0 -27.0*vx[i,j] +27.0*vx[i,j+1] -vx[i,j+2] )
             # vz derivative only in x so no problem
-            ∂vz∂x_bkd = fact * ( vz[i-2,j] -27.0*vz[i-1,j] +27.0*vz[i,j] -vz[i+1,j] )
+            ∂vz∂x_bkd = factx * ( vz[i-2,j] -27.0*vz[i-1,j] +27.0*vz[i,j] -vz[i+1,j] )
             
             # σxz
             σxz[i,j] = σxz[i,j] + μ_jhalf[i,j] * dt * (∂vx∂z_fwd + ∂vz∂x_bkd)
@@ -381,8 +380,8 @@ function update_σxz!(σxz,fact,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,a_x,a_z_half,
         for i = 3:nx-1  
 
             # σxz
-            ∂vx∂z_fwd = fact * ( vx[i,j-1] -27.0*vx[i,j] +27.0*vx[i,j+1] -vx[i,j+2] )
-            ∂vz∂x_bkd = fact * ( vz[i-2,j] -27.0*vz[i-1,j] +27.0*vz[i,j] -vz[i+1,j] )
+            ∂vx∂z_fwd = factz * ( vx[i,j-1] -27.0*vx[i,j] +27.0*vx[i,j+1] -vx[i,j+2] )
+            ∂vz∂x_bkd = factx * ( vz[i-2,j] -27.0*vz[i-1,j] +27.0*vz[i,j] -vz[i+1,j] )
             
             ##=======================
             # C-PML stuff
@@ -430,62 +429,64 @@ end
 
 
 function forward_onestep_CPML!(vx,vz,σxx,σzz,σxz,
+                               λ_ihalf,
                                ρ,ρ_ihalf_jhalf,
                                μ,μ_ihalf,μ_jhalf,
-                               dt,
+                               dt,dx,dz,
                                ψ_∂σxx∂x,ψ_∂σxz∂z,
                                ψ_∂σxz∂x,ψ_∂σzz∂z,
                                ψ_∂vx∂x,ψ_∂vz∂z,
                                ψ_∂vx∂z,ψ_∂vz∂x,
-                               a_x_l, a_x_r, b_x_l, b_x_r,
-                               a_z_l, a_z_r, b_z_l, b_z_r,
-                               a_x_l_half, a_x_r_half, b_x_l_half, b_x_r_half,
-                               a_z_l_half, a_z_r_half, b_z_l_half, b_z_r_half,
-                               freetop,save_trace)
+                               a_x_l, a_x_r, a_x_l_half, a_x_r_half,
+                               a_z_l, a_z_r, a_z_l_half, a_z_r_half,
+                               b_x_l, b_x_r, b_x_l_half, b_x_r_half,
+                               b_z_l, b_z_r, b_z_l_half, b_z_r_half,
+                               Mxx,Mzz,Mxz,
+                               possrcs_a, srctf_a, posrecs_a, traces_a, it,
+                               freetop, save_trace)
                                
-
-    # precompute some stuff
-    fact = precomp_prop!(ρ,μ,λ,dh,μ_ihalf,μ_jhalf,λ_ihalf)
-
+    factx = 1.0/(24.0*dx)
+    factz = 1.0/(24.0*dz)
+    
     # update velocities vx and vz
-    update_vx!(vx,fact,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,
+    update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,
                b_x,b_z,a_x,a_z,freetop)
 
-    update_vz!(vz,fact,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,
+    update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,
                b_x_half,b_z_half,a_x_half,a_z_half,freetop)
 
     # update stresses σxx, σzz and σxz
-    update_σxxσzz!(σxx,σzz,fact,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,ψ_∂vx∂x,ψ_∂vz∂z,
+    update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,ψ_∂vx∂x,ψ_∂vz∂z,
                    b_z,a_x_half,a_z,freetop)
 
-    update_σxz!(σxz,fact,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,ψ_∂vx∂z,ψ_∂vz∂x,
+    update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,ψ_∂vx∂z,ψ_∂vz∂x,
                 a_x,a_z_half,freetop)
     
 
     # inject sources
-    inject_sources!( ??????, dt2srctf, possrcs, it)  
+    inject_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_a, dt, possrcs, it)  
     # record receivers
     if save_trace
-        record_receivers!( ??????, traces, posrecs, it)
+        record_receivers!(vx,vz,traces_a, posrecs, it)
     end
     
     return
 end
 
 
-function inject_sources!( )
+function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_a, dt, possrcs, it)
 
     ## Inject the source as stress from moment tensor
     ##  See Igel 2017 Computational Seismology (book) page 31, 2.6.1
     if it<=lensrctf
 
-        for ir in axes(possrcs, 1)
-            irec = floor(Int, possrcs[ir, 1])
-            jrec = floor(Int, possrcs[ir, 2])
+        for s in axes(possrcs, 1)
+            irec = floor(Int, possrcs[s, 1])
+            jrec = floor(Int, possrcs[s, 2])
 
-            σxx[isrc,jsrc] = σxx[isrc,jsrc] + momtens.σxx * sourcetf[t]* dt 
-            σzz[isrc,jsrc] = σzz[isrc,jsrc] + momtens.σzz * sourcetf[t]* dt 
-            σxz[isrc,jsrc] = σxz[isrc,jsrc] + momtens.σxz * sourcetf[t]* dt
+            σxx[isrc,jsrc] = σxx[isrc,jsrc] + Mxx[s] * srctf_a[it] * dt 
+            σzz[isrc,jsrc] = σzz[isrc,jsrc] + Mzz[s] * srctf_a[it] * dt 
+            σxz[isrc,jsrc] = σxz[isrc,jsrc] + Mxz[s] * srctf_a[it] * dt
         end
         
     end
@@ -494,12 +495,16 @@ function inject_sources!( )
 end
 
 
-function record_receivers!(vx,vz,traces, posrecs, it)
+function record_receivers!(vx,vz,traces_a, posrecs, it)
+
     for ir in axes(posrecs, 1)
         irec = floor(Int, posrecs[ir, 1])
         jrec = floor(Int, posrecs[ir, 2])
         # interpolate velocities on the same grid?
-        # ????? traces_vx[it, ir ???] = vx[irec, jrec]
+        N=2 # 2D
+        for i=1:N
+            traces_a[it,i,ir] = vx[irec, jrec]
+        end
     end
     return
 end

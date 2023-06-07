@@ -8,15 +8,7 @@ swforward_1shot!(model::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryCo
     srctf,
     traces
 ) where {N}
-    # Velocity arrays
-    vx = model.vx
-    vz = model.vz
-    # Stress arrays
-    σxx = model.σxx
-    σzz = model.σzz
-    σxz = model.σxz
-    # C-PML memory arrays
-    
+       
     # Numerics
     nt = model.nt
     # Wrap sources and receivers arrays
@@ -24,35 +16,30 @@ swforward_1shot!(model::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryCo
     posrecs_a = model.backend.Data.Array(posrecs)
     srctf_a = model.backend.Data.Array(srctf)
     traces_a = model.backend.Data.Array(traces)
+
+    ## ONLY 2D for now!!!
+    Mxx = model.backend.Data.Array(momtens.Mxx)
+    Mzz = model.backend.Data.Array(momtens.Mzz)
+    Mxz = model.backend.Data.Array(momtens.Mxz)
+
+
     # Reset wavesim
     reset!(model)
 
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        model.backend.forward_onestep_CPML!(model.vx, model.vz,
-                                            model.σxx, model.σzz, model.σxz,
+        model.backend.forward_onestep_CPML!(model.velpartic..., model.stress...,
+                                            model.λ_ihalf
                                             model.ρ, model.ρ_ihalf_jhalf,
                                             model.μ, model.μ_ihalf, model.μ_jhalf,
-                                            model.dt,
-                                            model.ψ_∂σxx∂x, model.ψ_∂σxz∂z,
-                                            model.ψ_∂σxz∂x, model.ψ_∂σzz∂z,
-                                            model.ψ_∂vx∂x, model.ψ_∂vz∂z,
-                                            model.ψ_∂vx∂z, model.ψ_∂vz∂x,
-                                            model.a_coeffs..., model.b_coeffs...,
+                                            model.dt, model.gridspacing...,
+                                            model.ψ...,
+                                            model.a_coeffs...,
+                                            model.b_coeffs...,
+                                            Mxx,Mzz,Mxz,
                                             possrcs_a, srctf_a, posrecs_a, traces_a, it,
-                                            freetop,save_trace)
-
-        # pold, pcur, pnew = model.backend.forward_onestep_CPML!(
-        #     pold, pcur, pnew, model.fact,
-        #     model.gridspacing..., model.halo,
-        #     model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
-        #     possrcs_a, srctf_a, posrecs_a, traces_a, it
-        # )
-
-
-
-
+                                            freetop, save_trace)
         
         # Print timestep info
         if it % model.infoevery == 0
