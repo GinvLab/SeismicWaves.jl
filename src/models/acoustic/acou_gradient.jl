@@ -62,7 +62,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         end
         # Start populating save buffer just before last checkpoint
         if it >= model.last_checkpoint - 1
-            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1) + 1] .= pcur
+            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1)+1] .= pcur
         end
     end
 
@@ -72,8 +72,9 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     @debug "Computing residuals"
     # Compute residuals
     mul!(residuals_a, invcov_a, traces_a - observed_a)
+
     # Prescale residuals (fact = vel^2 * dt^2)
-    model.backend.prescale_residuals!(residuals_a, possrcs_a, model.fact)
+    model.backend.prescale_residuals!(residuals_a, posrecs_a, model.fact)
 
     @debug "Computing gradients"
     # Current checkpoint
@@ -82,8 +83,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     for it in nt:-1:1
         # Compute one adjoint step
         adjold, adjcur, adjnew = model.backend.forward_onestep_CPML!(
-            adjold, adjcur, adjnew,
-            model.fact, model.gridspacing..., model.halo,
+            adjold, adjcur, adjnew, model.fact,
+            model.gridspacing..., model.halo,
             model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_coeffs...,
             posrecs_a, residuals_a, nothing, nothing, it;   # adjoint sources positions are receivers
             save_trace=false
@@ -93,7 +94,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             @debug @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
-        if (it-1) < curr_checkpoint
+        if (it - 1) < curr_checkpoint
             @debug @sprintf("Out of save buffer at iteration: %d", it)
             # Shift last checkpoint
             old_checkpoint = curr_checkpoint

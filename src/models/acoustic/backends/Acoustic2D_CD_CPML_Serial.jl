@@ -99,12 +99,12 @@ record_receivers!(pnew, traces, posrecs, it) =
         traces[it, ir] = pnew[irec, jrec]
     end
 
-prescale_residuals!(residuals, possrcs, fact) =
-    for is in axes(possrcs, 1)
-        isrc = floor(Int, possrcs[is, 1])
-        jsrc = floor(Int, possrcs[is, 2])
+prescale_residuals!(residuals, posrecs, fact) =
+    for ir in axes(posrecs, 1)
+        irec = floor(Int, posrecs[ir, 1])
+        jrec = floor(Int, posrecs[ir, 2])
         for it in axes(residuals, 1) # nt
-            residuals[it, is] *= fact[isrc, jsrc]
+            residuals[it, ir] *= fact[irec, jrec]
         end
     end
 
