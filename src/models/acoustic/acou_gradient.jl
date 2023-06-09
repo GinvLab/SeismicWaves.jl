@@ -138,9 +138,11 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         # Correlate for gradient computation
         model.backend.correlate_gradient!(model.curgrad, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
     end
-
-    # rescale gradient
+    # get gradient
     gradient = Array(model.curgrad)
-    gradient = (2.0 ./ (model.matprop.vp .^ 3)) .* gradient
+    # smooth gradient
+    model.backend.smooth_gradient!(gradient, possrcs, model.smooth_radius)
+    # rescale gradient
+    gradient .= (2.0 ./ (model.matprop.vp .^ 3)) .* gradient
     return gradient
 end
