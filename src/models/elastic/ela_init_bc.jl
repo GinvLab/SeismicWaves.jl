@@ -17,7 +17,7 @@ init_bdc!(::ReflectiveBoundaryCondition, model::ElasticWaveSimul, srcs::Sources)
             model.dt,
             model.halo,
             model.rcoef,
-            model.gridspacing[n] * model.halo,
+            model.gridspacing[n] * model.halo,  ##  <<-- Check: dx*(n-1)?
             srcs.domfreq
         )
     end

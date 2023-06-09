@@ -29,17 +29,22 @@ swforward_1shot!(model::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryCo
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        model.backend.forward_onestep_CPML!(model.velpartic..., model.stress...,
-                                            model.λ_ihalf
-                                            model.ρ, model.ρ_ihalf_jhalf,
-                                            model.μ, model.μ_ihalf, model.μ_jhalf,
-                                            model.dt, model.gridspacing...,
-                                            model.ψ...,
-                                            model.a_coeffs...,
-                                            model.b_coeffs...,
-                                            Mxx,Mzz,Mxz,
-                                            possrcs_a, srctf_a, posrecs_a, traces_a, it,
+        model.backend.forward_onestep_CPML!(model, possrcs_a, srctf_a, posrecs_a, traces_a, it,
                                             freetop, save_trace)
+
+
+
+                                            # model.velpartic..., model.stress...,
+                                            # model.λ_ihalf
+                                            # model.ρ, model.ρ_ihalf_jhalf,
+                                            # model.μ, model.μ_ihalf, model.μ_jhalf,
+                                            # model.dt, model.gridspacing...,
+                                            # model.ψ...,
+                                            # model.a_coeffs...,
+                                            # model.b_coeffs...,
+                                            # Mxx,Mzz,Mxz,
+                                            # possrcs_a, srctf_a, posrecs_a, traces_a, it,
+                                            # freetop, save_trace)
         
         # Print timestep info
         if it % model.infoevery == 0

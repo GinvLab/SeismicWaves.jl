@@ -31,12 +31,15 @@ struct CPMLCoefficients
             backend.zeros(halo),
             backend.zeros(halo),
             backend.zeros(halo)
+            )
         end
     end
 end
 
 # Default type constructor
 CPMLCoefficients(halo) = CPMLCoefficients{Float64}(halo)
+
+#####################################
 
 function compute_CPML_coefficients!(
     cpmlcoeffs::CPMLCoefficients,
@@ -48,9 +51,9 @@ function compute_CPML_coefficients!(
     f0::Real
 )
     # CPML coefficients (l = left, r = right, h = staggered in betweeen grid points)
-    alpha_max = π * f0          # CPML α multiplicative factor (half of dominating angular frequency)
-    npower = 2.0                # CPML power coefficient
-    d0 = -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness)     # damping profile
+    alpha_max = π * f0  # CPML α multiplicative factor (half of dominating angular frequency)
+    npower = 2.0  # CPML power coefficient
+    d0 = -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness)  # damping profile
     a_l, a_r, b_l, b_r = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "ongrd")
     a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "halfgrd")
 
@@ -63,6 +66,7 @@ function compute_CPML_coefficients!(
     copyto!(cpmlcoeffs.b_hl, b_hl)
     copyto!(cpmlcoeffs.b_hr, b_hr)
 end
+
 
 function calc_Kab_CPML(
     halo::Integer,

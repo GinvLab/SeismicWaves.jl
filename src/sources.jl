@@ -30,20 +30,32 @@ ScalarSources(positions, tf, domfreq) = ScalarSources{Float64}(positions, tf, do
 """
 Type representing a 2D moment tensor.
 """
-struct MomentTensor2D{T <: Real}
+struct MomentTensor2D{T <: Real} <: MomentTensor
   Mxx::Vector{T}
   Mzz::Vector{T}
   Mxz::Vector{T}
+end
+
+"""
+Type representing a 2D moment tensor.
+"""
+struct MomentTensor3D{T <: Real} <: MomentTensor
+  Mxx::Vector{T}
+  Myy::Vector{T}
+  Mzz::Vector{T}
+  Mxy::Vector{T}
+  Mxz::Vector{T}
+  Myz::Vector{T}
 end
 
 
 """
 Type representing a multi-source configuration for a wave propagation shot.
 """
-struct MomentTensor2DSources{T <: Real} <: Sources
+struct MomentTensorSources{N, T <: Real} <: Sources
     positions::Matrix{<:Real}
     tf::Matrix{T}
-    momtens::MomentTensor2D
+    momtens::MomentTensor
     domfreq::T
 
     @doc """
@@ -56,10 +68,17 @@ struct MomentTensor2DSources{T <: Real} <: Sources
 
     Create a single shot wave propagation source configuration from source positions, time-functions and a dominant frequency.
     """
-    function MomentTensor2DSources{T}(positions::Matrix{<:Real}, tf::Matrix{T},  momtens::MomentTensor2D, domfreq::T) where {T <: Real}
+    function MomentTensorSources{N,T}(positions::Matrix{<:Real}, tf::Matrix{T},  momtens::MomentTensor, domfreq::T) where {N, T <: Real}
         @assert size(positions, 1) > 0 "There must be at least one source!"
         @assert size(positions, 1) == size(tf, 2) "Number of sources do not match between positions and time-functions!"
-        return new(positions, tf, momtens, domfreq)
+        if N==1
+            @assert typeof(momtens)==MomentTensor2D
+        elseif N==2
+            @assert typeof(momtens)==MomentTensor3D
+        else
+            error("MomentTensorSources: Moment tensor neither 2D nor 3D.")
+        end
+        return new{N,T}(positions, tf, momtens, domfreq)
     end
 end
 

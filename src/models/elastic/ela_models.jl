@@ -39,6 +39,7 @@ end
 
 
 @views function update_matprop!(model::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperty{N}) where {N}
+
     # Update material properties
     model.matprop.λ .= matprop.λ
     model.matprop.μ .= matprop.μ
@@ -61,6 +62,57 @@ end
 
 ###########################################################
 
+struct Elasticψdomain2D{T<:AstractFloat}
+    ψ_∂σxx∂x::Array{T,2}
+    ψ_∂σxz∂z::Array{T,2}
+    ψ_∂σxz∂x::Array{T,2}
+    ψ_∂σzz∂z::Array{T,2}
+    ψ_∂vx∂x::Array{T,2}
+    ψ_∂vz∂z::Array{T,2}
+    ψ_∂vz∂x::Array{T,2}
+    ψ_∂vx∂z::Array{T,2}
+
+    function Elasticψdomain2D(backend,ns,N,halo)
+
+        ψ_ns = [ns...]
+        ψ_ns[N] = 2*halo
+
+        ψ_∂σxx∂x = backend.zeros(ψ_ns...)
+        ψ_∂σxz∂z = backend.zeros(ψ_ns...)
+        ψ_∂σxz∂x = backend.zeros(ψ_ns...)
+        ψ_∂σzz∂z = backend.zeros(ψ_ns...)
+        ψ_∂vx∂x  = backend.zeros(ψ_ns...)
+        ψ_∂vz∂z  = backend.zeros(ψ_ns...)
+        ψ_∂vz∂x  = backend.zeros(ψ_ns...)
+        ψ_∂vx∂z  = backend.zeros(ψ_ns...)
+
+        T = eltype(ψ_∂σxx∂x)
+        return new{T}(ψ_∂σxx∂x,
+                   ψ_∂σxz∂z,
+                   ψ_∂σxz∂x,
+                   ψ_∂σzz∂z,
+                   ψ_∂vx∂x,
+                   ψ_∂vz∂z,
+                   ψ_∂vz∂x,
+                   ψ_∂vx∂z)
+    end
+end
+
+
+# struct ElasticψRegion3D{T<:AstractFloat}
+#     ψ_∂σxx∂x::Array{T}
+#     ψ_∂σxz∂z::Array{T}
+#     ψ_∂σxz∂x::Array{T}
+#     ψ_∂σzz∂z::Array{T}
+#     ψ_∂vx∂x::Array{T}
+#     ψ_∂vz∂z::Array{T}
+#     ψ_∂vz∂x::Array{T}
+#     ψ_∂vx∂z::Array{T}
+# end
+
+
+
+
 struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     # Physics
     ls::NTuple{N, <:Real}
@@ -71,7 +123,6 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     dt::Real
     # BDC and CPML parameters
     halo::Integer
-    rcoef::Real
     freetop::Bool
     # Gradient computation setup
     gradient::Bool
@@ -103,13 +154,13 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     # Backend
     backend::Module
 
+    
     function ElasticIsoCPMLWaveSimul{N}(
         ns::NTuple{N, <:Integer},
         gridspacing::NTuple{N, <:Real},
         nt::Integer,
         dt::Real,
         halo::Integer,
-        rcoef::Real;
         parall::Symbol=:threads,
         freetop::Bool=true,
         gradient::Bool=false,
@@ -169,21 +220,15 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         # ψ_∂vz∂x   halo 
         # ψ_∂vx∂z   halo
         ##
-        ψ = []        
-        for i in 1:N
-            ψ_ns = [ns...]
-            ψ_ns[i] = halo 
-            append!(ψ, [backend.zeros(ψ_ns...) for _ in 1:(N*2^N)])
+        if N==2 # 2D
+            ψ = Elasticψdomain2D(backend,ns,N,halo)
+        else 
+            error("Only elastic 2D is currently implemented.")
         end
+        
         # Initialize CPML coefficients
-        cpmlcoeffs = tuple([CPMLCoefficients(halo, backend) for _ in 1:N]...)
-        # Build CPML coefficient arrays for computations (they are just references to cpmlcoeffs)
-        a_coeffs = []
-        b_coeffs = []
-        for i in 1:N
-            append!(a_coeffs, [cpmlcoeffs[i].a_l, cpmlcoeffs[i].a_r, cpmlcoeffs[i].a_hl, cpmlcoeffs[i].a_hr])
-            append!(b_coeffs, [cpmlcoeffs[i].b_l, cpmlcoeffs[i].b_r, cpmlcoeffs[i].b_hl, cpmlcoeffs[i].b_hr])
-        end
+        cpmlcoeffs = [CPMLCoefficients(halo, backend) for _ in 1:N]
+
         # Initialize gradient arrays if needed
         if gradient
             error("Gradient for elastic calculations not yet implemented!")
@@ -267,8 +312,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
             velpartic,
             stress,
             ψ,
-            a_coeffs,
-            b_coeffs,
+            cpmlcoeff,
             gradient ? adj : nothing,
             gradient ? ψ_adj : nothing,
             gradient ? grad : nothing,

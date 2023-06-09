@@ -10,3 +10,5 @@ abstract type MaterialProperties{N} end
 abstract type Sources end
 
 abstract type Receivers end
+
+abstract type MomentTensor end

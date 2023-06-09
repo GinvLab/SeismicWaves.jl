@@ -13,13 +13,16 @@ export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
 export VpAcousticCDMaterialProperty
 
 #export Sources, Receivers, Shot
-export ScalarSources, ScalarReceivers, Shot
+export Shot
+export ScalarSources, ScalarReceivers
+export MomentTensorSources, VectorReceivers
 export swforward!, swmisfit!, swgradient!
 export build_wavesim
 export gaussource1D, rickersource1D
 
 include("abstract_types.jl")
 
+include("input_params.jl")
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
 include("traits/snappable.jl")
@@ -34,7 +37,7 @@ include("solve.jl")
 include("models/cpmlcoeffs.jl")
 
 include("models/acoustic/acou_abstract_types.jl")
-include("models/acoustic/material_properties.jl")
+include("models/acoustic/acou_material_properties.jl")
 include("models/acoustic/acou_models.jl")
 include("models/acoustic/acou_params.jl")
 include("models/acoustic/acou_forward.jl")

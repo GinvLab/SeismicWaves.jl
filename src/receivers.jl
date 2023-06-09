@@ -61,7 +61,7 @@ Type representing a multi-receiver configuration for a wave propagation shot.
         ndim::Integer=2,
         observed::Union{Array{T}, Nothing}=nothing,
         invcov::Union{AbstractMatrix{T}, Nothing}=nothing
-    ) where {T <: Real}
+    ) where {N,T <: Real}
         @assert size(positions, 1) > 0 "There must be at least one receiver!"
         seismograms = zeros(T, nt, N, size(positions, 1))
         if observed !== nothing
