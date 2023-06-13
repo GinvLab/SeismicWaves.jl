@@ -1,26 +1,13 @@
- 
-##==============================================
-"""
- Gaussian source time function
-"""
-function gaussource1D( t::Vector{<:Real}, t0::Real, f0::Real )
-    # boh = f0 .* (t-t0)
-    # source = -8.0*boh.*exp( -boh.^2/(4.0*f0)^2 )
-    boh= pi.*f0.*(t.-t0)
-    source = -boh.*exp.( -boh.^2 )    
-    return source
-end
+@doc raw"""
+    rickersource1D(t::Real, t0::Real, f0::Real)    
 
-##========================================
+Ricker source time function for current time `t`, activation time `t0` and dominating frequency `f0`.
 """
- Ricker source time function
+rickersource1D(t::Real, t0::Real, f0::Real)::Real = (1 - 2 * (pi * f0 * (t - t0))^2) * exp(-(pi * f0 * (t - t0))^2)
+
+@doc raw"""
+    gaussource1D(t::Real, t0::Real, f0::Real)
+
+Gaussian source time function for current time `t`, activation time `t0` and dominating frequency `f0`.
 """
-function rickersource1D( t::Vector{<:Real},  t0::Real, f0::Real )    
-    b = (pi*f0*(t.-t0)).^2
-    w = (1.0.-2.0.*b).*exp.(.-b)
-    return w
-end
-
-##========================================
-
-
+gaussource1D(t::Real, t0::Real, f0::Real)::Real = -(pi * f0 * (t - t0))^2 * exp(-(pi * f0 * (t - t0))^2)

@@ -1,13 +1,23 @@
 name = "SeismicWaves"
 uuid = "f2cc81fa-a164-11e9-3f65-e3f851c759e3"
-authors = ["Andrea Zunino <inverseproblem@users.noreply.github.com>"]
-version = "0.1.0"
+authors = ["Andrea Zunino", "Giacomo Aloisi"]
+version = "0.4.0"
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
+ParallelStencil = "94395366-693c-11ea-3b26-d9b7aac5d958"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
-SharedArrays = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
+
+[compat]
+julia = "1.7"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
