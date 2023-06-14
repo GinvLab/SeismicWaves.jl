@@ -1,6 +1,6 @@
 ### UPDATE MATERIAL PROPERTIES ##
 
-function set_wavesim_matprop!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}) where {N}
+@views function set_wavesim_matprop!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}) where {N}
     @debug "Checking new material properties"
     check_matprop(wavesim, matprop)
     @debug "Updating WaveSimul material properties"

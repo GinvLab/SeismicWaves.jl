@@ -44,10 +44,10 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
         # Save snapshot
         if snapenabled(model) && it % model.snapevery == 0
             @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            model.snapshots[fill(Colon(), N)..., div(it, model.snapevery)] .= Array(pcur)
+            copyto!(model.snapshots[fill(Colon(), N)..., div(it, model.snapevery)], pcur)
         end
     end
 
     # Save traces
-    traces .= Array(traces_a)
+    copyto!(traces, traces_a)
 end

@@ -32,7 +32,7 @@ end
 
 @views function update_matprop!(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
     # Update material properties
-    model.matprop.vp .= matprop.vp
+    copyto!(model.matprop.vp, matprop.vp)
     # Precompute factors
     precompute_fact!(model)
 end
@@ -213,8 +213,8 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
                 checkpoints_ξ = Dict{Int, Any}()                    # ξ arrays checkpoints (will remain empty)
             end
             # Save first 2 timesteps in save buffer
-            save_buffer[fill(Colon(), N)..., 1] .= pold
-            save_buffer[fill(Colon(), N)..., 2] .= pcur
+            copyto!(save_buffer[fill(Colon(), N)..., 1], pold)
+            copyto!(save_buffer[fill(Colon(), N)..., 2], pcur)
         end
 
         # Initialize snapshots array
