@@ -12,7 +12,7 @@ end
 @views function run_swforward!(
     wavsim::WaveSimul{N},
     matprop::MaterialProperties{N},
-    shots::Vector{<:Shot}; 
+    shots::Vector{<:Shot};
 )::Union{Vector{Array}, Nothing} where {N}
     
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
@@ -98,7 +98,7 @@ end
     set_wavesim_matprop!(wavsim, matprop)
 
     # Initialize total gradient and total misfit
-    totgrad = zero(matprop.vp)
+    totgrad = zeros(wavsim.totgrad_size...)
     totmisfit = 0
     # Shots loop
     for (s, singleshot) in enumerate(shots)

@@ -20,6 +20,11 @@ function check_sim_consistency(wavsim::WaveSimul,matprop::MaterialProperties,sho
         tysource<:ScalarSources &&
         tyreceiver<:ScalarReceivers
         return
+    elseif tysim==AcousticVDCPMLWaveSimul{N} &&
+        tymatprop==VpRhoAcousticVDMaterialProperty{N} &&
+        tysource<:ScalarSources &&
+        tyreceiver<:ScalarReceivers
+        return
     end
 
     return error("Types of WaveSimul, MaterialProperties and Sources/Receivers are incosistent \
