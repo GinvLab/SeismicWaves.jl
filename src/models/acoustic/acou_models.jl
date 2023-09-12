@@ -347,7 +347,8 @@ end
     precompute_fact_rho_stag!(model)
 end
 
-@views precompute_fact_vp2rho!(model::AcousticVDWaveSimul) = copyto!(model.fact_vp2rho, (model.dt^2) .* (model.matprop.vp .^ 2) .* model.matprop.rho)
+@views precompute_fact_vp2rho!(model::AcousticVDWaveSimul) =
+    copyto!(model.fact_vp2rho, (model.dt^2) .* (model.matprop.vp .^ 2) .* model.matprop.rho)
 @views function precompute_fact_rho_stag!(model::AcousticVDWaveSimul{N}) where {N}
     for i in 1:N
         copyto!(model.fact_rho_stag[i], 1 ./ model.matprop.rho_stag[i])

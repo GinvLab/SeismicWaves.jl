@@ -57,8 +57,8 @@ function calc_Kab_CPML(
     npower::Float64,
     d0::Float64,
     alpha_max_pml::Float64,
-    onwhere::String ;
-    K_max_pml::Union{Float64,Nothing} = nothing
+    onwhere::String;
+    K_max_pml::Union{Float64, Nothing}=nothing
 )::Tuple{Array{<:Real}, Array{<:Real}, Array{<:Real}, Array{<:Real}}
     @assert halo >= 0.0
 
@@ -81,7 +81,7 @@ function calc_Kab_CPML(
     normdist_left = reverse(dist) ./ Kab_size
     normdist_right = dist ./ Kab_size
 
-    if K_max_pml==nothing
+    if K_max_pml === nothing
         K_left = 1.0
     else
         K_left = 1.0 .+ (K_max_pml - 1.0) .* (normdist_left .^ npower)
@@ -91,7 +91,7 @@ function calc_Kab_CPML(
     b_left = exp.(.-(d_left ./ K_left .+ alpha_left) .* dt)
     a_left = d_left .* (b_left .- 1.0) ./ (K_left .* (d_left .+ K_left .* alpha_left))
 
-    if K_max_pml==nothing
+    if K_max_pml === nothing
         K_right = 1.0
     else
         K_right = 1.0 .+ (K_max_pml - 1.0) .* (normdist_right .^ npower)
@@ -101,7 +101,7 @@ function calc_Kab_CPML(
     b_right = exp.(.-(d_right ./ K_right .+ alpha_right) .* dt)
     a_right = d_right .* (b_right .- 1.0) ./ (K_right .* (d_right .+ K_right .* alpha_right))
 
-    if K_max_pml==nothing
+    if K_max_pml === nothing
         return a_left, a_right, b_left, b_right
     else
         return a_left, a_right, b_left, b_right, K_left, K_right

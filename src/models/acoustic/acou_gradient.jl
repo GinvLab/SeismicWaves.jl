@@ -62,7 +62,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         end
         # Start populating save buffer just before last checkpoint
         if it >= model.last_checkpoint - 1
-            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1) + 1] .= pcur
+            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1)+1] .= pcur
         end
     end
 
@@ -93,7 +93,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             @debug @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
-        if (it-1) < curr_checkpoint
+        if (it - 1) < curr_checkpoint
             @debug @sprintf("Out of save buffer at iteration: %d", it)
             # Shift last checkpoint
             old_checkpoint = curr_checkpoint
@@ -205,7 +205,7 @@ end
         end
         # Start populating save buffer just before last checkpoint
         if it >= model.last_checkpoint - 1
-            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1) + 1] .= pcur
+            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1)+1] .= pcur
         end
     end
 
@@ -242,7 +242,7 @@ end
             @debug @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
-        if (it-1) < curr_checkpoint
+        if (it - 1) < curr_checkpoint
             @debug @sprintf("Out of save buffer at iteration: %d", it)
             # Shift last checkpoint
             old_checkpoint = curr_checkpoint
@@ -286,14 +286,15 @@ end
         # Correlate for gradient computation
         model.backend.correlate_gradient_vp!(model.curgrad_vp, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
         model.backend.correlate_gradient_rho!(model.curgrad_rho, adjcur, pcur_corr, pold_corr, pveryold_corr,
-                                              fact_c2_dt2, fact_rho2, fact_rhostag2..., fact_dh_drhostag...,
-                                              possrcs_a, srctf_a, model.gridspacing..., it)
+            fact_c2_dt2, fact_rho2, fact_rhostag2..., fact_dh_drhostag...,
+            possrcs_a, srctf_a, model.gridspacing..., it)
     end
 
     # Instantiate gradient
     gradient = zeros(model.totgrad_size...)
     # rescale gradient
-    gradient[fill(Colon(), N)..., 1] .= .-(2.0 ./ (model.matprop.vp .^ 3)) .* (1.0 ./ model.matprop.rho) .* Array(model.curgrad_vp)
+    gradient[fill(Colon(), N)..., 1] .=
+        .-(2.0 ./ (model.matprop.vp .^ 3)) .* (1.0 ./ model.matprop.rho) .* Array(model.curgrad_vp)
     gradient[fill(Colon(), N)..., 2] .= Array(model.curgrad_rho)
     return gradient
 end

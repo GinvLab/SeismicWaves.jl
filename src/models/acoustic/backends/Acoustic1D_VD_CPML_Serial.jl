@@ -26,9 +26,9 @@ end
 end
 
 @views update_p!(pold, pcur, pnew, fact_vp2rho, fact_rho_stag_x, nx, _dx) =
-    for i = 2:nx-1
-        d2p_dx2 = ((pcur[i+1] - pcur[i])*_dx * fact_rho_stag_x[i] - (pcur[i] - pcur[i-1])*_dx * fact_rho_stag_x[i-1])*_dx
-        pnew[i] = 2*pcur[i] - pold[i] + fact_vp2rho[i] * d2p_dx2
+    for i in 2:nx-1
+        d2p_dx2 = ((pcur[i+1] - pcur[i]) * _dx * fact_rho_stag_x[i] - (pcur[i] - pcur[i-1]) * _dx * fact_rho_stag_x[i-1]) * _dx
+        pnew[i] = 2 * pcur[i] - pold[i] + fact_vp2rho[i] * d2p_dx2
     end
 
 @views function update_ψ!(ψ_l, ψ_r, pcur, halo, nx, _dx, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
@@ -130,8 +130,8 @@ function correlate_gradient_vp!(curgrad, adjcur, pnew, pcur, pold, dt)
 end
 
 function correlate_gradient_rho!(curgrad, adjcur, pnew, pcur, pold,
-                                 fact_c2_dt2, fact_rho2, fact_rhostag2_x, fact_dh_drhostag_x,
-                                 possrcs, dt2srctf, dx, it)
+    fact_c2_dt2, fact_rho2, fact_rhostag2_x, fact_dh_drhostag_x,
+    possrcs, dt2srctf, dx, it)
     _dx = 1 / dx
     nx = size(curgrad, 1)
     for i in 2:nx-1
