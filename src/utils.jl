@@ -12,13 +12,14 @@ Gaussian source time function for current time `t`, activation time `t0` and dom
 """
 gaussource1D(t::Real, t0::Real, f0::Real)::Real = -(pi * f0 * (t - t0))^2 * exp(-(pi * f0 * (t - t0))^2)
 
-@doc raw"""
-    interp_avg(a::Array{<:Real, N}, dim)
+struct ArithmeticAverageInterpolation <: InterpolationMethod
+    width::Int
+end
 
-Interpolate dimension `dim` of array `a` using arithmetic average.
-"""
-@views function interp_avg(a::Array{<:Real, N}, dim) where {N}
-    left = A[CartesianIndices(Tuple( i == dim ? (1:size(a,i)-1) : (1:size(a,i)) for i in 1:N ))]
-    right = A[CartesianIndices(Tuple( i == dim ? (2:size(a,i)) : (1:size(a,i)) for i in 1:N ))]
-    return (left .+ right) .* 0.5
+@views function interp(method::ArithmeticAverageInterpolation, a::Array{<:Real, N}, dim) where {N}
+    return sum(a[CartesianIndices(Tuple( i == dim ? (j:size(a,i)+j-method.width) : (1:size(a,i)) for i in 1:N))] for j in 1:method.width) ./ method.width
+end
+
+@views function jacobian(method::ArithmeticAverageInterpolation, a::Array{<:Real, N}, dim) where {N}
+    return fill(1, method.width) ./ method.width
 end

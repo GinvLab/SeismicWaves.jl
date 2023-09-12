@@ -23,6 +23,29 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     return params, shots, vel
 end
 
+function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, f0, halo, rcoef)
+    # constant velocity setup
+    lx = (nx - 1) * dx
+    matprop = VpRhoAcousticVDMaterialProperty(c0 .* ones(nx), ρ0 .* ones(nx))
+    # input parameters
+    params = InputParametersAcousticVariableDensity(nt, dt, [nx], [dx],
+        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
+    # sources
+    t0 = 2 / f0
+    times = collect(range(0.0; step=dt, length=nt))
+    possrcs = zeros(1, 1)
+    srctf = zeros(nt, 1)
+    srctf[:, 1] .= rickersource1D.(times, t0, f0)
+    possrcs[1, :] = [lx / 2]
+    # receivers
+    posrecs = zeros(1, 1)
+    posrecs[1, :] = [lx / 3]
+    srcs = ScalarSources(possrcs, srctf, f0)
+    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    shots = [Shot(; srcs=srcs, recs=recs)]
+    return params, shots, matprop
+end
+
 function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx - 1) * dx

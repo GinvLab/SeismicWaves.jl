@@ -171,6 +171,21 @@ build_wavesim(
     kwargs...
 )
 
+build_wavesim(
+    params::InputParametersAcousticVariableDensity{N},
+    cpmlparams::CPMLBoundaryConditionParameters;
+    kwargs...
+) where {N} = AcousticVDCPMLWaveSimul{N}(
+    params.gridsize,
+    params.gridspacing,
+    params.ntimesteps,
+    params.dt,
+    cpmlparams.halo,
+    cpmlparams.rcoef;
+    freetop=cpmlparams.freeboundtop,
+    kwargs...
+)
+
 #######################################################
 
 select_backend(wavesim_type::Type{<:WaveSimul}, parall::Symbol) =
@@ -209,3 +224,7 @@ select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWave
     Acoustic2D_CD_CPML_GPU
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:GPU}}) =
     Acoustic3D_CD_CPML_GPU
+
+# Backend selections for AcousticVDCPMLWaveSimul
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDCPMLWaveSimul{1}}, ::Type{Val{:serial}}) =
+    Acoustic1D_VD_CPML_Serial

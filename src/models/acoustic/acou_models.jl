@@ -340,6 +340,8 @@ end
     # Update material properties
     model.matprop.vp .= matprop.vp
     model.matprop.rho .= matprop.rho
+    model.matprop.interp_method = matprop.interp_method
+    interpolate!(model.matprop)
     # Precompute factors
     precompute_fact_vp2rho!(model)
     precompute_fact_rho_stag!(model)
@@ -445,7 +447,7 @@ struct AcousticVDCPMLWaveSimul{N} <: AcousticVDWaveSimul{N}
         for i in 1:N
             rho_stag_ns = [ns...]
             rho_stag_ns[i] -= 1
-            append!(fact_rho_stag, backend.zeros(rho_stag_ns...))
+            append!(fact_rho_stag, [backend.zeros(rho_stag_ns...)])
         end
         pold = backend.zeros(ns...)
         pcur = backend.zeros(ns...)

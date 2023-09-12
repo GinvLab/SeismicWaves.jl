@@ -7,9 +7,9 @@ using LinearAlgebra
 using Printf
 using ParallelStencil
 
-export InputParametersAcoustic
+export InputParametersAcoustic, InputParametersAcousticVariableDensity
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
-export VpAcousticCDMaterialProperty
+export VpAcousticCDMaterialProperty, VpRhoAcousticVDMaterialProperty
 
 #export Sources, Receivers, Shot
 export ScalarSources, ScalarReceivers, Shot
@@ -45,6 +45,7 @@ include("wrappers.jl")
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Serial.jl")
 include("models/acoustic/backends/Acoustic2D_CD_CPML_Serial.jl")
 include("models/acoustic/backends/Acoustic3D_CD_CPML_Serial.jl")
+include("models/acoustic/backends/Acoustic1D_VD_CPML_Serial.jl")
 
 ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Threads.jl")

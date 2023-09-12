@@ -180,7 +180,7 @@ end
     for it in 1:nt
         # Compute one forward step
         pold, pcur, pnew = model.backend.forward_onestep_CPML!(
-            pold, pcur, pnew, model.fact_vp2rho, model.fact_rho_stag,
+            pold, pcur, pnew, model.fact_vp2rho, model.fact_rho_stag...,
             model.gridspacing..., model.halo,
             model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
@@ -214,11 +214,15 @@ end
 
     @debug "Computing residuals"
     # Compute residuals
-    mul!(residuals_a, invcov_a, traces_a - observed_a)
+    mul!(residuals_a, invcov_a, -(traces_a - observed_a))
     # Prescale residuals (fact_vp2rho = rho * vel^2 * dt^2)
     model.backend.prescale_residuals!(residuals_a, possrcs_a, model.fact_vp2rho)
-    # Factor to rescale source and d2p_dt2 for gradient correlation
-    fact_c2 = model.backend.Data.Array(1 ./ model.matprop.vp)
+    # Factor to rescale source time function and d2p_dt2 for gradient correlation
+    fact_c2_dt2 = model.backend.Data.Array(1 ./ (model.matprop.vp .^ 2) ./ (model.dt^2))
+    fact_rho2 = model.backend.Data.Array(1 ./ (model.matprop.rho .^ 2))
+    # Factors to rescale grad(p)*grad(adj) for gradient correlation (for each dimension)
+    fact_rhostag2 = Tuple(model.backend.Data.Array(1 ./ (model.matprop.rho_stag[i] .^ 2)) for i in 1:N)
+    fact_dh_drhostag = Tuple(model.backend.Data.Array(model.matprop.rho_stag_jacob[i]) for i in 1:N)
 
     @debug "Computing gradients"
     # Current checkpoint
@@ -227,7 +231,7 @@ end
     for it in nt:-1:1
         # Compute one adjoint step
         adjold, adjcur, adjnew = model.backend.forward_onestep_CPML!(
-            adjold, adjcur, adjnew, model.fact_vp2rho, model.fact_rho_stag,
+            adjold, adjcur, adjnew, model.fact_vp2rho, model.fact_rho_stag...,
             model.gridspacing..., model.halo,
             model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_coeffs...,
             posrecs_a, residuals_a, nothing, nothing, it;   # adjoint sources positions are receivers
@@ -262,7 +266,7 @@ end
             # Forward recovery time loop
             for recit in (curr_checkpoint+1):((old_checkpoint-1)-1)
                 pold, pcur, pnew = model.backend.forward_onestep_CPML!(
-                    pold, pcur, pnew, model.fact_vp2rho, model.fact_rho_stag,
+                    pold, pcur, pnew, model.fact_vp2rho, model.fact_rho_stag...,
                     model.gridspacing..., model.halo,
                     model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
                     possrcs_a, srctf_a, nothing, nothing, recit;
@@ -281,13 +285,15 @@ end
         pveryold_corr = model.save_buffer[fill(Colon(), N)..., ((it-1)-curr_checkpoint)+3]
         # Correlate for gradient computation
         model.backend.correlate_gradient_vp!(model.curgrad_vp, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
-        model.backend.correlate_gradient_rho!(model.curgrad_rho, adjcur, pcur_corr, pold_corr, pveryold_corr, model.gridspacing..., model.dt, fact_c2, srctf_a)
+        model.backend.correlate_gradient_rho!(model.curgrad_rho, adjcur, pcur_corr, pold_corr, pveryold_corr,
+                                              fact_c2_dt2, fact_rho2, fact_rhostag2..., fact_dh_drhostag...,
+                                              possrcs_a, srctf_a, model.gridspacing..., it)
     end
 
     # Instantiate gradient
     gradient = zeros(model.totgrad_size...)
     # rescale gradient
     gradient[fill(Colon(), N)..., 1] .= .-(2.0 ./ (model.matprop.vp .^ 3)) .* (1.0 ./ model.matprop.rho) .* Array(model.curgrad_vp)
-    gradient[fill(Colon(), N)..., 2] .= (1.0 ./ (model.matprop.rho .^ 2)) .* Array(model.curgrad_rho)
+    gradient[fill(Colon(), N)..., 2] .= Array(model.curgrad_rho)
     return gradient
 end

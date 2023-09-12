@@ -78,7 +78,7 @@ end
     for it in 1:nt
         # Compute one forward step
         pold, pcur, pnew = model.backend.forward_onestep_CPML!(
-            pold, pcur, pnew, model.fact_vp2rho, model.fact_rho_stag,
+            pold, pcur, pnew, model.fact_vp2rho, model.fact_rho_stag...,
             model.gridspacing..., model.halo,
             model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
             possrcs_a, srctf_a, posrecs_a, traces_a, it
