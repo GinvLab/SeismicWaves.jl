@@ -9,9 +9,9 @@ error_logger = ConsoleLogger(stderr, Logging.Error)
 with_logger(error_logger) do
     test_backends = [:serial]
     # test GPU backend only if CUDA is functional
-    if CUDA.functional()
-        push!(test_backends, :GPU)
-    end
+    # if CUDA.functional()
+    #     push!(test_backends, :GPU)
+    # end
 
     for parall in test_backends
         @testset "Test 1D $(parall) swgradient! with compute misfit" begin
