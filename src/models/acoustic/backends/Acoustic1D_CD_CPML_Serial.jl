@@ -1,5 +1,7 @@
 module Acoustic1D_CD_CPML_Serial
 
+include("shared/smooth_gradient_1D.jl")
+
 # Dummy data module
 module Data
 Array = Base.Array
@@ -71,11 +73,11 @@ end
     end
 end
 
-@views prescale_residuals!(residuals, possrcs, fact) =
-    for is in axes(possrcs, 1)
-        isrc = floor(Int, possrcs[is, 1])
+@views prescale_residuals!(residuals, posrecs, fact) =
+    for ir in axes(posrecs, 1)
+        irec = floor(Int, posrecs[ir, 1])
         for it in axes(residuals, 1) # nt
-            residuals[it, is] *= fact[isrc]
+            residuals[it, ir] *= fact[irec]
         end
     end
 

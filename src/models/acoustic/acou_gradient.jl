@@ -50,30 +50,31 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         if model.check_freq !== nothing && it % model.check_freq == 0
             @debug @sprintf("Saving checkpoint at iteration: %d", it)
             # Save current and last timestep pressure
-            model.checkpoints[it] .= pcur
-            model.checkpoints[it-1] .= pold
+            copyto!(model.checkpoints[it], pcur)
+            copyto!(model.checkpoints[it-1], pold)
             # Also save CPML arrays
             for i in eachindex(model.ψ)
-                model.checkpoints_ψ[it][i] .= model.ψ[i]
+                copyto!(model.checkpoints_ψ[it][i], model.ψ[i])
             end
             for i in eachindex(model.ξ)
-                model.checkpoints_ξ[it][i] .= model.ξ[i]
+                copyto!(model.checkpoints_ξ[it][i], model.ξ[i])
             end
         end
         # Start populating save buffer just before last checkpoint
         if it >= model.last_checkpoint - 1
-            model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1)+1] .= pcur
+            copyto!(model.save_buffer[fill(Colon(), N)..., it-(model.last_checkpoint-1)+1], pcur)
         end
     end
 
     # Save traces
-    traces .= Array(traces_a)
+    copyto!(traces, traces_a)
 
     @debug "Computing residuals"
     # Compute residuals
     mul!(residuals_a, invcov_a, traces_a - observed_a)
+
     # Prescale residuals (fact = vel^2 * dt^2)
-    model.backend.prescale_residuals!(residuals_a, possrcs_a, model.fact)
+    model.backend.prescale_residuals!(residuals_a, posrecs_a, model.fact)
 
     @debug "Computing gradients"
     # Current checkpoint
@@ -82,8 +83,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     for it in nt:-1:1
         # Compute one adjoint step
         adjold, adjcur, adjnew = model.backend.forward_onestep_CPML!(
-            adjold, adjcur, adjnew,
-            model.fact, model.gridspacing..., model.halo,
+            adjold, adjcur, adjnew, model.fact,
+            model.gridspacing..., model.halo,
             model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_coeffs...,
             posrecs_a, residuals_a, nothing, nothing, it;   # adjoint sources positions are receivers
             save_trace=false
@@ -99,20 +100,20 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             old_checkpoint = curr_checkpoint
             curr_checkpoint -= model.check_freq
             # Shift start of save buffer
-            model.save_buffer[fill(Colon(), N)..., 1] .= model.checkpoints[curr_checkpoint-1]
-            model.save_buffer[fill(Colon(), N)..., 2] .= model.checkpoints[curr_checkpoint]
+            copyto!(model.save_buffer[fill(Colon(), N)..., 1], model.checkpoints[curr_checkpoint-1])
+            copyto!(model.save_buffer[fill(Colon(), N)..., 2], model.checkpoints[curr_checkpoint])
             # Shift end of save buffer
-            model.save_buffer[fill(Colon(), N)..., end-1] .= model.checkpoints[old_checkpoint-1]
-            model.save_buffer[fill(Colon(), N)..., end] .= model.checkpoints[old_checkpoint]
+            copyto!(model.save_buffer[fill(Colon(), N)..., end-1], model.checkpoints[old_checkpoint-1])
+            copyto!(model.save_buffer[fill(Colon(), N)..., end], model.checkpoints[old_checkpoint])
             # Recover pressure and CPML arrays from current checkpoint
-            pold .= model.checkpoints[curr_checkpoint-1]
-            pcur .= model.checkpoints[curr_checkpoint]
+            copyto!(pold, model.checkpoints[curr_checkpoint-1])
+            copyto!(pcur, model.checkpoints[curr_checkpoint])
             pnew .= 0.0
             for i in eachindex(model.checkpoints_ψ[curr_checkpoint])
-                model.ψ[i] .= model.checkpoints_ψ[curr_checkpoint][i]
+                copyto!(model.ψ[i], model.checkpoints_ψ[curr_checkpoint][i])
             end
             for i in eachindex(model.checkpoints_ξ[curr_checkpoint])
-                model.ξ[i] .= model.checkpoints_ξ[curr_checkpoint][i]
+                copyto!(model.ξ[i], model.checkpoints_ξ[curr_checkpoint][i])
             end
             # Forward recovery time loop
             for recit in (curr_checkpoint+1):((old_checkpoint-1)-1)
@@ -127,7 +128,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
                     @debug @sprintf("Recovering iteration: %d", recit)
                 end
                 # Save recovered pressure in save buffer
-                model.save_buffer[fill(Colon(), N)..., recit-(curr_checkpoint+1)+3] .= pcur
+                copyto!(model.save_buffer[fill(Colon(), N)..., recit-(curr_checkpoint+1)+3], pcur)
             end
         end
         # Get pressure fields from saved buffer
@@ -137,10 +138,12 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         # Correlate for gradient computation
         model.backend.correlate_gradient!(model.curgrad, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
     end
-
-    # rescale gradient
+    # get gradient
     gradient = Array(model.curgrad)
-    gradient = (2.0 ./ (model.matprop.vp .^ 3)) .* gradient
+    # smooth gradient
+    model.backend.smooth_gradient!(gradient, possrcs, model.smooth_radius)
+    # rescale gradient
+    gradient .= (2.0 ./ (model.matprop.vp .^ 3)) .* gradient
     return gradient
 end
 

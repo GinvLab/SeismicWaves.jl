@@ -1,6 +1,6 @@
 ### UPDATE MATERIAL PROPERTIES ##
 
-function set_wavesim_matprop!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}) where {N}
+@views function set_wavesim_matprop!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}) where {N}
     @debug "Checking new material properties"
     check_matprop(wavesim, matprop)
     @debug "Updating WaveSimul material properties"
@@ -14,6 +14,8 @@ end
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};
 )::Union{Vector{Array}, Nothing} where {N}
+
+    # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
     check_sim_consistency(wavsim, matprop, shots)
 
@@ -91,6 +93,10 @@ end
     shots::Vector{<:Shot};
     compute_misfit::Bool=false
 )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
+
+    # Check wavesim consistency
+    @debug "Checking consistency across simulation type, material parameters and source-receiver types"
+    check_sim_consistency(wavsim, matprop, shots)
 
     # Set wavesim material properties
     @info "Setting wavesim material properties"
