@@ -8,7 +8,7 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
     # Check that the subtypes of Shot are consistent througout the shots
     for singleshot in shots
         if tysource != typeof(singleshot.srcs) || tyreceiver != typeof(singleshot.recs)
-            return error("Types of shots are incosistent.")
+            return error("Types of shots are inconsistent.")
         end
     end
 
@@ -19,7 +19,7 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
        tysource <: ScalarSources &&
        tyreceiver <: ScalarReceivers
         return
-    elseif tysim == AcousticVDCPMLWaveSimul{N} &&
+    elseif tysim == AcousticVDStaggeredCPMLWaveSimul{N} &&
            tymatprop == VpRhoAcousticVDMaterialProperty{N} &&
            tysource <: ScalarSources &&
            tyreceiver <: ScalarReceivers

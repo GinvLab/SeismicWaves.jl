@@ -25,7 +25,11 @@ function check_numerics(
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
-@views function scale_srctf(model::AcousticWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
+###########################################################
+
+# Functions for all AcousticCDWaveSimul subtypes
+
+@views function scale_srctf(model::AcousticCDWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
     # scale with boxcar and timestep size
     scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt^2)
     # scale with velocity squared at each source position
@@ -34,10 +38,6 @@ end
     end
     return scaled_tf
 end
-
-###########################################################
-
-# Functions for all AcousticCDWaveSimul subtypes
 
 @views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
     # Checks
@@ -317,51 +317,50 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
 
 ###########################################################
 
-struct AcousticCDReflWaveSimul{N} <: AcousticCDWaveSimul{N} end    # TODO implementation
+# Functions for all AcousticVDStaggeredWaveSimul subtypes
 
-###########################################################
+@views function scale_srctf(model::AcousticVDStaggeredWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
+    # scale with boxcar and timestep size
+    scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt)
+    # scale with velocity squared times density at each source position (its like dividing by m0)
+    for s in axes(scaled_tf, 2)
+        scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] ^ 2 * model.matprop.rho[positions[s, :]...]
+    end
+    return scaled_tf
+end
 
-# Traits for AcousticCDReflWaveSimul
-
-IsSnappableTrait(::Type{<:AcousticCDReflWaveSimul}) = Snappable()
-BoundaryConditionTrait(::Type{<:AcousticCDReflWaveSimul}) = ReflectiveBoundaryCondition()
-GridTrait(::Type{<:AcousticCDReflWaveSimul}) = LocalGrid()
-
-###########################################################
-
-# Functions for all AcousticVDWaveSimul subtypes
-
-@views function check_matprop(model::AcousticVDWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
+@views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
     # Checks
-    @assert ndims(matprop.vp) == ndims(matprop.rho) == N "Material properties dimensionality must be the same as the wavesim!"
-    @assert size(matprop.vp) == size(matprop.rho) == model.ns "Material properties number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.ns)"
-    @assert all(matprop.vp .> 0) && all(matprop.rho .> 0) "Material properties must be positive!"
+    @assert ndims(matprop.vp) == ndims(matprop.rho) == N "Material property dimensionality must be the same as the wavesim!"
+    @assert size(matprop.vp) == size(matprop.rho) == model.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.ns)"
+    @assert all(matprop.vp .> 0) "Pressure velocity material property must be positive!"
+    @assert all(matprop.rho .> 0) "Density material property must be positive!"
     # Check courant condition
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticVDWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
+@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
     # Update material properties
-    model.matprop.vp .= matprop.vp
-    model.matprop.rho .= matprop.rho
+    copyto!(model.matprop.vp, matprop.vp)
+    copyto!(model.matprop.rho, matprop.rho)
     model.matprop.interp_method = matprop.interp_method
-    interpolate!(model.matprop)
     # Precompute factors
-    precompute_fact_vp2rho!(model)
-    precompute_fact_rho_stag!(model)
+    precompute_fact!(model)
 end
 
-@views precompute_fact_vp2rho!(model::AcousticVDWaveSimul) =
-    copyto!(model.fact_vp2rho, (model.dt^2) .* (model.matprop.vp .^ 2) .* model.matprop.rho)
-@views function precompute_fact_rho_stag!(model::AcousticVDWaveSimul{N}) where {N}
+@views function precompute_fact!(model::AcousticVDStaggeredWaveSimul{N}) where {N}
+    # Precompute 1/m0 factor
+    copyto!(model.fact_m0, model.matprop.vp .^ 2 .* model.matprop.rho)
+    # Precompute m1 factor by interpolation
+    m1_stag_interp = interpolate(1 ./ model.matprop.rho, model.matprop.interp_method)
     for i in 1:N
-        copyto!(model.fact_rho_stag[i], 1 ./ model.matprop.rho_stag[i])
+        copyto!(model.fact_m1_stag, m1_stag_interp[i])
     end
 end
 
 ###########################################################
 
-struct AcousticVDCPMLWaveSimul{N} <: AcousticVDWaveSimul{N}
+struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
     # Physics
     ls::NTuple{N, <:Real}
     # Numerics
@@ -385,37 +384,36 @@ struct AcousticVDCPMLWaveSimul{N} <: AcousticVDWaveSimul{N}
     # Gradient smoothing parameters
     smooth_radius::Integer
     # Material properties
-    matprop::VpRhoAcousticVDMaterialProperty
+    matprop::VpRhoAcousticVDMaterialProperty{N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Forward computation arrays
-    fact_vp2rho::Any
-    fact_rho_stag::Any
-    pold::Any
+    fact_m0::Any
+    fact_m1_stag::Any
     pcur::Any
-    pnew::Any
+    vcur::Any
     ψ::Any
     ξ::Any
     a_coeffs::Any
     b_coeffs::Any
     # Gradient computation arrays
-    curgrad_vp::Any
-    curgrad_rho::Any
-    adjold::Any
-    adjcur::Any
-    adjnew::Any
+    curgrad_m0::Any
+    curgrad_m1_stag::Any
+    adjpcur::Any
+    adjvcur::Any
     ψ_adj::Any
     ξ_adj::Any
     # Checkpointing setup
     last_checkpoint::Union{<:Integer, Nothing}
     save_buffer::Any
     checkpoints::Any
+    checkpoints_v::Any
     checkpoints_ψ::Any
     checkpoints_ξ::Any
     # Backend
     backend::Module
 
-    function AcousticVDCPMLWaveSimul{N}(
+    function AcousticVDStaggeredCPMLWaveSimul{N}(
         ns::NTuple{N, <:Integer},
         gridspacing::NTuple{N, <:Real},
         nt::Integer,
@@ -447,19 +445,19 @@ struct AcousticVDCPMLWaveSimul{N} <: AcousticVDWaveSimul{N}
         matprop = VpRhoAcousticVDMaterialProperty(zeros(ns...), zeros(ns...))
 
         # Select backend
-        backend = select_backend(AcousticVDCPMLWaveSimul{N}, parall)
+        backend = select_backend(AcousticVDStaggeredCPMLWaveSimul{N}, parall)
 
         # Initialize computational arrays
-        fact_vp2rho = backend.zeros(ns...)
-        fact_rho_stag = []
-        for i in 1:N
-            rho_stag_ns = [ns...]
-            rho_stag_ns[i] -= 1
-            append!(fact_rho_stag, [backend.zeros(rho_stag_ns...)])
-        end
-        pold = backend.zeros(ns...)
+        fact_m0 = backend.zeros(ns...)
+        fact_m1_stag = []
         pcur = backend.zeros(ns...)
-        pnew = backend.zeros(ns...)
+        vcur = []
+        for i in 1:N
+            stag_ns = [ns...]
+            stag_ns[i] -= 1
+            push!(fact_m1_stag, backend.zeros(stag_ns...))
+            push!(vcur, backend.zeros(stag_ns...))
+        end
         # Initialize CPML arrays
         ψ = []
         ξ = []
@@ -483,13 +481,18 @@ struct AcousticVDCPMLWaveSimul{N} <: AcousticVDWaveSimul{N}
         # Initialize gradient arrays if needed
         if gradient
             totgrad_size = [ns..., 2]
-            # Current gradient array
-            curgrad_vp = backend.zeros(ns...)
-            curgrad_rho = backend.zeros(ns...)
+            # Current gradient arrays
+            curgrad_m0 = backend.zeros(ns...)
+            curgrad_m1_stag = []
             # Adjoint arrays
-            adjold = backend.zeros(ns...)
-            adjcur = backend.zeros(ns...)
-            adjnew = backend.zeros(ns...)
+            adjpcur = backend.zeros(ns...)
+            adjvcur = backend.zeros(ns...)
+            for i in 1:N
+                stag_ns = [ns...]
+                stag_ns[i] -= 1
+                push!(adjvcur, backend.zeros(stag_ns...))
+                push!(curgrad_m1_stag, backend.zeros(stag_ns...))
+            end
             # Initialize CPML arrays
             ψ_adj = []
             ξ_adj = []
@@ -510,32 +513,33 @@ struct AcousticVDCPMLWaveSimul{N} <: AcousticVDWaveSimul{N}
                 # Checkpointing arrays
                 save_buffer = backend.zeros(ns..., check_freq + 2)      # pressure window buffer
                 checkpoints = Dict{Int, backend.Data.Array}()           # pressure checkpoints
+                checkpoints_v = Dict{Int, Vector{backend.Data.Array}}() # velocities checkpoints
                 checkpoints_ψ = Dict{Int, Any}()                        # ψ arrays checkpoints
                 checkpoints_ξ = Dict{Int, Any}()                        # ξ arrays checkpoints
                 # Save initial conditions as first checkpoint
-                checkpoints[-1] = copy(pold)
                 checkpoints[0] = copy(pcur)
+                checkpoints_v[0] = copy.(vcur)
                 checkpoints_ψ[0] = copy.(ψ)
                 checkpoints_ξ[0] = copy.(ξ)
                 # Preallocate future checkpoints
                 for it in 1:(nt+1)
                     if it % check_freq == 0
                         checkpoints[it] = backend.zeros(ns...)
-                        checkpoints[it-1] = backend.zeros(ns...)
+                        checkpoints_v[it] = copy.(vcur)
                         checkpoints_ψ[it] = copy.(ψ)
                         checkpoints_ξ[it] = copy.(ξ)
                     end
                 end
             else    # no checkpointing
-                last_checkpoint = 0                                 # simulate a checkpoint at time step 0 (so buffer will start from -1)
-                save_buffer = backend.zeros(ns..., nt + 2)          # save all timesteps (from -1 to nt+1 so nt+2)
+                last_checkpoint = 0                                 # simulate a checkpoint at time step 0
+                save_buffer = backend.zeros(ns..., nt + 1)          # save all timesteps (from 0 to nt so nt+1)
                 checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints (will remain empty)
+                checkpoints_v = Dict{Int, Vector{backend.Data.Array}}() # velocities checkpoints (will remain empty)
                 checkpoints_ψ = Dict{Int, Any}()                    # ψ arrays checkpoints (will remain empty)
                 checkpoints_ξ = Dict{Int, Any}()                    # ξ arrays checkpoints (will remain empty)
             end
-            # Save first 2 timesteps in save buffer
-            save_buffer[fill(Colon(), N)..., 1] .= pold
-            save_buffer[fill(Colon(), N)..., 2] .= pcur
+            # Save timestep 0 in save buffer
+            copyto!(save_buffer[fill(Colon(), N)..., 1], pcur)
         end
 
         # Initialize snapshots array
@@ -565,25 +569,24 @@ struct AcousticVDCPMLWaveSimul{N} <: AcousticVDWaveSimul{N}
             smooth_radius,
             matprop,
             cpmlcoeffs,
-            fact_vp2rho,
-            fact_rho_stag,
-            pold,
+            fact_m0,
+            fact_m1_stag,
             pcur,
-            pnew,
+            vcur,
             ψ,
             ξ,
             a_coeffs,
             b_coeffs,
-            gradient ? curgrad_vp : nothing,
-            gradient ? curgrad_rho : nothing,
-            gradient ? adjold : nothing,
-            gradient ? adjcur : nothing,
-            gradient ? adjnew : nothing,
+            gradient ? curgrad_m0 : nothing,
+            gradient ? curgrad_m1_stag : nothing,
+            gradient ? adjpcur : nothing,
+            gradient ? adjvcur : nothing,
             gradient ? ψ_adj : nothing,
             gradient ? ξ_adj : nothing,
             gradient ? last_checkpoint : nothing,
             gradient ? save_buffer : nothing,
             gradient ? checkpoints : nothing,
+            gradient ? checkpoints_v : nothing,
             gradient ? checkpoints_ψ : nothing,
             gradient ? checkpoints_ξ : nothing,
             backend
@@ -593,13 +596,14 @@ end
 
 ###########################################################
 
-# Specific functions for AcousticVDCPMLWaveSimul
+# Specific functions for AcousticVDStaggeredCPMLWaveSimul
 
-@views function reset!(model::AcousticVDCPMLWaveSimul{N}) where {N}
+@views function reset!(model::AcousticVDStaggeredCPMLWaveSimul)
     # Reset computational arrays
-    model.pold .= 0.0
     model.pcur .= 0.0
-    model.pnew .= 0.0
+    for i in eachindex(model.vcur)
+        model.vcur[i] .= 0.0
+    end
     for i in eachindex(model.ψ)
         model.ψ[i] .= 0.0
     end
@@ -608,11 +612,14 @@ end
     end
     # Reset gradient arrays
     if model.gradient
-        model.curgrad_vp .= 0.0
-        model.curgrad_rho .= 0.0
-        model.adjold .= 0.0
-        model.adjcur .= 0.0
-        model.adjnew .= 0.0
+        model.curgrad_m0 .= 0.0
+        for i in eachindex(model.curgrad_m1_stag)
+            model.curgrad_m1_stag[i] .= 0.0
+        end
+        model.adjpcur .= 0.0
+        for i in eachindex(model.adjvcur)
+            model.adjvcur[i] .= 0.0
+        end
         for i in eachindex(model.ψ_adj)
             model.ψ_adj[i] .= 0.0
         end
@@ -623,8 +630,10 @@ end
 end
 ###########################################################
 
-# Traits for AcousticVDCPMLWaveSimul
+# Traits for AcousticVDStaggeredCPMLWaveSimul
 
-IsSnappableTrait(::Type{<:AcousticVDCPMLWaveSimul}) = Snappable()
-BoundaryConditionTrait(::Type{<:AcousticVDCPMLWaveSimul}) = CPMLBoundaryCondition()
-GridTrait(::Type{<:AcousticVDCPMLWaveSimul}) = LocalGrid()
+IsSnappableTrait(::Type{<:AcousticVDStaggeredCPMLWaveSimul}) = Snappable()
+BoundaryConditionTrait(::Type{<:AcousticVDStaggeredCPMLWaveSimul}) = CPMLBoundaryCondition()
+GridTrait(::Type{<:AcousticVDStaggeredCPMLWaveSimul}) = LocalGrid()
+
+###########################################################

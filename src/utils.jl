@@ -21,7 +21,3 @@ end
         a[CartesianIndices(Tuple(i == dim ? (j:size(a, i)+j-method.width) : (1:size(a, i)) for i in 1:N))] for j in 1:method.width
     ) ./ method.width
 end
-
-@views function jacobian(method::ArithmeticAverageInterpolation, a::Array{<:Real, N}, dim) where {N}
-    return fill(1, method.width) ./ method.width
-end
