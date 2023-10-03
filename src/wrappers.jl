@@ -229,5 +229,7 @@ select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWave
     Acoustic3D_CD_CPML_GPU
 
 # Backend selections for AcousticVDStaggeredCPMLWaveSimul
-# select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{1}}, ::Type{Val{:serial}}) =
-#     Acoustic1D_VD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{1}}, ::Type{Val{:threads}}) =
+    Acoustic1D_VD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{1}}, ::Type{Val{:GPU}}) =
+    Acoustic1D_VD_CPML_GPU

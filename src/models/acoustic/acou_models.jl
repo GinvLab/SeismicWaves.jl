@@ -329,7 +329,7 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
     return scaled_tf
 end
 
-@views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+@views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
     # Checks
     @assert ndims(matprop.vp) == ndims(matprop.rho) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == size(matprop.rho) == model.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.ns)"
@@ -339,7 +339,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     copyto!(model.matprop.rho, matprop.rho)
@@ -350,11 +350,11 @@ end
 
 @views function precompute_fact!(model::AcousticVDStaggeredWaveSimul{N}) where {N}
     # Precompute 1/m0 factor
-    copyto!(model.fact_m0, model.matprop.vp .^ 2 .* model.matprop.rho)
+    copyto!(model.fact_m0, model.matprop.vp .^ 2 .* model.matprop.rho .* model.dt)
     # Precompute m1 factor by interpolation
     m1_stag_interp = interpolate(1 ./ model.matprop.rho, model.matprop.interp_method)
     for i in 1:N
-        copyto!(model.fact_m1_stag, m1_stag_interp[i])
+        copyto!(model.fact_m1_stag[i], m1_stag_interp[i] .* model.dt)
     end
 end
 

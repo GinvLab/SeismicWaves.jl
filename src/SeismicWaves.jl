@@ -15,7 +15,7 @@ export VpAcousticCDMaterialProperty, VpRhoAcousticVDMaterialProperty
 export ScalarSources, ScalarReceivers, Shot
 export swforward!, swmisfit!, swgradient!
 export build_wavesim
-export gaussource1D, rickersource1D
+export gaussource1D, gaussdersource1D, rickersource1D
 
 include("abstract_types.jl")
 
@@ -58,6 +58,11 @@ ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic3D_CD_CPML_Threads.jl")
 ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic3D_CD_CPML_GPU.jl")
+
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic1D_VD_CPML_Threads.jl")
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic1D_VD_CPML_GPU.jl")
 
 include("utils.jl")
 

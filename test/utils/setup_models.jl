@@ -44,7 +44,7 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     return params, shots, vel
 end
 
-function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, f0, halo, rcoef)
+function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx - 1) * dx
     matprop = VpRhoAcousticVDMaterialProperty(c0 .* ones(nx), ρ0 .* ones(nx))
@@ -52,11 +52,11 @@ function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, f0, halo, rcoef
     params = InputParametersAcousticVariableDensity(nt, dt, [nx], [dx],
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
-    t0 = 2 / f0
     times = collect(range(0.0; step=dt, length=nt))
     possrcs = zeros(1, 1)
     srctf = zeros(nt, 1)
-    srctf[:, 1] .= rickersource1D.(times, t0, f0)
+    srctf[:, 1] .= gaussdersource1D.(times, t0, f0)
+    refsrctf = zeros(nt, 1)
     possrcs[1, :] = [lx / 2]
     # receivers
     posrecs = zeros(1, 1)
@@ -64,7 +64,7 @@ function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, f0, halo, rcoef
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
     shots = [Shot(; srcs=srcs, recs=recs)]
-    return params, shots, matprop
+    return params, shots, matprop, refsrctf
 end
 
 function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
@@ -121,6 +121,26 @@ function analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)
     times = collect(range(dt; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
     src = (c0^2) .* srcs.tf[:, 1]
+    # Calculate Green's function
+    G = times .* 0.0
+    for it in 1:nt
+        # Heaviside function
+        if (times[it] - dist / c0) >= 0
+            G[it] = 1.0 / (2 * c0)
+        end
+    end
+    # Convolve with source term
+    Gc = conv(G, src .* dt)
+    Gc = Gc[1:nt]
+
+    return times, Gc
+end
+
+function analytical_solution_constant_vel_constant_density_1D(c0, rho, dt, nt, t0, f0, srcs, recs)
+    # analytical solution
+    times = collect(range(dt/2; step=dt, length=nt))
+    dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
+    src = (c0^2 * rho) .* rickersource1D.(times, t0, f0)
     # Calculate Green's function
     G = times .* 0.0
     for it in 1:nt

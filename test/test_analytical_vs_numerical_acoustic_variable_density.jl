@@ -9,11 +9,11 @@ include("utils/setup_models.jl")
 using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
 with_logger(error_logger) do
-    test_backends = [:serial]
+    test_backends = [:threads]
     # test GPU backend only if CUDA is functional
-    # if CUDA.functional()
-    #     push!(test_backends, :GPU)
-    # end
+    if CUDA.functional()
+        push!(test_backends, :GPU)
+    end
 
     for parall in test_backends
         @testset "Test 1D $(parall) analytical solution" begin
@@ -28,8 +28,9 @@ with_logger(error_logger) do
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
-                params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, f0, halo, rcoef)
-                times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, shots[1].srcs, shots[1].recs)
+                t0 = 2 / f0
+                params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
+                times, Gc = analytical_solution_constant_vel_constant_density_1D(c0, ρ0, dt, nt, t0, f0, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
                 swforward!(params, matprop, shots; parall=parall)
@@ -51,8 +52,9 @@ with_logger(error_logger) do
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
-                params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, f0, halo, rcoef)
-                times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, shots[1].srcs, shots[1].recs)
+                t0 = 2 / f0
+                params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
+                times, Gc = analytical_solution_constant_vel_constant_density_1D(c0, ρ0, dt, nt, t0, f0, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
                 swforward!(params, matprop, shots; parall=parall)
