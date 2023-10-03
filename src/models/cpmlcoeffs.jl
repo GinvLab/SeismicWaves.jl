@@ -79,8 +79,13 @@ function calc_Kab_CPML(
     if onwhere == "halfgrd"
         dist[1] = 0
     end
-    normdist_left = reverse(dist) ./ halo
-    normdist_right = dist ./ halo
+    if halo != 0
+        normdist_left = reverse(dist) ./ halo
+        normdist_right = dist ./ halo
+    else
+        normdist_left = reverse(dist)
+        normdist_right = dist
+    end
 
     if K_max_pml === nothing
         K_left = 1.0
