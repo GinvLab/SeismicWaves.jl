@@ -54,18 +54,18 @@ end
     return nothing
 end
 
-# @parallel_indices (it, ir) function prescale_residuals_kernel!(residuals, posrecs, fact)
-#     irec = floor(Int, posrecs[ir, 1])
-#     residuals[it, ir] *= fact[irec]
+@parallel_indices (it, ir) function prescale_residuals_kernel!(residuals, posrecs, fact)
+    irec = floor(Int, posrecs[ir, 1])
+    residuals[it, ir] *= fact[irec]
 
-#     return nothing
-# end
+    return nothing
+end
 
-# @views function prescale_residuals!(residuals, posrecs, fact)
-#     nrecs = size(posrecs, 1)
-#     nt = size(residuals, 1)
-#     @parallel (1:nt, 1:nrecs) prescale_residuals_kernel!(residuals, posrecs, fact)
-# end
+@views function prescale_residuals!(residuals, posrecs, fact)
+    nrecs = size(posrecs, 1)
+    nt = size(residuals, 1)
+    @parallel (1:nt, 1:nrecs) prescale_residuals_kernel!(residuals, posrecs, fact)
+end
 
 @views function forward_onestep_CPML!(
     pcur, vx_cur, fact_m0, fact_m1_x, dx, halo,
@@ -87,4 +87,27 @@ end
         @parallel (1:size(posrecs, 1)) record_receivers!(pcur, traces, posrecs, it)
     end
 
+end
+
+@views function backward_onestep_CPML!(
+    pcur, vx_cur, fact_m0, fact_m1_x, dx, halo,
+    ψ_l, ψ_r, ξ_l, ξ_r,
+    a_x_l, a_x_r, a_x_hl, a_x_hr,
+    b_x_l, b_x_r, b_x_hl, b_x_hr,
+    possrcs, srctf, it
+)
+    nx = length(pcur)
+    _dx = 1 / dx
+
+    @parallel (1:(nx-1)) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
+                                         ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
+    @parallel (2:(nx-1)) update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
+                                        ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
+    @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
+end
+
+@parallel function correlate_gradient_m1_kernel!(curgrad_m1_stag_x, adjvcur_x, pold, _dx)
+    @all(curgrad_m1_stag_x) = @all(curgrad_m1_stag_x) + (@all(adjvcur_x) * @d(pold) * _dx)
+
+    return nothing
 end

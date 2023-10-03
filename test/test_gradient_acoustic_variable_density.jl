@@ -7,11 +7,11 @@ include("utils/setup_models.jl")
 using Logging
 error_logger = ConsoleLogger(stderr, Logging.Error)
 with_logger(error_logger) do
-    test_backends = [:serial]
+    test_backends = [:threads]
     # test GPU backend only if CUDA is functional
-    # if CUDA.functional()
-    #     push!(test_backends, :GPU)
-    # end
+    if CUDA.functional()
+        push!(test_backends, :GPU)
+    end
 
     for parall in test_backends
         @testset "Test 1D $(parall) swgradient! with compute misfit" begin
@@ -19,6 +19,7 @@ with_logger(error_logger) do
             c0 = 2000.0
             ρ0 = 1500.0
             f0 = 10.0
+            t0 = 2 / f0
             # Numerics
             nt = 1000
             nx = 101
@@ -26,7 +27,7 @@ with_logger(error_logger) do
             dt = dx / c0
             halo = 20
             rcoef = 0.0001
-            params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, f0, halo, rcoef)
+            params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
 
             # Compute gradient and misfit
             grad, misfit = swgradient!(
@@ -51,6 +52,7 @@ with_logger(error_logger) do
             c0 = 2000.0
             ρ0 = 1500.0
             f0 = 10.0
+            t0 = 2 / f0
             # Numerics
             nt = 1000
             nx = 101
@@ -58,7 +60,7 @@ with_logger(error_logger) do
             dt = dx / c0
             halo = 20
             rcoef = 0.0001
-            params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, f0, halo, rcoef)
+            params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
 
             # Solve gradient without checkpointing
             grad = swgradient!(

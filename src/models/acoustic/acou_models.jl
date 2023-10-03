@@ -349,9 +349,9 @@ end
 end
 
 @views function precompute_fact!(model::AcousticVDStaggeredWaveSimul{N}) where {N}
-    # Precompute 1/m0 factor
+    # Precompute 1/m0 * dt factor
     copyto!(model.fact_m0, model.matprop.vp .^ 2 .* model.matprop.rho .* model.dt)
-    # Precompute m1 factor by interpolation
+    # Precompute m1 * dt factor by interpolation
     m1_stag_interp = interpolate(1 ./ model.matprop.rho, model.matprop.interp_method)
     for i in 1:N
         copyto!(model.fact_m1_stag[i], m1_stag_interp[i] .* model.dt)
@@ -486,7 +486,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
             curgrad_m1_stag = []
             # Adjoint arrays
             adjpcur = backend.zeros(ns...)
-            adjvcur = backend.zeros(ns...)
+            adjvcur = []
             for i in 1:N
                 stag_ns = [ns...]
                 stag_ns[i] -= 1
@@ -511,7 +511,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
                 # Time step of last checkpoint
                 last_checkpoint = floor(Int, nt / check_freq) * check_freq
                 # Checkpointing arrays
-                save_buffer = backend.zeros(ns..., check_freq + 2)      # pressure window buffer
+                save_buffer = backend.zeros(ns..., check_freq + 1)      # pressure window buffer
                 checkpoints = Dict{Int, backend.Data.Array}()           # pressure checkpoints
                 checkpoints_v = Dict{Int, Vector{backend.Data.Array}}() # velocities checkpoints
                 checkpoints_ψ = Dict{Int, Any}()                        # ψ arrays checkpoints
