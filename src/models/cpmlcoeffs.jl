@@ -38,6 +38,7 @@ function compute_CPML_coefficients!(
     alpha_max = π * f0          # CPML α multiplicative factor (half of dominating angular frequency)
     npower = 2.0                # CPML power coefficient
     d0 = -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness)     # damping profile
+    if halo == 0 d0 = 0.0 end                                         # fix for thickness == 0 generating NaNs
     a_l, a_r, b_l, b_r = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "ongrd")
     a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "halfgrd")
 
@@ -78,8 +79,8 @@ function calc_Kab_CPML(
     if onwhere == "halfgrd"
         dist[1] = 0
     end
-    normdist_left = reverse(dist) ./ Kab_size
-    normdist_right = dist ./ Kab_size
+    normdist_left = reverse(dist) ./ halo
+    normdist_right = dist ./ halo
 
     if K_max_pml === nothing
         K_left = 1.0
