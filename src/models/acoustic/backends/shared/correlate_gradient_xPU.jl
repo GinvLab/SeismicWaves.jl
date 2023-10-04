@@ -10,7 +10,7 @@ end
 end
 
 @parallel function correlate_gradient_m0_kernel!(curgrad_m0, adjpcur, pcur_corr, pcur_old, _dt)
-    @all(curgrad_m0) = @all(curgrad_m0) + (@all(adjpcur) * (@all(pcur_corr) - @all(pcur_old)) * _dt)
+    @all(curgrad_m0) = @all(curgrad_m0) - (@all(adjpcur) * (@all(pcur_corr) - @all(pcur_old)) * _dt)
 
     return nothing
 end

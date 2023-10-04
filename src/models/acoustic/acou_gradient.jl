@@ -295,7 +295,10 @@ end
     model.backend.smooth_gradient!(gradient_m0, possrcs, model.smooth_radius)
     model.backend.smooth_gradient!(gradient_m1, possrcs, model.smooth_radius)
     # Rescale gradients with respect to material properties (chain rule)
-    gradient_m0 .= .-2.0 .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho)
-    gradient_m1 .= .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho
-    return reshape(hcat(gradient_m0, gradient_m1), model.totgrad_size...)
+    return reshape(hcat(
+            .-2.0 .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho),                                   # grad wrt vp
+            .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho  # grad wrt rho
+        ),
+        model.totgrad_size...
+    )
 end
