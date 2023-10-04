@@ -63,6 +63,10 @@ ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic1D_VD_CPML_Threads.jl")
 ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic1D_VD_CPML_GPU.jl")
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic2D_VD_CPML_Threads.jl")
+ParallelStencil.@reset_parallel_stencil()
+include("models/acoustic/backends/Acoustic2D_VD_CPML_GPU.jl")
 
 include("utils.jl")
 

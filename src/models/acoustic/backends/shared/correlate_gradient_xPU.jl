@@ -20,12 +20,6 @@ end
     @parallel correlate_gradient_m0_kernel!(curgrad_m0, adjpcur, pcur_corr, pcur_old, _dt)
 end
 
-# @parallel function correlate_gradient_m1_kernel!(curgrad_m1_stag_x, curgrad_m1_stag_y, adjvcur_x, adjvcur_y, pold, _dx, _dy)
-#     @all(curgrad_m1_stag_x) = @all(curgrad_m1_stag_x) + (@all(adjvcur_x) * @d_dxa(pold) * _dx)
-#     @all(curgrad_m1_stag_y) = @all(curgrad_m1_stag_y) + (@all(adjvcur_y) * @d_dya(pold) * _dy)
-#     return nothing
-# end
-
 # @parallel function correlate_gradient_m1_kernel!(curgrad_m1_stag_x, curgrad_m1_stag_y, curgrad_m1_stag_z,
 #                                                  adjvcur_x, adjvcur_y, adjvcur_z, pold, _dx, _dy, _dz)
 #     @all(curgrad_m1_stag_x) = @all(curgrad_m1_stag_x) + (@all(adjvcur_x) * @d_dxa(pold) * _dx)
