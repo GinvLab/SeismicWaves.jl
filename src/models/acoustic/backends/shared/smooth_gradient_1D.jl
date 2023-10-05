@@ -8,7 +8,7 @@ function smooth_gradient!(grad, possrcs, radius)
         for i in imin:imax
             if 1 <= i <= nx
                 r = abs(i - isrc)
-                if r <= radius
+                if r < radius
                     grad[i] *= r / radius
                 end
             end
