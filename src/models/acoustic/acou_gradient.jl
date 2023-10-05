@@ -280,7 +280,7 @@ end
         pcur_old = model.save_buffer[fill(Colon(), N)..., (it - curr_checkpoint)]
         # Correlate for gradient computation
         model.backend.correlate_gradient_m0!(model.curgrad_m0, adjpcur, pcur_corr, pcur_old, model.dt)
-        model.backend.correlate_gradient_m1!(model.curgrad_m1_stag, adjvcur, pcur_old, model.gridspacing)
+        model.backend.correlate_gradient_m1!(model.curgrad_m1_stag, adjvcur, pcur_corr, model.gridspacing)
     end
     # Allocate gradients
     gradient_m0 = zeros(model.ns...)
