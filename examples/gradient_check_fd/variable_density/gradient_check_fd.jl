@@ -75,7 +75,7 @@ function setup(nt, c0, c0max, rho0, rho0max, r, dx, dy, dt, halo, rcoef, nx, ny,
     params = InputParametersAcousticVariableDensity(nt, dt, [nx, ny], [dx, dy], boundcond)
 
     # Wave simulation builder
-    wavesim = build_wavesim(params; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)))
+    wavesim = build_wavesim(params; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)), smooth_radius=0)
 
     return wavesim, shots, matprop_const, matprop_gauss
 end
