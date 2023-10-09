@@ -319,6 +319,16 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
 
 # Functions for all AcousticVDStaggeredWaveSimul subtypes
 
+@views function check_courant_condition(model::AcousticVDStaggeredWaveSimul{N}, vp::Array{<:Real, N}) where {N}
+    vel_max = get_maximum_func(model)(vp)
+    tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
+    courant = vel_max * model.dt * tmp * 7/6    # 7/6 comes from the higher order stencil
+    @debug "Courant number: $(courant)"
+    if courant > 1
+        @warn "Courant condition not satisfied! [$(courant)]"
+    end
+end
+
 @views function scale_srctf(model::AcousticVDStaggeredWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
     # scale with boxcar and timestep size
     scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt)

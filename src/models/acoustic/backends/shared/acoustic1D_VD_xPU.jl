@@ -1,3 +1,7 @@
+macro d_dx_4th(a, i)
+    return esc( :( ( -$a[$i+1] + 27.0 * $a[$i] - 27.0 * $a[$i-1] + $a[$i-2] ) ) )
+end
+
 @parallel_indices (is) function inject_sources!(pcur, srctf, possrcs, it)
     isrc = floor(Int, possrcs[is, 1])
     pcur[isrc] += srctf[it, is]
@@ -15,7 +19,7 @@ end
 @parallel_indices (i) function update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
                                               ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
     # Compute velocity derivatives
-    dv_dx = (vx_cur[i] - vx_cur[i-1]) * _dx
+    dv_dx = @d_dx_4th(vx_cur, i) * _dx
     # Update CPML memory arrays if on the boundary
     if i <= halo + 1
         # left boundary
@@ -28,7 +32,7 @@ end
         dv_dx += ξ_r[ii]
     end
     # Update pressure
-    pcur[i] -= fact_m0[i] * dv_dx   
+    pcur[i] -= fact_m0[i] * dv_dx
 
     return nothing
 end
@@ -36,7 +40,7 @@ end
 @parallel_indices (i) function update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
                                                ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
     # Compute pressure derivative in x direction
-    dp_dx = (pcur[i+1] - pcur[i]) * _dx
+    dp_dx = @d_dx_4th(pcur, i+1) * _dx
     # Update CPML memory arrays if on the boundary
     if i <= halo + 1
         # left boundary
@@ -76,12 +80,12 @@ end
     save_trace=true
 )
     nx = length(pcur)
-    _dx = 1 / dx
+    _dx = 1 / (dx * 24)
 
-    @parallel (2:(nx-1)) update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
+    @parallel (3:(nx-2)) update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
                                         ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
-    @parallel (1:(nx-1)) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
+    @parallel (2:(nx-2)) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
                                          ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
     if save_trace
         @parallel (1:size(posrecs, 1)) record_receivers!(pcur, traces, posrecs, it)
@@ -97,11 +101,11 @@ end
     possrcs, srctf, it
 )
     nx = length(pcur)
-    _dx = 1 / dx
+    _dx = 1 / (dx * 24)
 
-    @parallel (1:(nx-1)) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
+    @parallel (2:(nx-2)) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
                                          ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
-    @parallel (2:(nx-1)) update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
+    @parallel (3:(nx-2)) update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
                                         ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
 end

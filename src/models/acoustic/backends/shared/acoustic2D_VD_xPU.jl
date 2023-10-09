@@ -1,3 +1,11 @@
+macro d_dx_4th(a, i, j)
+    return esc( :( ( -$a[$i+1, $j] + 27.0 * $a[$i, $j] - 27.0 * $a[$i-1, $j] + $a[$i-2, $j] ) ) )
+end
+
+macro d_dy_4th(a, i, j)
+    return esc( :( ( -$a[$i, $j+1] + 27.0 * $a[$i, $j] - 27.0 * $a[$i, $j-1] + $a[$i, $j-2] ) ) )
+end
+
 @parallel_indices (is) function inject_sources!(pcur, srctf, possrcs, it)
     isrc = floor(Int, possrcs[is, 1])
     jsrc = floor(Int, possrcs[is, 2])
@@ -18,8 +26,8 @@ end
                                                 ξ_x_l, ξ_x_r, a_x_l, a_x_r, b_x_l, b_x_r,
                                                 ξ_y_l, ξ_y_r, a_y_l, a_y_r, b_y_l, b_y_r)
     # Compute velocity derivatives
-    dv_dx = (vx_cur[i,j] - vx_cur[i-1,j]) * _dx
-    dv_dy = (vy_cur[i,j] - vy_cur[i,j-1]) * _dy
+    dv_dx = @d_dx_4th(vx_cur, i, j) * _dx
+    dv_dy = @d_dy_4th(vy_cur, i, j) * _dy
     # Update CPML memory arrays if on the boundary
     if i <= halo + 1
         # left boundary
@@ -50,7 +58,7 @@ end
 @parallel_indices (i,j) function update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
                                                  ψ_x_l, ψ_x_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
     # Compute pressure derivative in x direction
-    dp_dx = (pcur[i+1,j] - pcur[i,j]) * _dx
+    dp_dx = @d_dx_4th(pcur, i+1, j) * _dx
     # Update CPML memory arrays if on the boundary
     if i <= halo + 1
         # left boundary
@@ -71,7 +79,7 @@ end
 @parallel_indices (i,j) function update_vy_CPML!(pcur, vy_cur, halo, fact_m1_y, ny, _dy,
                                                  ψ_y_l, ψ_y_r, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
     # Compute pressure derivative in y direction
-    dp_dy = (pcur[i,j+1] - pcur[i,j]) * _dy
+    dp_dy = @d_dy_4th(pcur, i, j+1) * _dy
     # Update CPML memory arrays if on the boundary
     if j <= halo + 1
         # top boundary
@@ -115,17 +123,17 @@ end
     save_trace=true
 )
     nx, ny = size(pcur)
-    _dx = 1 / dx
-    _dy = 1 / dy
+    _dx = 1 / (dx * 24)
+    _dy = 1 / (dy * 24)
 
-    @parallel (2:(nx-1),2:(ny-1)) update_p_CPML!(pcur, vx_cur, vy_cur, halo, fact_m0, nx, ny, _dx, _dy,
+    @parallel (3:(nx-2),3:(ny-2)) update_p_CPML!(pcur, vx_cur, vy_cur, halo, fact_m0, nx, ny, _dx, _dy,
                                                  ξ_x_l, ξ_x_r, a_x_l, a_x_r, b_x_l, b_x_r,
                                                  ξ_y_l, ξ_y_r, a_y_l, a_y_r, b_y_l, b_y_r)
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
 
-    @parallel_async (1:(nx-1),1:ny) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
+    @parallel_async (2:(nx-2),1:ny) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
                                                     ψ_x_l, ψ_x_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
-    @parallel_async (1:nx,1:(ny-1)) update_vy_CPML!(pcur, vy_cur, halo, fact_m1_y, ny, _dy,
+    @parallel_async (1:nx,2:(ny-2)) update_vy_CPML!(pcur, vy_cur, halo, fact_m1_y, ny, _dy,
                                                     ψ_y_l, ψ_y_r, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
     @synchronize
 
@@ -146,16 +154,16 @@ end
     possrcs, srctf, it
 )
     nx, ny = size(pcur)
-    _dx = 1 / dx
-    _dy = 1 / dy
+    _dx = 1 / (dx * 24)
+    _dy = 1 / (dy * 24)
 
-    @parallel_async (1:(nx-1),1:ny) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
+    @parallel_async (2:(nx-2),1:ny) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
                                                     ψ_x_l, ψ_x_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
-    @parallel_async (1:nx,1:(ny-1)) update_vy_CPML!(pcur, vy_cur, halo, fact_m1_y, ny, _dy,
+    @parallel_async (1:nx,2:(ny-2)) update_vy_CPML!(pcur, vy_cur, halo, fact_m1_y, ny, _dy,
                                                     ψ_y_l, ψ_y_r, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
     @synchronize
 
-    @parallel (2:(nx-1),2:(ny-1)) update_p_CPML!(pcur, vx_cur, vy_cur, halo, fact_m0, nx, ny, _dx, _dy,
+    @parallel (3:(nx-2),3:(ny-2)) update_p_CPML!(pcur, vx_cur, vy_cur, halo, fact_m0, nx, ny, _dx, _dy,
                                                  ξ_x_l, ξ_x_r, a_x_l, a_x_r, b_x_l, b_x_r,
                                                  ξ_y_l, ξ_y_r, a_y_l, a_y_r, b_y_l, b_y_r)
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)

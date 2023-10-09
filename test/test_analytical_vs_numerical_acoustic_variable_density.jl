@@ -24,7 +24,7 @@ with_logger(error_logger) do
                 nt = 500
                 nx = 501
                 dx = 2.5
-                dt = dx / c0
+                dt = dx / c0 * 6/7
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
@@ -48,7 +48,7 @@ with_logger(error_logger) do
                 nt = 5000
                 nx = 501
                 dx = 2.5
-                dt = dx / c0
+                dt = dx / c0 * 6/7
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
@@ -71,10 +71,10 @@ with_logger(error_logger) do
                 # constant velocity setup
                 c0 = 1000.0
                 ρ0 = 1500.0
-                nt = 175
-                nx = ny = 201
-                dx = dy = 10.0
-                dt = dx / c0 / sqrt(2)
+                nt = 350
+                nx = ny = 401
+                dx = dy = 5.0
+                dt = dx / c0 / sqrt(2) * 6/7
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
@@ -83,7 +83,7 @@ with_logger(error_logger) do
                 times, Gc = analytical_solution_constant_vel_constant_density_2D(c0, ρ0, dt, nt, t0, f0, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
-                swforward!(params, matprop, shots; parall=parall, infoevery=50)
+                swforward!(params, matprop, shots; parall=parall)
                 numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt
@@ -95,10 +95,10 @@ with_logger(error_logger) do
                 # constant velocity setup
                 c0 = 1000.0
                 ρ0 = 1500.0
-                nt = 600
-                nx = ny = 201
-                dx = dy = 10.0
-                dt = dx / c0 / sqrt(2)
+                nt = 350*4
+                nx = ny = 401
+                dx = dy = 5.0
+                dt = dx / c0 / sqrt(2) * 6/7
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
@@ -107,7 +107,7 @@ with_logger(error_logger) do
                 times, Gc = analytical_solution_constant_vel_constant_density_2D(c0, ρ0, dt, nt, t0, f0, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
-                swforward!(params, matprop, shots; parall=parall, infoevery=50)
+                swforward!(params, matprop, shots; parall=parall)
                 numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt
