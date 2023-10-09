@@ -2,6 +2,8 @@ module Acoustic2D_VD_CPML_Threads
 
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
+include("shared/fourth_order_FiniteDifferences2D.jl")
+
 @init_parallel_stencil(Threads, Float64, 2)
 
 include("shared/standard_xPU.jl")

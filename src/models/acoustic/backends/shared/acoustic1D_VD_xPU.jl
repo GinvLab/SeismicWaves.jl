@@ -1,7 +1,3 @@
-macro d_dx_4th(a, i)
-    return esc( :( ( -$a[$i+1] + 27.0 * $a[$i] - 27.0 * $a[$i-1] + $a[$i-2] ) ) )
-end
-
 @parallel_indices (is) function inject_sources!(pcur, srctf, possrcs, it)
     isrc = floor(Int, possrcs[is, 1])
     pcur[isrc] += srctf[it, is]
@@ -110,8 +106,14 @@ end
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
 end
 
-@parallel function correlate_gradient_m1_kernel!(curgrad_m1_stag_x, adjvcur_x, pold, _dx)
-    @all(curgrad_m1_stag_x) = @all(curgrad_m1_stag_x) + (@all(adjvcur_x) * @d(pold) * _dx)
+@views function correlate_gradient_m1!(curgrad_m1_stag, adjvcur, pold, gridspacing)
+    _gridspacing = 1 ./ (gridspacing .* 24)
+    nx = length(pold)
+    @parallel (2:nx-2) correlate_gradient_m1_kernel_x!(curgrad_m1_stag[1], adjvcur[1], pold, _gridspacing[1])
+end
+
+@parallel_indices (i) function correlate_gradient_m1_kernel_x!(curgrad_m1_stag_x, adjvcur_x, pold, _dx)
+    curgrad_m1_stag_x[i] = curgrad_m1_stag_x[i] + adjvcur_x[i] * @d_dx_4th(pold, i+1) * _dx
 
     return nothing
 end

@@ -3,6 +3,8 @@ module Acoustic2D_VD_CPML_GPU
 using CUDA
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
+include("shared/fourth_order_FiniteDifferences2D.jl")
+
 @init_parallel_stencil(CUDA, Float64, 2)
 
 include("shared/standard_xPU.jl")

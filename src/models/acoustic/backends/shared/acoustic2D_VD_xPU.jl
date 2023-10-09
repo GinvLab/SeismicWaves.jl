@@ -1,11 +1,3 @@
-macro d_dx_4th(a, i, j)
-    return esc( :( ( -$a[$i+1, $j] + 27.0 * $a[$i, $j] - 27.0 * $a[$i-1, $j] + $a[$i-2, $j] ) ) )
-end
-
-macro d_dy_4th(a, i, j)
-    return esc( :( ( -$a[$i, $j+1] + 27.0 * $a[$i, $j] - 27.0 * $a[$i, $j-1] + $a[$i, $j-2] ) ) )
-end
-
 @parallel_indices (is) function inject_sources!(pcur, srctf, possrcs, it)
     isrc = floor(Int, possrcs[is, 1])
     jsrc = floor(Int, possrcs[is, 2])
@@ -170,9 +162,21 @@ end
     
 end
 
-@parallel function correlate_gradient_m1_kernel!(curgrad_m1_stag_x, curgrad_m1_stag_y, adjvcur_x, adjvcur_y, pold, _dx, _dy)
-    @all(curgrad_m1_stag_x) = @all(curgrad_m1_stag_x) + (@all(adjvcur_x) * @d_xa(pold) * _dx)
-    @all(curgrad_m1_stag_y) = @all(curgrad_m1_stag_y) + (@all(adjvcur_y) * @d_ya(pold) * _dy)
-    
+@views function correlate_gradient_m1!(curgrad_m1_stag, adjvcur, pold, gridspacing)
+    _gridspacing = 1 ./ (gridspacing .* 24)
+    nx, ny = size(pold)
+    @parallel (2:nx-2, 1:ny) correlate_gradient_m1_kernel_x!(curgrad_m1_stag[1], adjvcur[1], pold, _gridspacing[1])
+    @parallel (1:nx, 2:nx-2) correlate_gradient_m1_kernel_y!(curgrad_m1_stag[2], adjvcur[2], pold, _gridspacing[2])
+end
+
+@parallel_indices (i,j) function correlate_gradient_m1_kernel_x!(curgrad_m1_stag_x, adjvcur_x, pold, _dx)
+    curgrad_m1_stag_x[i,j] = curgrad_m1_stag_x[i,j] + adjvcur_x[i,j] * @d_dx_4th(pold, i+1, j) * _dx
+
+    return nothing
+end
+
+@parallel_indices (i,j) function correlate_gradient_m1_kernel_y!(curgrad_m1_stag_y, adjvcur_y, pold, _dy)
+    curgrad_m1_stag_y[i,j] = curgrad_m1_stag_y[i,j] + adjvcur_y[i,j] * @d_dy_4th(pold, i, j+1) * _dy
+
     return nothing
 end
