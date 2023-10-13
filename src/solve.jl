@@ -80,7 +80,7 @@ end
         difcalobs = recs.seismograms - recs.observed
         mul!(residuals, recs.invcov, difcalobs)
         # Window residuals using mask
-        mask = ones(wavesim.nt)
+        mask = ones(wavsim.nt)
         if length(recs.windows) > 0
             for wnd in recs.windows
                 mask[wnd.first:wnd.second] .= 2.0
