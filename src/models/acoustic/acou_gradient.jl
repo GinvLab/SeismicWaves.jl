@@ -9,7 +9,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     srctf,
     traces,
     observed,
-    invcov
+    invcov,
+    windows
 )::Array{<:Real} where {N}
     # Numerics
     nt = model.nt
@@ -72,6 +73,17 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     @debug "Computing residuals"
     # Compute residuals
     mul!(residuals_a, invcov_a, traces_a - observed_a)
+
+    # Window residuals using mask
+    mask = ones(nt)
+    if length(windows) > 0
+        for wnd in windows
+            mask[wnd.first:wnd.second] .= 2.0
+        end
+        mask .-= 1.0
+    end
+    mask_a = model.backend.Data.Array(mask)
+    residuals_a .= mask_a .* residuals_a
 
     # Prescale residuals (fact = vel^2 * dt^2)
     model.backend.prescale_residuals!(residuals_a, posrecs_a, model.fact)
@@ -155,7 +167,8 @@ end
     srctf,
     traces,
     observed,
-    invcov
+    invcov,
+    windows
 )::Array{<:Real} where {N}
     # Numerics
     nt = model.nt
@@ -218,6 +231,17 @@ end
     @debug "Computing residuals"
     # Compute residuals
     mul!(residuals_a, invcov_a, traces_a - observed_a)
+
+    # Window residuals using mask
+    mask = ones(nt)
+    if length(windows) > 0
+        for wnd in windows
+            mask[wnd.first:wnd.second] .= 2.0
+        end
+        mask .-= 1.0
+    end
+    mask_a = model.backend.Data.Array(mask)
+    residuals_a .= mask_a .* residuals_a
 
     # Prescale residuals (fact = vel^2 * rho * dt)
     model.backend.prescale_residuals!(residuals_a, posrecs_a, model.fact_m0)

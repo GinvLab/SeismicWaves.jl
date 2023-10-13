@@ -6,6 +6,7 @@ struct ScalarReceivers{T <: Real} <: Receivers
     seismograms::Matrix{T}
     observed::Matrix{T}
     invcov::AbstractMatrix{T}
+    windows::Vector{Pair{Int, Int}}
 
     @doc raw"""
         Receivers[{T<:Real = Float64}](positions::Matrix{<:Real}, nt::Int, observed::Union{Matrix{T}, Nothing} = nothing)
@@ -16,7 +17,8 @@ struct ScalarReceivers{T <: Real} <: Receivers
         positions::Matrix{<:Real},
         nt::Integer;
         observed::Union{Matrix{T}, Nothing}=nothing,
-        invcov::Union{AbstractMatrix{T}, Nothing}=nothing
+        invcov::Union{AbstractMatrix{T}, Nothing}=nothing,
+        windows::Union{Vector{Pair{Int,Int}}, Nothing}=nothing
     ) where {T <: Real}
         @assert size(positions, 1) > 0 "There must be at least one receiver!"
         seismograms = zeros(T, nt, size(positions, 1))
@@ -30,10 +32,17 @@ struct ScalarReceivers{T <: Real} <: Receivers
         else
             invcov = zeros(0, 0)
         end
-        return new(positions, seismograms, observed, invcov)
+        if windows !== nothing
+            for wnd in windows
+                @assert 1 <= wnd.first <= wnd.second <= nt "Window $(wnd) is not consistent!"
+            end
+        else
+            windows = []
+        end
+        return new(positions, seismograms, observed, invcov, windows)
     end
 end
 
 # Default type constructor
-ScalarReceivers(positions, nt; observed=nothing, invcov=nothing) =
-    ScalarReceivers{Float64}(positions, nt; observed=observed, invcov=invcov)
+ScalarReceivers(positions, nt; observed=nothing, invcov=nothing, windows=nothing) =
+    ScalarReceivers{Float64}(positions, nt; observed=observed, invcov=invcov, windows=windows)
