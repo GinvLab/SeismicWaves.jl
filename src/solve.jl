@@ -140,6 +140,15 @@ end
             residuals = similar(recs.seismograms)
             difcalobs = recs.seismograms - recs.observed
             mul!(residuals, recs.invcov, difcalobs)
+            # Window residuals using mask
+            mask = ones(wavsim.nt)
+            if length(recs.windows) > 0
+                for wnd in recs.windows
+                    mask[wnd.first:wnd.second] .= 2.0
+                end
+                mask .-= 1.0
+            end
+            residuals .= mask .* residuals
             totmisfit += dot(difcalobs, residuals)
         end
         # Accumulate gradient

@@ -45,6 +45,38 @@ with_logger(error_logger) do
             @test misfit ≈ misfit_check
         end
 
+        @testset "Test 1D $(parall) swgradient! with compute misfit and windowing" begin
+            # Physics
+            c0 = 2000.0
+            f0 = 10.0
+            # Numerics
+            nt = 1000
+            nx = 101
+            dx = 10.0
+            dt = dx / c0
+            halo = 20
+            rcoef = 0.0001
+            params, shots, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
+            push!(shots[1].recs.windows, Pair(500, 600))
+
+            # Compute gradient and misfit
+            grad, misfit = swgradient!(
+                params,
+                vel,
+                shots;
+                parall=parall,
+                check_freq=nothing,
+                compute_misfit=true
+            )
+            # Compute only misfit
+            misfit_check = swmisfit!(params, vel, shots; parall=parall)
+
+            # Check that gradient is non zero
+            @test !all(g -> g == 0.0, grad)
+            # Check that misfits are equivalent
+            @test misfit ≈ misfit_check
+        end
+
         @testset "Test 2D $(parall) swgradient! with compute misfit" begin
             # Physics
             c0 = 2000.0
