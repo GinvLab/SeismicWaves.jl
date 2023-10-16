@@ -48,7 +48,7 @@ function (regularization::ZerothOrderTikhonovRegularization{VpAcousticCDMaterial
     vp = matprop.vp
     vp_prior = regularization.matprop_prior.vp
     vp_norm_sq = norm(vp - vp_prior)^2
-    return alpha / 2 * vp_norm_sq
+    return regularization.alpha / 2 * vp_norm_sq
 end
 
 function (regularization::ZerothOrderTikhonovRegularization{VpRhoAcousticVDMaterialProperty{N}})(matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
@@ -58,13 +58,13 @@ function (regularization::ZerothOrderTikhonovRegularization{VpRhoAcousticVDMater
     rho_prior = regularization.matprop_prior.rho
     vp_norm_sq = norm(vp - vp_prior)^2
     rho_norm_sq = norm(rho - rho_prior)^2
-    return alpha / 2 * (vp_norm_sq + rho_norm_sq)
+    return regularization.alpha / 2 * (vp_norm_sq + rho_norm_sq)
 end
 
 function dχ_dm(regularization::ZerothOrderTikhonovRegularization{VpAcousticCDMaterialProperty{N}}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
     vp = matprop.vp
     vp_prior = regularization.matprop_prior.vp
-    return alpha * (vp - vp_prior)
+    return regularization.alpha * (vp - vp_prior)
 end
 
 function dχ_dm(regularization::ZerothOrderTikhonovRegularization{VpRhoAcousticVDMaterialProperty{N}}, matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
@@ -72,5 +72,5 @@ function dχ_dm(regularization::ZerothOrderTikhonovRegularization{VpRhoAcousticV
     rho = matprop.rho
     vp_prior = regularization.matprop_prior.vp
     rho_prior = regularization.matprop_prior.rho
-    return alpha * (vp - vp_prior), alpha * (rho - rho_prior)
+    return regularization.alpha * (vp - vp_prior), regularization.alpha * (rho - rho_prior)
 end
