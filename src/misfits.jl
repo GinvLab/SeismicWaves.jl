@@ -18,7 +18,7 @@ function (misfit::L2Misfit)(recs::ScalarReceivers, matprop::MaterialProperties)
     msf = dot(residuals, recs.invcov, residuals) / 2
     # Add regularization if needed
     if misfit.regularization !== nothing
-        msf += regularization(matprop)
+        msf += misfit.regularization(matprop)
     end
     return msf
 end
