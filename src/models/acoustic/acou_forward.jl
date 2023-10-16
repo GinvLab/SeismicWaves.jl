@@ -6,7 +6,7 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
     possrcs,
     posrecs,
     srctf,
-    traces
+    recs
 ) where {N}
     # Pressure arrays
     pold = model.pold
@@ -18,7 +18,7 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
     possrcs_a = model.backend.Data.Array(possrcs)
     posrecs_a = model.backend.Data.Array(posrecs)
     srctf_a = model.backend.Data.Array(srctf)
-    traces_a = model.backend.Data.Array(traces)
+    traces_a = model.backend.Data.Array(recs.seismograms)
     # Reset wavesim
     reset!(model)
 
@@ -49,7 +49,7 @@ swforward_1shot!(model::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryC
     end
 
     # Save traces
-    copyto!(traces, traces_a)
+    copyto!(recs.seismograms, traces_a)
 end
 
 @views function swforward_1shot!(
@@ -58,7 +58,7 @@ end
     possrcs,
     posrecs,
     srctf,
-    traces
+    recs
 ) where {N}
     # Pressure and velocity arrays
     pcur = model.pcur
@@ -69,7 +69,7 @@ end
     possrcs_a = model.backend.Data.Array(possrcs)
     posrecs_a = model.backend.Data.Array(posrecs)
     srctf_a = model.backend.Data.Array(srctf)
-    traces_a = model.backend.Data.Array(traces)
+    traces_a = model.backend.Data.Array(recs.seismograms)
     # Reset wavesim
     reset!(model)
 
@@ -100,5 +100,5 @@ end
     end
 
     # Save traces
-    copyto!(traces, traces_a)
+    copyto!(recs.seismograms, traces_a)
 end

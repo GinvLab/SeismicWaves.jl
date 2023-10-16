@@ -38,13 +38,10 @@ end
         @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(wavsim, singleshot)
+        possrcs, posrecs, srctf = init_shot!(wavsim, singleshot)
         # Compute forward solver
         @info "Forward modelling for one shot"
-        swforward_1shot!(wavsim, possrcs, posrecs, srctf, traces)
-        # Save traces in receivers seismograms
-        @info "Saving seismograms"
-        copyto!(recs.seismograms, traces)
+        swforward_1shot!(wavsim, possrcs, posrecs, srctf, recs)
         # Save shot's snapshots
         if takesnapshots
             @info "Saving snapshots"
@@ -64,6 +61,7 @@ end
     wavsim::WaveSimul{N},
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};
+    misfit::AbstractMisfit=L2Misfit(nothing)
 )::Real where {N}
     # Solve forward model for all shots
     run_swforward!(wavsim, matprop, shots)
@@ -76,22 +74,10 @@ end
         @info "Checking invcov matrix"
         check_invcov_matrix(wavsim, recs.invcov)
         @info "Computing misfit"
-        residuals = similar(recs.seismograms)
-        difcalobs = recs.seismograms - recs.observed
-        mul!(residuals, recs.invcov, difcalobs)
-        # Window residuals using mask
-        mask = ones(wavsim.nt)
-        if length(recs.windows) > 0
-            for wnd in recs.windows
-                mask[wnd.first:wnd.second] .= 2.0
-            end
-            mask .-= 1.0
-        end
-        residuals .= mask .* residuals
-        totmisfit += dot(difcalobs, residuals)
+        totmisfit += misfit(recs, matprop)
     end
 
-    return totmisfit / 2
+    return totmisfit
 end
 
 ### GRADIENTS ###
@@ -100,7 +86,8 @@ end
     wavsim::WaveSimul{N},
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};
-    compute_misfit::Bool=false
+    compute_misfit::Bool=false,
+    misfit::AbstractMisfit=L2Misfit(nothing)
 )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
 
     # Check wavesim consistency
@@ -121,39 +108,24 @@ end
         @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
-        possrcs, posrecs, srctf, traces = init_shot!(wavsim, singleshot)
+        possrcs, posrecs, srctf = init_shot!(wavsim, singleshot)
         @info "Checking invcov matrix"
         check_invcov_matrix(wavsim, recs.invcov)
         # Compute forward solver
         @info "Computing gradient solver"
         curgrad = swgradient_1shot!(
             wavsim, possrcs,
-            posrecs, srctf, traces,
-            recs.observed, recs.invcov, recs.windows
+            posrecs, srctf,
+            recs, misfit
         )
-        # Compute misfit
-        @info "Saving seismograms"
-        copyto!(recs.seismograms, traces)
         # Compute misfit if needed
         if compute_misfit
             @info "Computing misfit"
-            residuals = similar(recs.seismograms)
-            difcalobs = recs.seismograms - recs.observed
-            mul!(residuals, recs.invcov, difcalobs)
-            # Window residuals using mask
-            mask = ones(wavsim.nt)
-            if length(recs.windows) > 0
-                for wnd in recs.windows
-                    mask[wnd.first:wnd.second] .= 2.0
-                end
-                mask .-= 1.0
-            end
-            residuals .= mask .* residuals
-            totmisfit += dot(difcalobs, residuals)
+            totmisfit += misfit(recs, matprop)
         end
         # Accumulate gradient
         totgrad .+= curgrad
     end
 
-    return compute_misfit ? (totgrad, totmisfit / 2) : totgrad
+    return compute_misfit ? (totgrad, totmisfit) : totgrad
 end

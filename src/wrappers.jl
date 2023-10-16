@@ -69,12 +69,13 @@ function swmisfit!(
     params::InputParameters{N},
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    parall::Symbol=:threads
+    parall::Symbol=:threads,
+    misfit::AbstractMisfit=L2Misfit(nothing)
 )::Real where {N}
     # Build wavesim
     wavesim = build_wavesim(params; parall=parall, gradient=false)
     # Compute misfit
-    return run_swmisfit!(wavesim, matprop, shots)
+    return run_swmisfit!(wavesim, matprop, shots; misfit=misfit)
 end
 
 swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; kwargs...) where {N} =
@@ -122,12 +123,13 @@ function swgradient!(
     check_freq::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
     compute_misfit::Bool=false,
+    misfit::AbstractMisfit=L2Misfit(nothing),
     smooth_radius::Integer=5
 )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
     # Build wavesim
     wavesim = build_wavesim(params; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
     # Solve simulation
-    return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit)
+    return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit, misfit=misfit)
 end
 
 @doc raw"""

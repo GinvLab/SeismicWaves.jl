@@ -28,7 +28,6 @@ include("sources.jl")
 include("receivers.jl")
 include("shot.jl")
 include("checks.jl")
-include("solve.jl")
 
 include("models/cpmlcoeffs.jl")
 
@@ -40,6 +39,8 @@ include("models/acoustic/acou_forward.jl")
 include("models/acoustic/acou_gradient.jl")
 include("models/acoustic/acou_init_bc.jl")
 
+include("misfits.jl")
+include("solve.jl")
 include("wrappers.jl")
 
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Serial.jl")

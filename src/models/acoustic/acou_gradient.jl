@@ -7,10 +7,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     possrcs,
     posrecs,
     srctf,
-    traces,
-    observed,
-    invcov,
-    windows
+    recs,
+    misfit
 )::Array{<:Real} where {N}
     # Numerics
     nt = model.nt
@@ -26,11 +24,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     possrcs_a = model.backend.Data.Array(possrcs)
     posrecs_a = model.backend.Data.Array(posrecs)
     srctf_a = model.backend.Data.Array(srctf)
-    traces_a = model.backend.Data.Array(traces)
-    observed_a = model.backend.Data.Array(observed)
-    invcov_a = model.backend.Data.Array(invcov)
-    # Residuals arrays
-    residuals_a = similar(traces_a)
+    traces_a = model.backend.Data.Array(recs.seismograms)
     # Reset wavesim
     reset!(model)
 
@@ -67,23 +61,11 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         end
     end
 
-    # Save traces
-    copyto!(traces, traces_a)
+    @info "Saving seismograms"
+    copyto!(recs.seismograms, traces_a)
 
     @debug "Computing residuals"
-    # Compute residuals
-    mul!(residuals_a, invcov_a, traces_a - observed_a)
-
-    # Window residuals using mask
-    mask = ones(nt)
-    if length(windows) > 0
-        for wnd in windows
-            mask[wnd.first:wnd.second] .= 2.0
-        end
-        mask .-= 1.0
-    end
-    mask_a = model.backend.Data.Array(mask)
-    residuals_a .= mask_a .* residuals_a
+    residuals_a = model.backend.Data.Array(dχ_du(misfit, recs))
 
     # Prescale residuals (fact = vel^2 * dt^2)
     model.backend.prescale_residuals!(residuals_a, posrecs_a, model.fact)
@@ -156,6 +138,10 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     model.backend.smooth_gradient!(gradient, possrcs, model.smooth_radius)
     # rescale gradient
     gradient .= (2.0 ./ (model.matprop.vp .^ 3)) .* gradient
+    # add regularization if needed
+    if misfit.regularization !== nothing
+        gradient .+= dχ_dm(misfit.regularization, model.matprop)
+    end
     return gradient
 end
 
@@ -165,10 +151,8 @@ end
     possrcs,
     posrecs,
     srctf,
-    traces,
-    observed,
-    invcov,
-    windows
+    recs,
+    misfit
 )::Array{<:Real} where {N}
     # Numerics
     nt = model.nt
@@ -182,11 +166,7 @@ end
     possrcs_a = model.backend.Data.Array(possrcs)
     posrecs_a = model.backend.Data.Array(posrecs)
     srctf_a = model.backend.Data.Array(srctf)
-    traces_a = model.backend.Data.Array(traces)
-    observed_a = model.backend.Data.Array(observed)
-    invcov_a = model.backend.Data.Array(invcov)
-    # Residuals arrays
-    residuals_a = similar(traces_a)
+    traces_a = model.backend.Data.Array(recs.seismograms)
     # Reset wavesim
     reset!(model)
 
@@ -225,23 +205,11 @@ end
         end
     end
 
-    # Save traces
-    copyto!(traces, traces_a)
+    @info "Saving seismograms"
+    copyto!(recs.seismograms, traces_a)
 
     @debug "Computing residuals"
-    # Compute residuals
-    mul!(residuals_a, invcov_a, traces_a - observed_a)
-
-    # Window residuals using mask
-    mask = ones(nt)
-    if length(windows) > 0
-        for wnd in windows
-            mask[wnd.first:wnd.second] .= 2.0
-        end
-        mask .-= 1.0
-    end
-    mask_a = model.backend.Data.Array(mask)
-    residuals_a .= mask_a .* residuals_a
+    residuals_a = model.backend.Data.Array(dχ_du(misfit, recs))
 
     # Prescale residuals (fact = vel^2 * rho * dt)
     model.backend.prescale_residuals!(residuals_a, posrecs_a, model.fact_m0)
@@ -318,11 +286,13 @@ end
     # Smooth gradients
     model.backend.smooth_gradient!(gradient_m0, possrcs, model.smooth_radius)
     model.backend.smooth_gradient!(gradient_m1, possrcs, model.smooth_radius)
+    # compute regularization if needed
+    dχ_dvp, dχ_drho = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
     # Rescale gradients with respect to material properties (chain rule)
     return reshape(hcat(
-            .-2.0 .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho),                                   # grad wrt vp
-            .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho  # grad wrt rho
-        ),
-        model.totgrad_size...
-    )
+                .-2.0 .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp
+                .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho .+ dχ_drho   # grad wrt rho
+            ),
+            model.totgrad_size...
+        )
 end
