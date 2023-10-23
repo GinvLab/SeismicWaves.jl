@@ -60,7 +60,9 @@ end
     return scaled_tf
 end
 
+
 ###########################################################
+
 
 struct Elasticψdomain2D{T<:AstractFloat}
     ψ_∂σxx∂x::Array{T,2}
@@ -85,7 +87,7 @@ struct Elasticψdomain2D{T<:AstractFloat}
         ψ_∂vz∂z  = backend.zeros(ψ_ns...)
         ψ_∂vz∂x  = backend.zeros(ψ_ns...)
         ψ_∂vx∂z  = backend.zeros(ψ_ns...)
-
+ 
         T = eltype(ψ_∂σxx∂x)
         return new{T}(ψ_∂σxx∂x,
                    ψ_∂σxz∂z,
@@ -99,18 +101,21 @@ struct Elasticψdomain2D{T<:AstractFloat}
 end
 
 
-# struct ElasticψRegion3D{T<:AstractFloat}
-#     ψ_∂σxx∂x::Array{T}
-#     ψ_∂σxz∂z::Array{T}
-#     ψ_∂σxz∂x::Array{T}
-#     ψ_∂σzz∂z::Array{T}
-#     ψ_∂vx∂x::Array{T}
-#     ψ_∂vz∂z::Array{T}
-#     ψ_∂vz∂x::Array{T}
-#     ψ_∂vx∂z::Array{T}
-# end
+struct Velpartic2D{T<:AbstractFloat}
+    vx::Array{T,2}
+    vz::Array{T,2}
+end
 
 
+struct Stress2D{T<:AbstractFloat}
+    σxx::Array{T,2}
+    σzz::Array{T,2}
+    σxz::Array{T,2}
+end
+ 
+
+
+##############################################################
 
 
 struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
@@ -134,14 +139,12 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     infoevery::Integer
     # Material properties
     matprop::ElasticIsoMaterialProperty
-    # # CPML coefficients
-    # cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Forward computation arrays
     velpartic::Any # 2D: 2 comp, 3D: 3 comp
     stress::Any # 2D: 3 arrays, 3D: 6 arrays
+    # CPML coefficients
+    cpmlcoeffs::Any
     ψ::Any
-    a_coeffs::Any
-    b_coeffs::Any
     # Gradient computation arrays
     adj::Any
     ψ_adj::Any
@@ -200,25 +203,11 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         backend = select_backend(ElasticIsoCPMLWaveSimul{N}, parall)
 
         # Initialize computational arrays
-        velpartic = [backend.zeros(ns...) for _ in 1:N] # vx, vy[, vz]
-        stress = [backend.zeros(ns...) for _ in 1:(N-1)*3] # σxx, σxz, σzz[, σyz, σxy, σyy]
-        
-        ## 2D:
-        # ρ_ihalf_jhalf::Any
-        # μ_ihalf::Any
-        # μ_jhalf::Any
-        # λ_ihalf::Any
-        ##
-        # Initialize CPML arrays
-        ## 2D:
-        # ψ_∂σxx∂x  halo
-        # ψ_∂σxz∂z  halo
-        # ψ_∂σxz∂x  halo
-        # ψ_∂σzz∂z  halo
-        # ψ_∂vx∂x   halo
-        # ψ_∂vz∂z   halo
-        # ψ_∂vz∂x   halo 
-        # ψ_∂vx∂z   halo
+        if N==2
+            velpartic = Velpartic2D([backend.zeros(ns...) for _ in 1:N]...)  # vx, vy[, vz]
+            stress = Stress2D([backend.zeros(ns...) for _ in 1:(N-1)*3]...)  # vx, vy[, vz]
+        end
+      
         ##
         if N==2 # 2D
             ψ = Elasticψdomain2D(backend,ns,N,halo)
@@ -227,7 +216,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         end
         
         # Initialize CPML coefficients
-        cpmlcoeffs = [CPMLCoefficients(halo, backend) for _ in 1:N]
+        cpmlcoeffs = [CPMLCoefficientsAxis(halo, backend) for _ in 1:N]
 
         # Initialize gradient arrays if needed
         if gradient
@@ -311,8 +300,8 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
             matprop,
             velpartic,
             stress,
-            ψ,
             cpmlcoeff,
+            ψ,
             gradient ? adj : nothing,
             gradient ? ψ_adj : nothing,
             gradient ? grad : nothing,
@@ -332,14 +321,14 @@ end
 @views function reset!(model::ElasticIsoCPMLWaveSimul{N}) where {N}
 
     # Reset computational arrays
-    for p in eachindex(model.velpartics)
-        model.velpartic[p] .= 0.0
+    for p in fieldnames(model.velpartic)
+        getfield(model.velpartic,p) .= 0.0
     end
-    for p in eachindex(model.stress)
-        model.stress[p] .= 0.0
+    for p in fieldnames(model.stress)
+        getfield(model.stress,p) .= 0.0
     end
-    for p in eachindex(model.ψ)
-        model.ψ[p] .= 0.0
+    for p in fieldnames(model.ψ)
+        getfield(model.ψ, p) .= 0.0
     end
 
     # Reset gradient arrays
@@ -350,8 +339,8 @@ end
         for p in eachindex(model.grad)
             model.grad[p] .= 0.0
         end
-        for p in eachindex(model.ψ_adj)
-            model.ψ_adj[p] .= 0.0
+        for p in fieldnames(model.ψ_adj)
+            getfield(model.ψ_adj, p) .= 0.0
         end
     end
 end

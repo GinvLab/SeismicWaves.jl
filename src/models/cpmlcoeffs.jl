@@ -1,3 +1,54 @@
+
+struct CPMLCoefficientsAxis
+    a::Any
+    a_h::Any
+    b::Any
+    b_h::Any
+
+    function CPMLCoefficientsAxis(halo::Integer, backend::Module,
+                                  sizehalfgrdplusone::Bool=false)
+        if sizehalfgrdplusone
+            return new(
+            backend.zeros(halo),
+            backend.zeros(halo + 1),
+            backend.zeros(halo),
+            backend.zeros(halo + 1),
+            )
+        else
+            return new(
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo),
+            backend.zeros(halo)
+            )
+        end
+    end
+end
+
+function compute_CPML_coefficientsAxis!(
+    cpmlcoeffs::CPMLCoefficients,
+    vel_max::Real,
+    dt::Real,
+    halo::Integer,
+    rcoef::Real,
+    thickness::Real,
+    f0::Real
+)
+    # CPML coefficients (l = left, r = right, h = staggered in betweeen grid points)
+    alpha_max = π * f0  # CPML α multiplicative factor (half of dominating angular frequency)
+    npower = 2.0  # CPML power coefficient
+    d0 = -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness)  # damping profile
+    a_l, a_r, b_l, b_r = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "ongrd")
+    a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "halfgrd")
+
+    copyto!(cpmlcoeffs.a, cat(a_l,a_r))
+    copyto!(cpmlcoeffs.a_h, cat(a_hl,a_hr))
+    copyto!(cpmlcoeffs.b, cat(b_l,b_r))
+    copyto!(cpmlcoeffs.b_h, cat(b_hl,b_hr))
+end
+
+#################################################################
+
 struct CPMLCoefficients
     a_l::Any
     a_r::Any
@@ -37,7 +88,7 @@ struct CPMLCoefficients
 end
 
 # Default type constructor
-CPMLCoefficients(halo) = CPMLCoefficients{Float64}(halo)
+# CPMLCoefficients(halo) = CPMLCoefficients{Float64}(halo)
 
 #####################################
 

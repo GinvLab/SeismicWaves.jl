@@ -435,68 +435,56 @@ end
 
 
 
-function forward_onestep_CPML!(   ψ  )
-
-
-    begin
-
-        # along x
-        sd = 1        
-        a_x = cpmlcoeff[sd].a_l
-        a_x = cpmlcoeff[sd].a_r
-        a_x_half = cpmlcoeff[sd].a_hl
-        a_x_half = cpmlcoeff[sd].a_hr
-
-        b_x = cpmlcoeff[sd].b_l
-        b_x = cpmlcoeff[sd].b_r
-        b_x_half = cpmlcoeff[sd].b_hl
-        b_x_half = cpmlcoeff[sd].b_hr
-
-        # along z
-        sd = 2
-        a_z = cpmlcoeff[sd].a_l
-        a_z = cpmlcoeff[sd].a_r
-        a_z_half = cpmlcoeff[sd].a_hl
-        a_z_half = cpmlcoeff[sd].a_hr
-
-        b_z = cpmlcoeff[sd].b_l
-        b_z = cpmlcoeff[sd].b_r
-        b_z_half = cpmlcoeff[sd].b_hl
-        b_z_half = cpmlcoeff[sd].b_hr
-        
-    end
-
-  
-    vx,vz,σxx,σzz,σxz,
-                               λ_ihalf,
-                               ρ,ρ_ihalf_jhalf,
-                               μ,μ_ihalf,μ_jhalf,
-                               dt,dx,dz,
-                               ψ_∂σxx∂x,ψ_∂σxz∂z,
-                               ψ_∂σxz∂x,ψ_∂σzz∂z,
-                               ψ_∂vx∂x,ψ_∂vz∂z,
-                               ψ_∂vx∂z,ψ_∂vz∂x,
-
-                               Mxx,Mzz,Mxz,
+function forward_onestep_CPML!(model,
                                possrcs_a, srctf_a, posrecs_a, traces_a, it,
                                freetop, save_trace)
-                               
+
+    vx = model.velpartic.vx
+    vz = model.velpartic.vz
+    σxx = model.stress.σxx
+    σzz = model.stress.σzz
+    σxz = model.stress.σxz
+    
+    psi = model.ψ
+
+    a_x = cpmlcoeffs[1].a
+    a_x_half = cpmlcoeffs[1].a_h
+    b_x = cpmlcoeffs[1].b
+    b_x_half = cpmlcoeffs[1].b_h
+
+    a_z = cpmlcoeffs[2].a
+    a_z_half = cpmlcoeffs[2].a_h
+    b_z = cpmlcoeffs[2].b
+    b_z_half = cpmlcoeffs[2].b_h
+
+    λ_ihal = matprop.λ_ihal
+    ρ = matprop.ρ
+    ρ_ihalf_jhalf = matprop.ρ_ihalf_jhalf
+    μ = matprop.μ
+    μ_ihalf = matprop.μ_ihalf
+    μ_jhalf = matprop.μ_jhalf
+
+    Mxx = model.momtens.Mxx
+    Mzz = model.momtens.Mzz
+    Mxz = model.momtens.Mxz
+
+    ##
     factx = 1.0/(24.0*dx)
     factz = 1.0/(24.0*dz)
     
     # update velocities vx and vz
-    update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,ψ.ψ_∂σxx∂x,ψ.ψ_∂σxz∂z,
+    update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,psi.ψ_∂σxx∂x,psi.ψ_∂σxz∂z,
                b_x,b_z,a_x,a_z,freetop)
 
-    update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ.ψ_∂σxz∂x,ψ.ψ_∂σzz∂z,
-               b_x_half,b_z_half,a_x_half,a_z_half,freetop)
+    update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,psi.ψ_∂σxz∂x,
+               psi.ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,freetop)
 
     # update stresses σxx, σzz and σxz
-    update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,ψ.ψ_∂vx∂x,ψ.ψ_∂vz∂z,
-                   b_z,a_x_half,a_z,freetop)
+    update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,
+                   psi.ψ_∂vx∂x,psi.ψ_∂vz∂z,b_z,a_x_half,a_z,freetop)
 
-    update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,ψ.ψ_∂vx∂z,ψ.ψ_∂vz∂x,
-                a_x,a_z_half,freetop)
+    update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,
+                psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
     
 
     # inject sources
