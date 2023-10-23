@@ -15,19 +15,19 @@ module HMCseiswaves
 using ..SeismicWaves
 using LinearAlgebra
 
-export AcouWavProb
+export AcouWavCDProb
 
 #################################################################
 
 ## create the problem type for traveltime tomography
-Base.@kwdef struct AcouWavProb
+Base.@kwdef struct AcouWavCDProb
     inpars::InputParametersAcoustic{2}
-    ijsrcs::Vector{Array{Int64, 2}}
-    ijrecs::Vector{Array{Int64, 2}}
-    sourcetf::Vector{Array{Float64, 2}}
-    srcdomfreq::Vector{Float64}
-    dobs::Vector{Array{Float64, 2}}
-    invCovds::Vector{<:AbstractMatrix{Float64}}
+    #ijsrcs::Vector{Array{Int64, 2}}
+    #ijrecs::Vector{Array{Int64, 2}}
+    #sourcetf::Vector{Array{Float64, 2}}
+    #srcdomfreq::Vector{Float64}
+    #dobs::Vector{Array{Float64, 2}}
+    shots::Vector{<:Shot} #invCovds::Vector{<:AbstractMatrix{Float64}}
     parall::Symbol
 end
 
@@ -35,39 +35,23 @@ end
 
 ############################################################
 ## make the type callable
-function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
+function (acouprob::AcouWavCDProb)(vecvel::Vector{Float64}, kind::Symbol)
     # numerics
     dh = acouprob.inpars.gridspacing[1]
     nt = acouprob.inpars.ntimesteps
 
     # reshape vector to 2D array
-    vel2d = reshape(vecvel, acouprob.inpars.ns...)
+    vel2d = reshape(vecvel, acouprob.inpars.gridsize...)
     matprop = VpAcousticCDMaterialProperty(vel2d)
 
-    # build pairs of sources and receivers
-    nshots = length(acouprob.ijsrcs)
-    shots = Vector{Pair{Sources, Receivers}}()
-    for s in 1:nshots
-        # sources definition
-        possrcs = (acouprob.ijsrcs[s] .- 1) .* dh           # positions in meters
-        # source time functions
-        f0 = acouprob.srcdomfreq[s]
-        srcs = Sources(possrcs, acouprob.sourcetf[s], f0)
-        # receivers definition
-        posrecs = (acouprob.ijrecs[s] .- 1) .* dh           # positions in meters
-        recs = Receivers(posrecs,
-            nt;
-            observed=acouprob.dobs[s],
-            invcov=acouprob.invCovds[s])
-        # add pair as shot
-        push!(shots, srcs => recs)
-    end
+    @assert length(acouprob.shots[1].recs.observed) != 0
 
+    
     if kind == :nlogpdf
         #############################################
         ## compute the logdensity value for vecvel ##
         #############################################
-        misval = swmisfit!(acouprob.inpars, matprop, shots; parall=acouprob.parall)
+        misval = swmisfit!(acouprob.inpars, matprop, acouprob.shots; parall=acouprob.parall)
         return misval
 
     elseif kind == :gradnlogpdf
@@ -76,7 +60,7 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         #################################################
         grad = swgradient!(acouprob.inpars,
             matprop,
-            shots;
+            acouprob.shots;
             parall=acouprob.parall,
             check_freq=ceil(Int, sqrt(nt)))
         # return flattened gradient
@@ -86,11 +70,11 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         ####################################################
         ## compute calculated data (solve forward problem) ##
         ####################################################
-        dcalc = swforward!(acouprob.inpars, matprop, shots; parall=acouprob.parall)
+        dcalc = swforward!(acouprob.inpars, matprop, acouprob.shots; parall=acouprob.parall)
         return dcalc
 
     else
-        error("acouprob::AcouWavProb(): Wrong argument 'kind': $kind...")
+        error("acouprob::AcouWavProbCD(): Wrong argument 'kind': $kind...")
     end
 end
 

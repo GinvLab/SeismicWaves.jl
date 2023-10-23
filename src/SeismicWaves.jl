@@ -17,6 +17,7 @@ export swforward!, swmisfit!, swgradient!
 export build_wavesim
 export gaussource1D, gaussdersource1D, rickersource1D
 
+
 include("abstract_types.jl")
 
 include("traits/boundarycondition.jl")
@@ -71,6 +72,12 @@ include("models/acoustic/backends/Acoustic2D_VD_CPML_GPU.jl")
 
 include("utils.jl")
 
+
+## HMC stuff
 include("HMCseiswaves.jl")
+using .HMCseiswaves
+export AcouWavCDProb
+
+
 
 end
