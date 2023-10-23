@@ -14,9 +14,9 @@ warn_logger = ConsoleLogger(stderr, Logging.Warn)
 error_logger = ConsoleLogger(stderr, Logging.Error)
 debug_logger = ConsoleLogger(stderr, Logging.Debug)
 
-include("../models.jl")
-include("../geometries.jl")
-include("../plotting_utils.jl")
+include("../../models.jl")
+include("../../geometries.jl")
+include("../../plotting_utils.jl")
 
 function setup(nt, c0, c0max, r, dx, dy, dt, halo, rcoef, nx, ny, parall)
     ##========================================

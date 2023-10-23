@@ -6,7 +6,7 @@ init_bdc!(::ReflectiveBoundaryCondition, model::AcousticWaveSimul, srcs::Sources
 
 @views function init_bdc!(
     ::CPMLBoundaryCondition,
-    model::AcousticCDWaveSimul,
+    model::AcousticWaveSimul,
     srcs::Sources
 )
     N = length(model.cpmlcoeffs)

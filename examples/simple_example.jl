@@ -103,21 +103,20 @@ function exacouprob()
     shots_grad = Vector{Shot}()
     for i in 1:nshots
         seis = shots[i].recs.seismograms
-        nt = size(seis,1)
+        nt = size(seis, 1)
         recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
-                                    invcov=Diagonal(ones(nt)))
+            invcov=Diagonal(ones(nt)))
         push!(shots_grad, Shot(; srcs=shots[i].srcs, recs=recs_grad))
     end
 
     newvelmod = matprop.vp .- 0.2
-    newvelmod[30:40,33:44] *= 0.9
+    newvelmod[30:40, 33:44] *= 0.9
     matprop_grad = VpAcousticCDMaterialProperty(newvelmod)
 
     grad = swgradient!(params,
-                       matprop_grad,
-                       shots_grad;
-                       parall=:threads )
-
+        matprop_grad,
+        shots_grad;
+        parall=:threads)
 
     return params, velmod, shots, snapshots, grad
 end

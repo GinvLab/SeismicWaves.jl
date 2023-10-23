@@ -12,7 +12,7 @@ function smooth_gradient!(grad, possrcs, radius)
             for j in jmin:jmax
                 if 1 <= i <= nx && 1 <= j <= ny
                     r = sqrt((i - isrc)^2 + (j - jsrc)^2)
-                    if r <= radius
+                    if r < radius
                         grad[i, j] *= r / radius
                     end
                 end

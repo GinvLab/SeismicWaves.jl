@@ -69,12 +69,13 @@ function swmisfit!(
     params::InputParameters{N},
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    parall::Symbol=:threads
+    parall::Symbol=:threads,
+    misfit::AbstractMisfit=L2Misfit(nothing)
 )::Real where {N}
     # Build wavesim
     wavesim = build_wavesim(params; parall=parall, gradient=false)
     # Compute misfit
-    return run_swmisfit!(wavesim, matprop, shots)
+    return run_swmisfit!(wavesim, matprop, shots; misfit=misfit)
 end
 
 swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; kwargs...) where {N} =
@@ -122,12 +123,13 @@ function swgradient!(
     check_freq::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
     compute_misfit::Bool=false,
+    misfit::AbstractMisfit=L2Misfit(nothing),
     smooth_radius::Integer=5
 )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
     # Build wavesim
     wavesim = build_wavesim(params; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
     # Solve simulation
-    return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit)
+    return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit, misfit=misfit)
 end
 
 @doc raw"""
@@ -164,6 +166,21 @@ build_wavesim(
     cpmlparams::CPMLBoundaryConditionParameters;
     kwargs...
 ) where {N} = AcousticCDCPMLWaveSimul{N}(
+    params.gridsize,
+    params.gridspacing,
+    params.ntimesteps,
+    params.dt,
+    cpmlparams.halo,
+    cpmlparams.rcoef;
+    freetop=cpmlparams.freeboundtop,
+    kwargs...
+)
+
+build_wavesim(
+    params::InputParametersAcousticVariableDensity{N},
+    cpmlparams::CPMLBoundaryConditionParameters;
+    kwargs...
+) where {N} = AcousticVDStaggeredCPMLWaveSimul{N}(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,
@@ -212,3 +229,14 @@ select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWave
     Acoustic2D_CD_CPML_GPU
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:GPU}}) =
     Acoustic3D_CD_CPML_GPU
+
+# Backend selections for AcousticVDStaggeredCPMLWaveSimul
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{1}}, ::Type{Val{:threads}}) =
+    Acoustic1D_VD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{1}}, ::Type{Val{:GPU}}) =
+    Acoustic1D_VD_CPML_GPU
+
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{2}}, ::Type{Val{:threads}}) =
+    Acoustic2D_VD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{2}}, ::Type{Val{:GPU}}) =
+    Acoustic2D_VD_CPML_GPU

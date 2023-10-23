@@ -16,7 +16,7 @@ function smooth_gradient!(grad, possrcs, radius)
                 for k in kmin:kmax
                     if 1 <= i <= nx && 1 <= j <= ny && 1 <= k <= nz
                         r = sqrt((i - isrc)^2 + (j - jsrc)^2 + (k - ksrc)^2)
-                        if r <= radius
+                        if r < radius
                             grad[i, j, k] *= r / radius
                         end
                     end
