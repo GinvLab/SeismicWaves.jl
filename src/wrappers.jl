@@ -32,16 +32,35 @@ function swforward!(
     shots::Vector{<:Shot};
     parall::Symbol=:threads,
     snapevery::Union{Int, Nothing}=nothing,
-    infoevery::Union{Int, Nothing}=nothing
+    infoevery::Union{Int, Nothing}=nothing,
+    logger::Union{Nothing,AbstractLogger}=nothing
 )::Union{Vector{AbstractArray}, Nothing} where {N}
-    # Build wavesim
-    wavesim = build_wavesim(params; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
-    # Solve simulation
-    return run_swforward!(wavesim, matprop, shots)
+
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        # Build wavesim
+        wavesim = build_wavesim(params; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
+        # Solve simulation
+        out = run_swforward!(wavesim, matprop, shots)
+    end
+    return out
 end
 
-swforward!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; kwargs...) where {N} =
-    run_swforward!(wavesim, matprop, shots; kwargs...)
+
+function swforward!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
+                    logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N}
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        out = run_swforward!(wavesim, matprop, shots; kwargs...)
+    end
+    return out
+end
 
 #######################################################
 
@@ -70,16 +89,35 @@ function swmisfit!(
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads,
-    misfit::AbstractMisfit=L2Misfit(nothing)
+    misfit::AbstractMisfit=L2Misfit(nothing),
+    logger::Union{Nothing,AbstractLogger}=nothing
 )::Real where {N}
-    # Build wavesim
-    wavesim = build_wavesim(params; parall=parall, gradient=false)
-    # Compute misfit
-    return run_swmisfit!(wavesim, matprop, shots; misfit=misfit)
+
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        # Build wavesim
+        wavesim = build_wavesim(params; parall=parall, gradient=false)
+        # Compute misfit
+        out = run_swmisfit!(wavesim, matprop, shots; misfit=misfit)
+    end
+    return out
 end
 
-swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; kwargs...) where {N} =
-    run_swmisfit!(wavesim, matprop, shots; kwargs...)
+
+function swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; 
+                   logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N}
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        out = run_swmisfit!(wavesim, matprop, shots; kwargs...)
+    end
+    return out
+end
 
 #######################################################
 
@@ -124,13 +162,23 @@ function swgradient!(
     infoevery::Union{Int, Nothing}=nothing,
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing),
-    smooth_radius::Integer=5
+    smooth_radius::Integer=5,
+    logger::Union{Nothing,AbstractLogger}=nothing
 )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
-    # Build wavesim
-    wavesim = build_wavesim(params; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
-    # Solve simulation
-    return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit, misfit=misfit)
+
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        # Build wavesim
+        wavesim = build_wavesim(params; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
+        # Solve simulation
+        out = run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit, misfit=misfit)
+    end
+    return out
 end
+
 
 @doc raw"""
     swgradient!(wavesim::WaveSimul{N},
@@ -139,9 +187,18 @@ end
 
     Compute gradients w.r.t. model parameters using the *previously* built WaveSimul. This avoids re-initializing and re-allocating several arrays in case of multiple gradient calculations.
 """
-swgradient!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; kwargs...) where {N} =
-    run_swgradient!(wavesim, matprop, shots; kwargs...)
-
+function swgradient!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
+                     logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N} 
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        out = run_swgradient!(wavesim, matprop, shots; kwargs...)
+    end
+    return out
+end
+        
 #######################################################
 
 @doc raw"""
