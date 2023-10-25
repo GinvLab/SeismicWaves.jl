@@ -110,7 +110,8 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     checkpoints_ξ::Any
     # Backend
     backend::Module
-
+    parall::Symbol
+    
     function AcousticCDCPMLWaveSimul{N}(
         ns::NTuple{N, <:Integer},
         gridspacing::NTuple{N, <:Real},
@@ -273,7 +274,8 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
             gradient ? checkpoints : nothing,
             gradient ? checkpoints_ψ : nothing,
             gradient ? checkpoints_ξ : nothing,
-            backend
+            backend,
+            parall
         )
     end
 end

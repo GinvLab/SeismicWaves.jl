@@ -33,9 +33,8 @@ end
 
     # Shots loop
     #Threads.@threads for singleshot in shots
-    # parapersrc = :threadpersrc
-    # @threadpersource
-    for singleshot in shots
+    parall = wavsim.parall
+    @athreadpersrcornot for singleshot in shots
         srcs = singleshot.srcs
         recs = singleshot.recs
         # Initialize shot
@@ -69,10 +68,9 @@ end
     run_swforward!(wavsim, matprop, shots)
     # Compute total misfit for all shots
     totmisfit = 0
-    for (s, singleshot) in enumerate(shots)
+    @athreadpersrcornot for singleshot in shots
         srcs = singleshot.srcs
         recs = singleshot.recs
-        @info "Shot #$(s)"
         @info "Checking invcov matrix"
         check_invcov_matrix(wavsim, recs.invcov)
         @info "Computing misfit"
@@ -101,13 +99,20 @@ end
     set_wavesim_matprop!(wavsim, matprop)
 
     # Initialize total gradient and total misfit
-    totgrad = zeros(wavsim.totgrad_size...)
+    parall = wavsim.parall
+    if parall==:athreadpersrc
+        allgrad = [zeros(wavsim.totgrad_size...) for i=1:length(shots)]
+    else
+        totgrad = zeros(wavsim.totgrad_size...)        
+    end
     totmisfit = 0
     # Shots loop
-    for (s, singleshot) in enumerate(shots)
+    s = 0
+    @athreadpersrcornot for singleshot in shots
+        s+=1
+        @info "Shot #$s"
         srcs = singleshot.srcs
         recs = singleshot.recs
-        @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
         possrcs, posrecs, srctf = init_shot!(wavsim, singleshot)
@@ -126,7 +131,14 @@ end
             totmisfit += misfit(recs, matprop)
         end
         # Accumulate gradient
-        totgrad .+= curgrad
+        if parall==:athreadpersrc
+            allgrad[s] = curgrad
+        else
+            totgrad .+= curgrad
+        end
+    end
+    if parall==:athreadpersrc
+        totgrad = sum(allgrad)
     end
 
     return compute_misfit ? (totgrad, totmisfit) : totgrad

@@ -1,9 +1,10 @@
 
 
 
-macro threadpersource(expr)
+macro athreadpersrcornot(expr)
     return esc(quote
-                   if parapersrc == :threadpersrc
+                   if parall == :athreadpersrc
+                       #println("One thread per source, nthreads: $(Threads.nthreads())")
                        Threads.@threads $(expr)
                    else
                        $(expr)

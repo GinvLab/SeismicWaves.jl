@@ -259,7 +259,7 @@ function select_backend(
     wavesim_type::Type{<:WaveSimul},
     ::Type{Val{parall}}
 ) where {parall}
-    parasym = [:serial, :threads, :GPU]
+    parasym = [:serial, :threads, :GPU, :athreadpersrc]
     error(
         "No backend found for model of type $(wavesim_type) and `parall` $(parall). Argument `parall` must be one of the following symbols: $parasym."
     )
@@ -290,6 +290,13 @@ select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWave
     Acoustic2D_CD_CPML_GPU
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:GPU}}) =
     Acoustic3D_CD_CPML_GPU
+
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:athreadpersrc}}) =
+    Acoustic1D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:athreadpersrc}}) =
+    Acoustic2D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:athreadpersrc}}) =
+    Acoustic3D_CD_CPML_Serial
 
 # Backend selections for AcousticVDStaggeredCPMLWaveSimul
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{1}}, ::Type{Val{:threads}}) =
