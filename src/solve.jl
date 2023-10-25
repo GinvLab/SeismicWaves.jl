@@ -32,10 +32,12 @@ end
     end
 
     # Shots loop
-    for (s, singleshot) in enumerate(shots)
+    #Threads.@threads for singleshot in shots
+    # parapersrc = :threadpersrc
+    # @threadpersource
+    for singleshot in shots
         srcs = singleshot.srcs
         recs = singleshot.recs
-        @info "Shot #$(s)"
         # Initialize shot
         @info "Initializing shot"
         possrcs, posrecs, srctf = init_shot!(wavsim, singleshot)

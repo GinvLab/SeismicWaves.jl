@@ -19,7 +19,7 @@ using Logging
 export AcouWavCDProb
 
 
-wavesim = nothing
+#wavesim = nothing
 
 
 #################################################################
@@ -30,7 +30,7 @@ struct AcouWavCDProb
     inpars::InputParametersAcoustic
     shots::Vector{<:Shot} #invCovds::Vector{<:AbstractMatrix{Float64}}
     parall::Symbol
-    firsttime::Base.RefValue{Bool}
+    #firsttime::Base.RefValue{Bool}
     
     function AcouWavCDProb(inpars::InputParametersAcoustic,
                            shots::Vector{<:Shot},
@@ -40,7 +40,7 @@ struct AcouWavCDProb
     #     check_freq = ceil(Int, sqrt(nt))
     #     wavesim = build_wavesim(inpars; gradient=true,check_freq=check_freq,
     #                             snapevery=nothing,infoevery=nothing)
-        return new(inpars,shots,parall,Ref(true))
+        return new(inpars,shots,parall) #,Ref(true))
     end
 end
 
@@ -50,16 +50,17 @@ end
 ## make the type callable
 function (acouprob::AcouWavCDProb)(vecvel::Vector{Float64}, kind::Symbol)
 
-    logger = Logging.ConsoleLogger(stderr,Logging.Error)
+    logger = Logging.ConsoleLogger(Error)
     #logger = Logging.NullLogger()
 
-    if acouprob.firsttime[]
-        acouprob.firsttime[] = false
-        nt = acouprob.inpars.ntimesteps
-        check_freq = ceil(Int, sqrt(nt))
-        global wavesim = build_wavesim(acouprob.inpars; gradient=true,check_freq=check_freq,
-                                snapevery=nothing,infoevery=nothing)
-    end
+    # if acouprob.firsttime[]
+    #     acouprob.firsttime[] = false
+    #     nt = acouprob.inpars.ntimesteps
+    #     check_freq = ceil(Int, sqrt(nt))
+    #     global wavesim = build_wavesim(acouprob.inpars; parall=acouprob.parall,
+    #                                    gradient=true,check_freq=check_freq,
+    #                                    snapevery=nothing,infoevery=nothing)
+    # end
     # @show HMCseiswaves.firsttime
 
     # # numerics
@@ -77,26 +78,28 @@ function (acouprob::AcouWavCDProb)(vecvel::Vector{Float64}, kind::Symbol)
         #############################################
         ## compute the logdensity value for vecvel ##
         #############################################
-        # misval = swmisfit!(acouprob.inpars, matprop, acouprob.shots;
-        #                    parall=acouprob.parall,logger=logger)
-        misval = swmisfit!(wavesim, matprop, acouprob.shots,
-                           logger=logger)
+        misval = swmisfit!(acouprob.inpars, matprop, acouprob.shots;
+                           parall=acouprob.parall,logger=logger)
+        # misval = swmisfit!(wavesim, matprop, acouprob.shots,
+        #                    logger=logger)
         return misval
 
     elseif kind == :gradnlogpdf
         #################################################
         ## compute the gradient of the misfit function ##
         #################################################
-        # grad = swgradient!(acouprob.inpars,
-        #                    matprop,
-        #                    acouprob.shots;
-        #                    parall=acouprob.parall,
-        #                    check_freq=ceil(Int, sqrt(nt)),
-        #                    logger=logger)
-        grad = swgradient!(wavesim,
-                           matprop,
-                           acouprob.shots,
-                           logger=logger)
+        @time grad = swgradient!(acouprob.inpars,
+                                 matprop,
+                                 acouprob.shots;
+                                 parall=acouprob.parall,
+                                 ## if commented next line: no checkpointing
+                                 #check_freq=ceil(Int, sqrt(acouprob.inpars.ntimesteps)), 
+                                 logger=logger)
+        # @time grad = swgradient!(wavesim,
+        #                          matprop,
+        #                          acouprob.shots,
+        #                          logger=logger)
+        
         # return flattened gradient
         return vec(grad)
 
@@ -104,10 +107,10 @@ function (acouprob::AcouWavCDProb)(vecvel::Vector{Float64}, kind::Symbol)
         ####################################################
         ## compute calculated data (solve forward problem) ##
         ####################################################
-        # dcalc = swforward!(acouprob.inpars, matprop, acouprob.shots;
-        #                    parall=acouprob.parall,logger=logger)
-        dcalc = swforward!(wavesim, matprop, acouprob.shots,
-                           logger=logger)
+        dcalc = swforward!(acouprob.inpars, matprop, acouprob.shots;
+                           parall=acouprob.parall,logger=logger)
+        # dcalc = swforward!(wavesim, matprop, acouprob.shots,
+        #                    logger=logger)
         return dcalc
 
     else

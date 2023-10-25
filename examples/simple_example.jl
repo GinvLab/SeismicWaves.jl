@@ -6,7 +6,7 @@ using LinearAlgebra
 ###################################################################
 using Logging
 
-function exacouprob()
+function exacouprob(parall=:serial)
 
     ##========================================
     # time stuff
@@ -17,8 +17,8 @@ function exacouprob()
 
     ##========================================
     # create a velocity model
-    nx = 211
-    nz = 120
+    nx = 300 #211
+    nz = 300 #120
     dh = 10.0 # meters
 
     #@show (nx-1)*dh, (nz-1)*dh
@@ -88,15 +88,17 @@ function exacouprob()
     params = InputParametersAcoustic(nt, dt, [nx, nz], [dh, dh], boundcond)
 
     #@show (boundcond.halo-1)*dh
-
     ##===============================================
+    ##parall = :threads
+    logger = ConsoleLogger(Error)
     ## compute the seismograms
-    snapshots = swforward!(params,
-        matprop,
-        shots;
-        parall=:threads,
-        infoevery=infoevery,
-        snapevery=snapevery)
+    @time snapshots = swforward!(params,
+                                 matprop,
+                                 shots;
+                                 parall=parall,
+                                 infoevery=infoevery,
+                                 logger=logger )
+    #snapevery=snapevery)
 
     ##===============================================
     ## compute the gradient
@@ -113,12 +115,13 @@ function exacouprob()
     newvelmod[30:40, 33:44] *= 0.9
     matprop_grad = VpAcousticCDMaterialProperty(newvelmod)
 
-    grad = swgradient!(params,
-        matprop_grad,
-        shots_grad;
-        parall=:threads)
-
-    return params, velmod, shots, snapshots, grad
+    @time grad = swgradient!(params,
+                             matprop_grad,
+                             shots_grad;
+                             parall=parall,
+                             logger=logger )
+    
+    return params, velmod, shots#, snapshots, grad
 end
 
 ##################################################################
@@ -127,10 +130,10 @@ end
 # global_logger(debug_logger)
 # error_logger = ConsoleLogger(stderr, Logging.Error)
 # global_logger(error_logger)
-info_logger = ConsoleLogger(stderr, Logging.Info)
-global_logger(info_logger)
+# info_logger = ConsoleLogger(stderr, Logging.Info)
+# global_logger(info_logger)
 
-par, vel, sh, snaps, grad = exacouprob()
+# par, vel, sh, snaps, grad = exacouprob()
 
 # with_logger(error_logger) do
 #     p, v, s, snaps = exacouprob()

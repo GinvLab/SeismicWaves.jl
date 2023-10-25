@@ -265,6 +265,10 @@ function select_backend(
     )
 end
 
+## Remark:
+## CD = constant density
+## VD = variable density
+
 # Backend selections for AcousticCDCPMLWaveSimul
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:serial}}) =
     Acoustic1D_CD_CPML_Serial
