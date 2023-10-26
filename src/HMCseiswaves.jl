@@ -88,13 +88,13 @@ function (acouprob::AcouWavCDProb)(vecvel::Vector{Float64}, kind::Symbol)
         #################################################
         ## compute the gradient of the misfit function ##
         #################################################
-        @time grad = swgradient!(acouprob.inpars,
-                                 matprop,
-                                 acouprob.shots;
-                                 parall=acouprob.parall,
-                                 ## if commented next line: no checkpointing
-                                 #check_freq=ceil(Int, sqrt(acouprob.inpars.ntimesteps)), 
-                                 logger=logger)
+        grad = swgradient!(acouprob.inpars,
+                           matprop,
+                           acouprob.shots;
+                           parall=acouprob.parall,
+                           ## if next line is commented: no checkpointing
+                           check_freq=ceil(Int, sqrt(acouprob.inpars.ntimesteps)), 
+                           logger=logger)
         # @time grad = swgradient!(wavesim,
         #                          matprop,
         #                          acouprob.shots,

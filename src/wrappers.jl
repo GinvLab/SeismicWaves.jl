@@ -50,7 +50,7 @@ function swforward!(
 end
 
 
-function swforward!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
+function swforward!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
                     logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N}
     if logger==nothing
         logger=current_logger()
@@ -107,7 +107,7 @@ function swmisfit!(
 end
 
 
-function swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; 
+function swmisfit!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; 
                    logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N}
     if logger==nothing
         logger=current_logger()
@@ -187,7 +187,7 @@ end
 
     Compute gradients w.r.t. model parameters using the *previously* built WaveSimul. This avoids re-initializing and re-allocating several arrays in case of multiple gradient calculations.
 """
-function swgradient!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
+function swgradient!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
                      logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N} 
     if logger==nothing
         logger=current_logger()
@@ -216,11 +216,23 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 - `snapevery::Union{<:Integer, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays (only for forward simulations).
 - `infoevery::Union{<:Integer, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-build_wavesim(params::InputParameters; kwargs...) = build_wavesim(params, params.boundcond; kwargs...)
+function build_wavesim(params::InputParameters; parall, kwargs...)
+    if parall==:threadpersrc
+        nthr = Threads.nthreads()
+        #println("  build_wavesim  :threadpersrc")
+        wsim = [build_wavesim(params, params.boundcond; parall, kwargs...) for s=1:nthr]
+    else
+        wsim = build_wavesim(params, params.boundcond; parall, kwargs...)
+    end
+    return wsim
+end
+
+
 
 build_wavesim(
     params::InputParametersAcoustic{N},
     cpmlparams::CPMLBoundaryConditionParameters;
+    parall,
     kwargs...
 ) where {N} = AcousticCDCPMLWaveSimul{N}(
     params.gridsize,
@@ -230,12 +242,14 @@ build_wavesim(
     cpmlparams.halo,
     cpmlparams.rcoef;
     freetop=cpmlparams.freeboundtop,
+    parall,
     kwargs...
 )
 
 build_wavesim(
     params::InputParametersAcousticVariableDensity{N},
     cpmlparams::CPMLBoundaryConditionParameters;
+    parall,
     kwargs...
 ) where {N} = AcousticVDStaggeredCPMLWaveSimul{N}(
     params.gridsize,
@@ -245,6 +259,7 @@ build_wavesim(
     cpmlparams.halo,
     cpmlparams.rcoef;
     freetop=cpmlparams.freeboundtop,
+    parall,
     kwargs...
 )
 
@@ -259,7 +274,7 @@ function select_backend(
     wavesim_type::Type{<:WaveSimul},
     ::Type{Val{parall}}
 ) where {parall}
-    parasym = [:serial, :threads, :GPU, :athreadpersrc]
+    parasym = [:serial, :threads, :GPU, :threadpersrc]
     error(
         "No backend found for model of type $(wavesim_type) and `parall` $(parall). Argument `parall` must be one of the following symbols: $parasym."
     )
@@ -291,11 +306,11 @@ select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWave
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:GPU}}) =
     Acoustic3D_CD_CPML_GPU
 
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:athreadpersrc}}) =
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:threadpersrc}}) =
     Acoustic1D_CD_CPML_Serial
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:athreadpersrc}}) =
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:threadpersrc}}) =
     Acoustic2D_CD_CPML_Serial
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:athreadpersrc}}) =
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:threadpersrc}}) =
     Acoustic3D_CD_CPML_Serial
 
 # Backend selections for AcousticVDStaggeredCPMLWaveSimul
