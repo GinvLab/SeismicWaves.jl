@@ -90,7 +90,6 @@ end
     nshots = length(shots)
     grpshots = distribsrcs(nshots,nthr) # a vector of UnitRange 
     # loop on the set of WaveSimul
-    @show length(wavsim),nwsim
     Threads.@threads for w=1:nwsim
         # loop on the subset of shots per each WaveSimul 
         for s in grpshots[w]  
