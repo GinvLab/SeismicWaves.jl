@@ -73,7 +73,10 @@ function (acouprob::AcouWavCDProb)(vecvel::Vector{Float64}, kind::Symbol)
 
     @assert length(acouprob.shots[1].recs.observed) != 0
 
-    
+    # @show BLAS.get_num_threads()
+    # @show acouprob.parall
+    # @show Threads.nthreads()
+
     if kind == :nlogpdf
         #############################################
         ## compute the logdensity value for vecvel ##

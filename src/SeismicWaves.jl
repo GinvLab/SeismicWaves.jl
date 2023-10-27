@@ -22,7 +22,6 @@ export gaussource1D, gaussdersource1D, rickersource1D
 
 
 include("abstract_types.jl")
-include("macros.jl")
 
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
