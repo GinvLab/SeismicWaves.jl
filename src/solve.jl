@@ -69,18 +69,18 @@ end
     @assert nthr == nwsim
 
     takesnapshots = false
-    for i=1:nwsim
+    for w=1:nwsim
         # Check wavesim consistency
         @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-        check_sim_consistency(wavsim[i], matprop, shots)
+        check_sim_consistency(wavsim[w], matprop, shots)
         # Set wavesim material properties
         # Remark: matprop in wavesim are mutated
         @info "Setting wavesim material properties"
-        set_wavesim_matprop!(wavsim[i], matprop)
+        set_wavesim_matprop!(wavsim[w], matprop)
         # Now onwards matprop from outside should not be used anymore!!!
   
         # Snapshots setup
-        takesnapshots = snapenabled(wavsim[i])
+        takesnapshots = snapenabled(wavsim[w])
         if takesnapshots
             snapshots_per_shot = [[] for j=1:nwsim]
         end
@@ -90,6 +90,7 @@ end
     nshots = length(shots)
     grpshots = distribsrcs(nshots,nthr) # a vector of UnitRange 
     # loop on the set of WaveSimul
+    @show length(wavsim),nwsim
     Threads.@threads for w=1:nwsim
         # loop on the subset of shots per each WaveSimul 
         for s in grpshots[w]  
@@ -101,7 +102,7 @@ end
             possrcs, posrecs, srctf = init_shot!(wavsim[w], singleshot)
             # Compute forward solver
             @info "Forward modelling for one shot"
-            swforward_1shot!(wavsim[s], possrcs, posrecs, srctf, recs)
+            swforward_1shot!(wavsim[w], possrcs, posrecs, srctf, recs)
             # Save shot's snapshots
             if takesnapshots
                 @info "Saving snapshots"
