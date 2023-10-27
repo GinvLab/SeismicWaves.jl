@@ -6,16 +6,19 @@ module SeismicWaves
 using LinearAlgebra
 using Printf
 using ParallelStencil
+using Logging
 
 export InputParametersAcoustic, InputParametersAcousticVariableDensity
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
 export VpAcousticCDMaterialProperty, VpRhoAcousticVDMaterialProperty
+export WaveSimul
 
 #export Sources, Receivers, Shot
 export ScalarSources, ScalarReceivers, Shot
 export swforward!, swmisfit!, swgradient!
 export build_wavesim
 export gaussource1D, gaussdersource1D, rickersource1D
+
 
 
 include("abstract_types.jl")
@@ -79,5 +82,4 @@ using .HMCseiswaves
 export AcouWavCDProb
 
 
-
-end
+end # module
