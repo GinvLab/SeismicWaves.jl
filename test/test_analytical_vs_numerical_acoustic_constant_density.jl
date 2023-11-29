@@ -31,7 +31,7 @@ with_logger(error_logger) do
                 times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
                 # numerical solution
-                swforward!(params, vel, shots; parall=:threads)
+                swforward!(params, vel, shots; parall=parall)
                 numerical_trace = shots[1].recs.seismograms[:, 1]
 
                 @test length(numerical_trace) == length(Gc) == nt

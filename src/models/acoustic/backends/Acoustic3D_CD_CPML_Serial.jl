@@ -1,6 +1,8 @@
 
 module Acoustic3D_CD_CPML_Serial
 
+include("shared/smooth_gradient_3D.jl")
+
 # Dummy data module
 module Data
 Array = Base.Array
@@ -142,13 +144,13 @@ record_receivers!(pnew, traces, posrecs, it) =
         traces[it, ir] = pnew[irec, jrec, krec]
     end
 
-prescale_residuals!(residuals, possrcs, fact) =
-    for is in axes(possrcs, 1)
-        isrc = floor(Int, possrcs[is, 1])
-        jsrc = floor(Int, possrcs[is, 2])
-        ksrc = floor(Int, possrcs[is, 3])
+prescale_residuals!(residuals, posrecs, fact) =
+    for ir in axes(posrecs, 1)
+        irec = floor(Int, posrecs[ir, 1])
+        jrec = floor(Int, posrecs[ir, 2])
+        krec = floor(Int, posrecs[ir, 3])
         for it in axes(residuals, 1) # nt
-            residuals[it, is] *= fact[isrc, jsrc, ksrc]
+            residuals[it, ir] *= fact[irec, jrec, krec]
         end
     end
 

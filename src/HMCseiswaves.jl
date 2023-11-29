@@ -14,60 +14,77 @@ module HMCseiswaves
 
 using ..SeismicWaves
 using LinearAlgebra
+using Logging
 
-export AcouWavProb
+export AcouWavCDProb
+
+
+#wavesim = nothing
+
 
 #################################################################
 
 ## create the problem type for traveltime tomography
-Base.@kwdef struct AcouWavProb
-    inpars::InputParametersAcoustic{2}
-    ijsrcs::Vector{Array{Int64, 2}}
-    ijrecs::Vector{Array{Int64, 2}}
-    sourcetf::Vector{Array{Float64, 2}}
-    srcdomfreq::Vector{Float64}
-    dobs::Vector{Array{Float64, 2}}
-    invCovds::Vector{<:AbstractMatrix{Float64}}
+struct AcouWavCDProb
+    #wavesim::WaveSimul
+    inpars::InputParametersAcoustic
+    shots::Vector{<:Shot} #invCovds::Vector{<:AbstractMatrix{Float64}}
     parall::Symbol
+    #firsttime::Base.RefValue{Bool}
+    
+    function AcouWavCDProb(inpars::InputParametersAcoustic,
+                           shots::Vector{<:Shot},
+                           parall::Symbol )
+
+    #     nt = inpars.ntimesteps
+    #     check_freq = ceil(Int, sqrt(nt))
+    #     wavesim = build_wavesim(inpars; gradient=true,check_freq=check_freq,
+    #                             snapevery=nothing,infoevery=nothing)
+        return new(inpars,shots,parall) #,Ref(true))
+    end
 end
 
 ## use  x.T * C^-1 * x  = ||L^-1 * x ||^2 ?
 
 ############################################################
 ## make the type callable
-function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
-    # numerics
-    dh = acouprob.inpars.gridspacing[1]
-    nt = acouprob.inpars.ntimesteps
+function (acouprob::AcouWavCDProb)(vecvel::Vector{Float64}, kind::Symbol)
+
+    logger = Logging.ConsoleLogger(Error)
+    #logger = Logging.NullLogger()
+
+    # if acouprob.firsttime[]
+    #     acouprob.firsttime[] = false
+    #     nt = acouprob.inpars.ntimesteps
+    #     check_freq = ceil(Int, sqrt(nt))
+    #     global wavesim = build_wavesim(acouprob.inpars; parall=acouprob.parall,
+    #                                    gradient=true,check_freq=check_freq,
+    #                                    snapevery=nothing,infoevery=nothing)
+    # end
+    # @show HMCseiswaves.firsttime
+
+    # # numerics
+    # dh = acouprob.inpars.gridspacing[1]
+    # nt = acouprob.inpars.ntimesteps
 
     # reshape vector to 2D array
-    vel2d = reshape(vecvel, acouprob.inpars.ns...)
-    matprop = VpAcousticCDMaterialProperty(vel2d)
+    velNd = reshape(vecvel, acouprob.inpars.gridsize...)
+    matprop = VpAcousticCDMaterialProperty(velNd)
 
-    # build pairs of sources and receivers
-    nshots = length(acouprob.ijsrcs)
-    shots = Vector{Pair{Sources, Receivers}}()
-    for s in 1:nshots
-        # sources definition
-        possrcs = (acouprob.ijsrcs[s] .- 1) .* dh           # positions in meters
-        # source time functions
-        f0 = acouprob.srcdomfreq[s]
-        srcs = Sources(possrcs, acouprob.sourcetf[s], f0)
-        # receivers definition
-        posrecs = (acouprob.ijrecs[s] .- 1) .* dh           # positions in meters
-        recs = Receivers(posrecs,
-            nt;
-            observed=acouprob.dobs[s],
-            invcov=acouprob.invCovds[s])
-        # add pair as shot
-        push!(shots, srcs => recs)
-    end
+    @assert length(acouprob.shots[1].recs.observed) != 0
+
+    # @show BLAS.get_num_threads()
+    # @show acouprob.parall
+    # @show Threads.nthreads()
 
     if kind == :nlogpdf
         #############################################
         ## compute the logdensity value for vecvel ##
         #############################################
-        misval = swmisfit!(acouprob.inpars, matprop, shots; parall=acouprob.parall)
+        misval = swmisfit!(acouprob.inpars, matprop, acouprob.shots;
+                           parall=acouprob.parall,logger=logger)
+        # misval = swmisfit!(wavesim, matprop, acouprob.shots,
+        #                    logger=logger)
         return misval
 
     elseif kind == :gradnlogpdf
@@ -75,10 +92,17 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         ## compute the gradient of the misfit function ##
         #################################################
         grad = swgradient!(acouprob.inpars,
-            matprop,
-            shots;
-            parall=acouprob.parall,
-            check_freq=ceil(Int, sqrt(nt)))
+                           matprop,
+                           acouprob.shots;
+                           parall=acouprob.parall,
+                           ## if next line is commented: no checkpointing
+                           check_freq=ceil(Int, sqrt(acouprob.inpars.ntimesteps)), 
+                           logger=logger)
+        # @time grad = swgradient!(wavesim,
+        #                          matprop,
+        #                          acouprob.shots,
+        #                          logger=logger)
+        
         # return flattened gradient
         return vec(grad)
 
@@ -86,11 +110,14 @@ function (acouprob::AcouWavProb)(vecvel::Vector{Float64}, kind::Symbol)
         ####################################################
         ## compute calculated data (solve forward problem) ##
         ####################################################
-        dcalc = swforward!(acouprob.inpars, matprop, shots; parall=acouprob.parall)
+        dcalc = swforward!(acouprob.inpars, matprop, acouprob.shots;
+                           parall=acouprob.parall,logger=logger)
+        # dcalc = swforward!(wavesim, matprop, acouprob.shots,
+        #                    logger=logger)
         return dcalc
 
     else
-        error("acouprob::AcouWavProb(): Wrong argument 'kind': $kind...")
+        error("acouprob::AcouWavProbCD(): Wrong argument 'kind': $kind...")
     end
 end
 

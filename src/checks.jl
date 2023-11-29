@@ -1,6 +1,5 @@
 
-function check_sim_consistency(wavsim::WaveSimul,matprop::MaterialProperties,shots::Vector{<:Shot})
-
+function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, shots::Vector{<:Shot})
     tysim = typeof(wavsim)
     tymatprop = typeof(matprop)
     tysource = typeof(shots[1].srcs)
@@ -9,16 +8,21 @@ function check_sim_consistency(wavsim::WaveSimul,matprop::MaterialProperties,sho
     # Check that the subtypes of Shot are consistent througout the shots
     for singleshot in shots
         if tysource != typeof(singleshot.srcs) || tyreceiver != typeof(singleshot.recs)
-            return error("Types of shots are incosistent.")
+            return error("Types of shots are inconsistent.")
         end
     end
 
     # Check that the subtypes of WaveSimul, MaterialProperties and Shot are consistent
     N = typeof(wavsim).parameters[1]
-    if tysim==AcousticCDCPMLWaveSimul{N} &&
-        tymatprop==VpAcousticCDMaterialProperty{N} &&
-        tysource<:ScalarSources &&
-        tyreceiver<:ScalarReceivers
+    if tysim == AcousticCDCPMLWaveSimul{N} &&
+       tymatprop == VpAcousticCDMaterialProperty{N} &&
+       tysource <: ScalarSources &&
+       tyreceiver <: ScalarReceivers
+        return
+    elseif tysim == AcousticVDStaggeredCPMLWaveSimul{N} &&
+           tymatprop == VpRhoAcousticVDMaterialProperty{N} &&
+           tysource <: ScalarSources &&
+           tyreceiver <: ScalarReceivers
         return
 
     elseif tysim==ElasticIsoCPMLWaveSimul{N} &&
@@ -31,7 +35,6 @@ function check_sim_consistency(wavsim::WaveSimul,matprop::MaterialProperties,sho
     return error("Types of WaveSimul, MaterialProperties and Sources/Receivers are incosistent \
         \n $(typeof(wavsim)), $(typeof(matprop)), $(typeof(shots[1].srcs)), $(typeof(shots[1].recs))")
 end
-
 
 function check_shot(model::WaveSimul, shot::Shot; kwargs...)
     @debug "Checking model/shot numerics"

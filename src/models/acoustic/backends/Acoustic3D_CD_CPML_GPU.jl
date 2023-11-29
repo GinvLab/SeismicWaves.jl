@@ -8,5 +8,6 @@ using ParallelStencil.FiniteDifferences3D
 include("shared/standard_xPU.jl")
 include("shared/correlate_gradient_xPU.jl")
 include("shared/acoustic3D_xPU.jl")
+include("shared/smooth_gradient_3D.jl")
 
 end

@@ -12,3 +12,9 @@ abstract type Sources end
 abstract type Receivers end
 
 abstract type MomentTensor end
+
+abstract type InterpolationMethod end
+
+abstract type AbstractMisfit end
+
+abstract type AbstractRegularization end

@@ -2,11 +2,12 @@
 using Revise
 using SeismicWaves
 using LinearAlgebra
+using JLD2
 
 ###################################################################
 using Logging
 
-function exacouprob(parall=:serial)
+function exacouprob_wavsim(parall=:serial)
 
     ##========================================
     # time stuff
@@ -17,9 +18,10 @@ function exacouprob(parall=:serial)
 
     ##========================================
     # create a velocity model
-    nx = 300 #211
-    nz = 300 #120
+    nx = 301 #300 #211
+    nz = 288 #300 #120
     dh = 10.0 # meters
+    @show nx,nz
 
     #@show (nx-1)*dh, (nz-1)*dh
 
@@ -44,6 +46,7 @@ function exacouprob(parall=:serial)
     ##========================================
     # shots definition
     nshots = 6
+    @show nshots
     shots = Vector{Shot}()  #Pair{Sources, Receivers}}()
     # sources x-position (in grid points) (different for every shot)
     ixsrc = round.(Int, LinRange(32, nx - 31, nshots))
@@ -92,12 +95,34 @@ function exacouprob(parall=:serial)
     ##parall = :threads
     logger = ConsoleLogger(Error)
     ## compute the seismograms
-    @time snapshots = swforward!(params,
-                                 matprop,
-                                 shots;
-                                 parall=parall,
-                                 infoevery=infoevery,
-                                 logger=logger )
+
+    println("####>>>>  parall = $parall <<<<####")
+    if parall==:threads || parall==:threadpersrc
+        @show Threads.nthreads()
+    end
+
+    
+    println("\nswforward! - NO wavesim")
+    for i=1:3
+        @time snapshots = swforward!(params,
+                                     matprop,
+                                     shots;
+                                     parall=parall,
+                                     infoevery=infoevery,
+                                     logger=logger )
+    end
+
+    println("\nswforward! - wavesim")        
+    wavesim_fwd = build_wavesim(params; parall=parall,
+                                gradient=false)
+    
+    for i=1:3
+        @time snapshots = swforward!(wavesim_fwd,
+                                     matprop,
+                                     shots;
+                                     logger=logger )
+    end  
+    
     #snapevery=snapevery)
 
     ##===============================================
@@ -115,32 +140,39 @@ function exacouprob(parall=:serial)
     newvelmod[30:40, 33:44] *= 0.9
     matprop_grad = VpAcousticCDMaterialProperty(newvelmod)
 
-    @time grad = swgradient!(params,
-                             matprop_grad,
-                             shots_grad;
-                             parall=parall,
-                             logger=logger )
+    ##
+    check_freq = ceil(Int, sqrt(params.ntimesteps)) #nothing #200 #ceil(Int, sqrt(params.ntimesteps))
+    @show check_freq
+    grad = nothing
+
+    println("\nswgradient! - NO wavesim")
+    for i=1:3
+        @time grad = swgradient!(params,
+                                 matprop_grad,
+                                 shots_grad;
+                                 check_freq=check_freq,
+                                 parall=parall,
+                                 logger=logger )
+    end
+
+
+    println("\nswgradient! - wavesim")
+    wavesim_grad = build_wavesim(params; parall=parall,
+                                 gradient=true,
+                                 check_freq=check_freq)
     
-    return params, velmod, shots#, snapshots, grad
+    for i=1:3
+        @time grad = swgradient!(wavesim_grad,
+                                 matprop_grad,
+                                 shots_grad;
+                                 logger=logger )
+    end
+
+    
+    jldsave("fwd_grad_$(parall).jld",shots=shots,grad=grad)
+
+    return params, velmod, shots, grad
 end
 
 ##################################################################
 
-# debug_logger = ConsoleLogger(stderr, Logging.Debug)
-# global_logger(debug_logger)
-# error_logger = ConsoleLogger(stderr, Logging.Error)
-# global_logger(error_logger)
-# info_logger = ConsoleLogger(stderr, Logging.Info)
-# global_logger(info_logger)
-
-# par, vel, sh, snaps, grad = exacouprob()
-
-# with_logger(error_logger) do
-#     p, v, s, snaps = exacouprob()
-# end
-
-# using Plots
-# heatmap(snaps[6][:,:,20]'; aspect_ratio=:equal, cmap=:RdBu)
-# yaxis!(flip=true)
-
-##################################################################

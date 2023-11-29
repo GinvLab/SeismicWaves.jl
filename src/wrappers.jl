@@ -32,16 +32,35 @@ function swforward!(
     shots::Vector{<:Shot};
     parall::Symbol=:threads,
     snapevery::Union{Int, Nothing}=nothing,
-    infoevery::Union{Int, Nothing}=nothing
+    infoevery::Union{Int, Nothing}=nothing,
+    logger::Union{Nothing,AbstractLogger}=nothing
 )::Union{Vector{AbstractArray}, Nothing} where {N}
-    # Build wavesim
-    wavesim = build_wavesim(params; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
-    # Solve simulation
-    return run_swforward!(wavesim, matprop, shots)
+
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        # Build wavesim
+        wavesim = build_wavesim(params; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
+        # Solve simulation
+        out = run_swforward!(wavesim, matprop, shots)
+    end
+    return out
 end
 
-swforward!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} =
-    run_swforward!(wavesim, matprop, shots)
+
+function swforward!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
+                    logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N}
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        out = run_swforward!(wavesim, matprop, shots; kwargs...)
+    end
+    return out
+end
 
 #######################################################
 
@@ -69,16 +88,36 @@ function swmisfit!(
     params::InputParameters{N},
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
-    parall::Symbol=:threads
+    parall::Symbol=:threads,
+    misfit::AbstractMisfit=L2Misfit(nothing),
+    logger::Union{Nothing,AbstractLogger}=nothing
 )::Real where {N}
-    # Build wavesim
-    wavesim = build_wavesim(params; parall=parall, gradient=false)
-    # Compute misfit
-    return run_swmisfit!(wavesim, matprop, shots)
+
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        # Build wavesim
+        wavesim = build_wavesim(params; parall=parall, gradient=false)
+        # Compute misfit
+        out = run_swmisfit!(wavesim, matprop, shots; misfit=misfit)
+    end
+    return out
 end
 
-swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} =
-    run_swmisfit!(wavesim, matprop, shots)
+
+function swmisfit!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; 
+                   logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N}
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        out = run_swmisfit!(wavesim, matprop, shots; kwargs...)
+    end
+    return out
+end
 
 #######################################################
 
@@ -89,7 +128,9 @@ swmisfit!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<
         shots::Vector{<:Shot} ;
         parall::Symbol = :threads,
         check_freq::Union{Int, Nothing} = nothing,
-        infoevery::Union{Int, Nothing} = nothing
+        infoevery::Union{Int, Nothing} = nothing,
+        compute_misfit::Bool = false,
+        smooth_radius::Integer = 5
     ):Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
 
 Compute gradients w.r.t. model parameters using the given input parameters `params` and material parameters `matprop` on multiple shots.
@@ -110,6 +151,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `check_freq::Union{Int, Nothing} = nothing`: if specified, enables checkpointing and specifies the checkpointing frequency.
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 - `compute_misfit::Bool = false`: if true, also computes and return misfit value.
+- `smooth_radius::Integer = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
 """
 function swgradient!(
     params::InputParameters{N},
@@ -118,12 +160,23 @@ function swgradient!(
     parall::Symbol=:threads,
     check_freq::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
-    compute_misfit::Bool=false
+    compute_misfit::Bool=false,
+    misfit::AbstractMisfit=L2Misfit(nothing),
+    smooth_radius::Integer=5,
+    logger::Union{Nothing,AbstractLogger}=nothing
 )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
-    # Build wavesim
-    wavesim = build_wavesim(params; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq)
-    # Solve simulation
-    return run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit)
+
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        # Build wavesim
+        wavesim = build_wavesim(params; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
+        # Solve simulation
+        out = run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit, misfit=misfit)
+    end
+    return out
 end
 
 
@@ -134,9 +187,18 @@ end
 
     Compute gradients w.r.t. model parameters using the *previously* built WaveSimul. This avoids re-initializing and re-allocating several arrays in case of multiple gradient calculations.
 """
-swgradient!(wavesim::WaveSimul{N}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}) where {N} =
-    run_swgradient!(wavesim, matprop, shots)
-
+function swgradient!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
+                     logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N} 
+    if logger==nothing
+        logger=current_logger()
+    end
+    out = nothing
+    with_logger(logger) do
+        out = run_swgradient!(wavesim, matprop, shots; kwargs...)
+    end
+    return out
+end
+        
 #######################################################
 
 @doc raw"""
@@ -154,11 +216,23 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 - `snapevery::Union{<:Integer, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays (only for forward simulations).
 - `infoevery::Union{<:Integer, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-build_wavesim(params::InputParameters; kwargs...) = build_wavesim(params, params.boundcond; kwargs...)
+function build_wavesim(params::InputParameters; parall, kwargs...)
+    if parall==:threadpersrc
+        nthr = Threads.nthreads()
+        #println("  build_wavesim  :threadpersrc")
+        wsim = [build_wavesim(params, params.boundcond; parall, kwargs...) for s=1:nthr]
+    else
+        wsim = build_wavesim(params, params.boundcond; parall, kwargs...)
+    end
+    return wsim
+end
+
+
 
 build_wavesim(
     params::InputParametersAcoustic{N},
     cpmlparams::CPMLBoundaryConditionParameters;
+    parall,
     kwargs...
 ) where {N} = AcousticCDCPMLWaveSimul{N}(
     params.gridsize,
@@ -168,6 +242,24 @@ build_wavesim(
     cpmlparams.halo,
     cpmlparams.rcoef;
     freetop=cpmlparams.freeboundtop,
+    parall,
+    kwargs...
+)
+
+build_wavesim(
+    params::InputParametersAcousticVariableDensity{N},
+    cpmlparams::CPMLBoundaryConditionParameters;
+    parall,
+    kwargs...
+) where {N} = AcousticVDStaggeredCPMLWaveSimul{N}(
+    params.gridsize,
+    params.gridspacing,
+    params.ntimesteps,
+    params.dt,
+    cpmlparams.halo,
+    cpmlparams.rcoef;
+    freetop=cpmlparams.freeboundtop,
+    parall,
     kwargs...
 )
 
@@ -182,11 +274,15 @@ function select_backend(
     wavesim_type::Type{<:WaveSimul},
     ::Type{Val{parall}}
 ) where {parall}
-    parasym = [:serial, :threads, :GPU]
+    parasym = [:serial, :threads, :GPU, :threadpersrc]
     error(
         "No backend found for model of type $(wavesim_type) and `parall` $(parall). Argument `parall` must be one of the following symbols: $parasym."
     )
 end
+
+## Remark:
+## CD = constant density
+## VD = variable density
 
 # Backend selections for AcousticCDCPMLWaveSimul
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:serial}}) =
@@ -209,3 +305,21 @@ select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWave
     Acoustic2D_CD_CPML_GPU
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:GPU}}) =
     Acoustic3D_CD_CPML_GPU
+
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:threadpersrc}}) =
+    Acoustic1D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:threadpersrc}}) =
+    Acoustic2D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:threadpersrc}}) =
+    Acoustic3D_CD_CPML_Serial
+
+# Backend selections for AcousticVDStaggeredCPMLWaveSimul
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{1}}, ::Type{Val{:threads}}) =
+    Acoustic1D_VD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{1}}, ::Type{Val{:GPU}}) =
+    Acoustic1D_VD_CPML_GPU
+
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{2}}, ::Type{Val{:threads}}) =
+    Acoustic2D_VD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{2}}, ::Type{Val{:GPU}}) =
+    Acoustic2D_VD_CPML_GPU
