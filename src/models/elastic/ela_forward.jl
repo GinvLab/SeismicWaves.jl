@@ -14,14 +14,13 @@ swforward_1shot!(model::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryCo
     # Wrap sources and receivers arrays
     possrcs_a = model.backend.Data.Array(possrcs)
     posrecs_a = model.backend.Data.Array(posrecs)
-    srctf_a = model.backend.Data.Array(srctf)
+    srctf_a  = model.backend.Data.Array(srctf)
     traces_a = model.backend.Data.Array(traces)
 
     ## ONLY 2D for now!!!
     Mxx = model.backend.Data.Array(momtens.Mxx)
     Mzz = model.backend.Data.Array(momtens.Mzz)
     Mxz = model.backend.Data.Array(momtens.Mxz)
-
 
     # Reset wavesim
     reset!(model)
@@ -31,8 +30,6 @@ swforward_1shot!(model::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryCo
         # Compute one forward step
         model.backend.forward_onestep_CPML!(model, possrcs_a, srctf_a, posrecs_a, traces_a, it,
                                             freetop, save_trace)
-
-
 
                                             # model.velpartic..., model.stress...,
                                             # model.λ_ihalf
@@ -65,4 +62,5 @@ swforward_1shot!(model::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryCo
 
     # Save traces
     traces .= Array(traces_a)
+    return
 end

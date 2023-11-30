@@ -89,25 +89,29 @@ zeros = Base.zeros
 
 
 
-function precomp_elaprop!(ρ,μ,λ,ρ_ihalf_jhalf,μ_ihalf,μ_jhalf,λ_ihalf)
+function precomp_elaprop!(ρ,μ,λ,ρ_ihalf_jhalf,μ_ihalf,μ_jhalf,λ_ihalf ;
+                          harmonicaver_μ=true)
 
     #-------------------------------------------------------------
     # pre-interpolate properties at half distances between nodes
     #-------------------------------------------------------------
     # ρ_ihalf_jhalf (nx-1,nz-1) ??
+    # arithmetic mean for ρ
     @. ρ_ihalf_jhalf = (ρ[2:end,2:end]+ρ[2:end,1:end-1]+
         ρ[1:end-1,2:end]+ρ[1:end-1,1:end-1])/4.0
     # μ_ihalf (nx-1,nz) ??
     # μ_ihalf (nx,nz-1) ??
     if harmonicaver_μ==true 
-        # harmonic mean
+        # harmonic mean for μ
         @. μ_ihalf = 1.0 / ( 1.0./μ[2:end,:] + 1.0 / μ[1:end-1,:] )
         @. μ_jhalf = 1.0 / ( 1.0./μ[:,2:end] + 1.0 / μ[:,1:end-1] )
     else
+        # arithmetic mean for μ
         @. μ_ihalf = (μ[2:end,:] + μ[1:end-1,:]) / 2.0
         @. μ_jhalf = (μ[:,2:end] + μ[:,1:end-1]) / 2.0 
     end
     # λ_ihalf (nx-1,nz) ??
+    # arithmetic mean for λ
     @. λ_ihalf = (λ[2:end,:] + λ[1:end-1,:]) / 2.0
 
     return
@@ -472,17 +476,17 @@ function forward_onestep_CPML!(model,
     factx = 1.0/(24.0*dx)
     factz = 1.0/(24.0*dz)
     
-    # update velocities vx and vz
+    # update velocity vx 
     update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,psi.ψ_∂σxx∂x,psi.ψ_∂σxz∂z,
                b_x,b_z,a_x,a_z,freetop)
-
+    # update velocity vz
     update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,psi.ψ_∂σxz∂x,
                psi.ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,freetop)
 
-    # update stresses σxx, σzz and σxz
+    # update stresses σxx and σzz 
     update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,
                    psi.ψ_∂vx∂x,psi.ψ_∂vz∂z,b_z,a_x_half,a_z,freetop)
-
+    # update stress σxz
     update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,
                 psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
     
