@@ -14,8 +14,9 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 
 # Keyword arguments
 - `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend if set to `:GPU`
-    - `Base.Threads` CPU threads if set to `:threads`
+    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:GPU`
+    - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
+    - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
 - `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays.  
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
@@ -66,8 +67,9 @@ Return the misfit w.r.t. observed data by running a forward simulation using the
 
 # Keyword arguments
 `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend if set to `:GPU`
-    - `Base.Threads` CPU threads if set to `:threads`
+    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:GPU`
+    - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
+    - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
 
 Receivers traces are stored in the `Receivers` object for each shot.
@@ -127,8 +129,9 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 
 # Keyword arguments
 - `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend if set to `:GPU`
-    - `Base.Threads` CPU threads if set to `:threads`
+    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:GPU`
+    - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
+    - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
 - `check_freq::Union{Int, Nothing} = nothing`: if specified, enables checkpointing and specifies the checkpointing frequency.
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
@@ -191,8 +194,9 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 
 # Keyword arguments
 - `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend if set to `:GPU`
-    - `Base.Threads` CPU threads if set to `:threads`
+    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:GPU`
+    - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
+    - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
 - `gradient::Bool = false`: whether the wave simulation is used for gradients computations.
 - `check_freq::Union{<:Integer, Nothing} = nothing`: if `gradient = true` and if specified, enables checkpointing and specifies the checkpointing frequency.

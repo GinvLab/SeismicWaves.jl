@@ -11,7 +11,7 @@ struct InputParametersAcoustic{N} <: InputParameters{N}
     ntimesteps::Int
     "Time step"
     dt::Real
-    "Grid for each dimension"
+    "Grid size for each dimension"
     gridsize::NTuple{N, <:Int}
     "Grid spacing in each direction"
     gridspacing::NTuple{N, <:Real}
