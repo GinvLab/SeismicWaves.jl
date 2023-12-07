@@ -1,7 +1,7 @@
 name = "SeismicWaves"
 uuid = "f2cc81fa-a164-11e9-3f65-e3f851c759e3"
 authors = ["Andrea Zunino", "Giacomo Aloisi"]
-version = "0.5.0"
+version = "0.5.1"
 
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
