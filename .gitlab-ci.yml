@@ -20,25 +20,26 @@ default:
   rules:
     - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG )
 
-# pages:
-#   stage: deploy
-#   script:
-#     - julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
-#     - julia --project=docs --color=yes docs/make.jl
-#     #- echo $(ls ./)
-#     # - git branch -a
-#     ## the following lines needed to have versioned docs from Documenter.jl
-#     - mkdir tmppub ; mv .git tmppub/
-#     - cd tmppub
-#     - echo $(ls -a) 
-#     - git fetch; git checkout gl-pages ; git pull 
-#     - echo $(ls )
-#     - rsync -a --exclude=".git" --exclude=".gitignore" ../tmppub/*  ../public/
-#     # - echo $(ls  docs/build/)
-#     ## - mv docs/build public # move to the directory picked up by Gitlab pages
-#   artifacts:
-#     paths:
-#       - public
-#   rules:
-#     - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG ) && $DOCUMENTER_KEY    
-#     #- if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG ) && $DOCUMENTER_KEY 
+pages:
+  stage: deploy
+  script:
+    - julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+    - julia --project=docs --color=yes docs/make.jl
+    #- echo $(ls ./)
+    # - git branch -a
+    ## the following lines needed to have versioned docs from Documenter.jl
+    - mkdir tmppub ; mv .git tmppub/
+    - cd tmppub
+    - echo $(ls -a) 
+    - git fetch; git checkout gl-pages ; git pull 
+    - echo $(ls )
+    - rsync -a --exclude=".git" --exclude=".gitignore" ../tmppub/*  ../public/
+    # - echo $(ls  docs/build/)
+    ## - mv docs/build public # move to the directory picked up by Gitlab pages
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH ) && $DOCUMENTER_KEY
+    - if: ($CI_COMMIT_TAG && $CI_DEFAULT_BRANCH) && $DOCUMENTER_KEY
+ 
