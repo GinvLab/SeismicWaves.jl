@@ -10,6 +10,6 @@ Elastic wave propagation is work in progress.
 
 ---
 
-Warning: **Documentation is currently minimal (work in progress...)!.*
+Warning: **Documentation is currently minimal** (work in progress...).
 
 ---
