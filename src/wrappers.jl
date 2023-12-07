@@ -2,14 +2,8 @@
 #######################################################
 
 @doc raw"""
-    swforward!(
-        params::InputParameters{N},
-        matprop::MaterialProperties{N}
-        shots::Vector{<:Shot} ;  
-        parall::Symbol= :threads,
-        snapevery::Union{Int, Nothing} = nothing,
-        infoevery::Union{Int, Nothing} = nothing
-    )::Union{Vector{AbstractArray}, Nothing} where {N}
+
+     $(TYPEDSIGNATURE)
 
 Compute forward simulation using the given input parameters `params` and material properties `matprop` on multiple shots.
 Receivers traces are stored in the `Receivers` object for each shot. See also [`Receivers`](@ref).

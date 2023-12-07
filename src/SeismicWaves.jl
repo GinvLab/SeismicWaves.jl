@@ -7,6 +7,7 @@ using LinearAlgebra
 using Printf
 using ParallelStencil
 using Logging
+using DocStringExtensions
 
 export InputParametersAcoustic, InputParametersAcousticVariableDensity
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
