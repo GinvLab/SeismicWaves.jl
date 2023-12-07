@@ -14,7 +14,7 @@ makedocs(repo=Remotes.GitLab("JuliaGeoph","SeismicWaves.jl"), # "https://gitlab.
          )
 
 deploydocs(
-    repo=Remotes.GitLab("JuliaGeoph","SeismicWaves.jl"), #"gitlab.com/JuliaGeoph/SeismicWaves.jl.git",
+    repo="gitlab.com/JuliaGeoph/SeismicWaves.jl.git",
     devbranch = "main",
     deploy_config = Documenter.GitLab(),
     branch = "gl-pages"
