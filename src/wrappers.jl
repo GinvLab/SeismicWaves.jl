@@ -1,9 +1,9 @@
 
 #######################################################
 
-@doc raw"""
+@doc """
 
-     $(TYPEDSIGNATURE)
+$(TYPEDSIGNATURES)
 
 Compute forward simulation using the given input parameters `params` and material properties `matprop` on multiple shots.
 Receivers traces are stored in the `Receivers` object for each shot. See also [`Receivers`](@ref).
@@ -58,13 +58,9 @@ end
 
 #######################################################
 
-@doc raw"""
-    swmisfit!(
-        params::InputParameters{N},
-        matprop::MaterialProperties{N},
-        shots::Vector{<:Shot} ;  
-        parall::Symbol= :threads,
-    )::Real where {N}
+@doc """
+
+$(TYPEDSIGNATURES)
 
 Return the misfit w.r.t. observed data by running a forward simulation using the given input parameters `params` and material properties `matprop` on multiple shots.
 
@@ -115,17 +111,9 @@ end
 
 #######################################################
 
-@doc raw"""
-    swgradient!(
-        params::InputParameters{N},
-        matprop::MaterialProperties{N},
-        shots::Vector{<:Shot} ;
-        parall::Symbol = :threads,
-        check_freq::Union{Int, Nothing} = nothing,
-        infoevery::Union{Int, Nothing} = nothing,
-        compute_misfit::Bool = false,
-        smooth_radius::Integer = 5
-    ):Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
+@doc """
+
+$(TYPEDSIGNATURES)
 
 Compute gradients w.r.t. model parameters using the given input parameters `params` and material parameters `matprop` on multiple shots.
 
@@ -146,6 +134,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 - `compute_misfit::Bool = false`: if true, also computes and return misfit value.
 - `smooth_radius::Integer = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
+- `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used. 
 """
 function swgradient!(
     params::InputParameters{N},
@@ -174,12 +163,11 @@ function swgradient!(
 end
 
 
-@doc raw"""
-    swgradient!(wavesim::WaveSimul{N},
-                matprop::MaterialProperties{N},
-                shots::Vector{<:Shot})
+@doc """
 
-    Compute gradients w.r.t. model parameters using the *previously* built WaveSimul. This avoids re-initializing and re-allocating several arrays in case of multiple gradient calculations.
+$(TYPEDSIGNATURES)
+
+Compute gradients w.r.t. model parameters using the *previously* built `WaveSimul`. This avoids re-initializing and re-allocating several arrays in case of multiple gradient calculations.
 """
 function swgradient!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
                      logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N} 
@@ -195,8 +183,9 @@ end
         
 #######################################################
 
-@doc raw"""
-    build_wavesim(params::InputParameters{N}, kwargs...)::WaveSimul{N} where {N}
+@doc """
+
+$(TYPEDSIGNATURES)     
 
 Builds a wave similation based on the input paramters `params` and keyword arguments `kwargs`.
 

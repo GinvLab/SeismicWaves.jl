@@ -1,10 +1,32 @@
+
+@doc """
+
+$(TYPEDEF)
+
+Material properties for acoustic constant-density simulation.
+
+$(TYPEDFIELDS)
+"""
 struct VpAcousticCDMaterialProperty{N} <: MaterialProperties{N}
+    "P-wave velocity"
     vp::Array{<:Float64, N}
 end
 
+
+@doc """
+
+$(TYPEDEF)
+
+Material properties for acoustic variable-density simulation.
+
+$(TYPEDFIELDS)
+"""
 mutable struct VpRhoAcousticVDMaterialProperty{N} <: MaterialProperties{N}
+    "P-wave velocity"
     vp::Array{<:Float64, N}
+    "Density"
     rho::Array{<:Float64, N}
+    "Interpolation method"
     interp_method::InterpolationMethod
 
     function VpRhoAcousticVDMaterialProperty{N}(

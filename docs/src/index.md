@@ -14,9 +14,8 @@ Depth = 4
 
 # User guide
 
-**SeismicWaves** is a Julia package for seismic wave propagation using the finite difference method.
-
-This package provides some functions to solve inverse problems using the Hamiltonian Monte Carlo (HMC) method, as part of the [`HMCLab`](https://gitlab.com/JuliaGeoph/HMCLab.jl) project (see the  [`MCsamplers.jl`](https://gitlab.com/JuliaGeoph/MCsamplers.jl) package). 
+**SeismicWaves** is a Julia package for seismic wave propagation using the finite difference method. `SeismicWaves` provides functions to solve the forward problem and the gradient of a misfit functional with respect to model parameters.
+This package additionally provides some functions to solve inverse problems using the Hamiltonian Monte Carlo (HMC) method, as part of the [`HMCLab`](https://gitlab.com/JuliaGeoph/HMCLab.jl) framework. 
 
 
 
