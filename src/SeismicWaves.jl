@@ -18,7 +18,7 @@ export WaveSimul
 export ScalarSources, ScalarReceivers, Shot
 export swforward!, swmisfit!, swgradient!
 export build_wavesim
-export gaussource1D, gaussdersource1D, rickersource1D
+export gaussstf, gaussderivstf, rickerstf
 
 
 
@@ -33,6 +33,7 @@ include("sources.jl")
 include("receivers.jl")
 include("shot.jl")
 include("checks.jl")
+include("boundarycond.jl")
 
 include("models/cpmlcoeffs.jl")
 

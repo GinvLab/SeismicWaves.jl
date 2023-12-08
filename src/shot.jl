@@ -1,9 +1,15 @@
 
 """
+$(TYPEDEF)
+
 Type representing a source-receiver pair, i.e., a \"shot\".
+
+$(TYPEDFIELDS)
 """
 Base.@kwdef struct Shot #{T <: Real}
+    "Structure containing the appropriate Sources for a given simulation."
     srcs::Sources #{T}
+    "Structure containing the appropriate Receivers for a given simulation."
     recs::Receivers #{T}
 end
 

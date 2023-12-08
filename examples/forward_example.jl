@@ -33,7 +33,7 @@ function forward_example()
         # source time functions
         srcstf = zeros(nt, nsrc)
         for s in 1:nsrc
-            srcstf[:, s] .= 1000.0 .* rickersource1D.(t, 1.20 / 12.0, 12.0)
+            srcstf[:, s] .= 1000.0 .* rickerstf.(t, 1.20 / 12.0, 12.0)
         end
         srcs = ScalarSources(possrcs, srcstf, 12.0)
 

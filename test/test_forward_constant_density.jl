@@ -42,7 +42,7 @@ with_logger(error_logger) do
             xsrc = (halo + 10) * dx
             srcs = ScalarSources(
                 reshape([xsrc], 1, 1),
-                reshape(rickersource1D.(times, 2 / f0, f0), nt, 1),
+                reshape(rickerstf.(times, 2 / f0, f0), nt, 1),
                 f0
             )
             # multiple receivers at different distances
@@ -97,7 +97,7 @@ with_logger(error_logger) do
             distsrcs = 10
             srcs = ScalarSources(
                 reshape(xsrc .+ distsrcs .* collect(1:nsrcs) .* fill(dx, nsrcs), nsrcs, 1),
-                repeat(rickersource1D.(times, 2 / f0, f0), 1, nsrcs),
+                repeat(rickerstf.(times, 2 / f0, f0), 1, nsrcs),
                 f0
             )
             # multiple receivers at different distances
@@ -153,7 +153,7 @@ with_logger(error_logger) do
             ysrc = (halo + 10) * dy
             srcs = ScalarSources(
                 reshape([xsrc, ysrc], 1, 2),
-                reshape(rickersource1D.(times, 2 / f0, f0), nt, 1),
+                reshape(rickerstf.(times, 2 / f0, f0), nt, 1),
                 f0
             )
             # multiple receivers at different distances
@@ -211,7 +211,7 @@ with_logger(error_logger) do
             ysrc = (halo + 10) * dy
             srcs = ScalarSources(
                 hcat(xsrcs, fill(ysrc, nsrcs)),
-                repeat(rickersource1D.(times, 2 / f0, f0), 1, nsrcs),
+                repeat(rickerstf.(times, 2 / f0, f0), 1, nsrcs),
                 f0
             )
             # multiple receivers at different distances

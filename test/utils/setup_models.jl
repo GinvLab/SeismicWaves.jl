@@ -33,7 +33,7 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     times = collect(range(0.0; step=dt, length=nt))
     possrcs = zeros(1, 1)
     srctf = zeros(nt, 1)
-    srctf[:, 1] .= rickersource1D.(times, t0, f0)
+    srctf[:, 1] .= rickerstf.(times, t0, f0)
     possrcs[1, :] = [lx / 2]
     # receivers
     posrecs = zeros(1, 1)
@@ -55,7 +55,7 @@ function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, r
     times = collect(range(0.0; step=dt, length=nt))
     possrcs = zeros(1, 1)
     srctf = zeros(nt, 1)
-    srctf[:, 1] .= gaussdersource1D.(times, t0, f0)
+    srctf[:, 1] .= gaussderivstf.(times, t0, f0)
     refsrctf = zeros(nt, 1)
     possrcs[1, :] = [lx / 2]
     # receivers
@@ -81,7 +81,7 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     possrcs = zeros(1, 2)
     possrcs[1, :] = [lx / 2, ly / 2]
     srctf = zeros(nt, 1)
-    srctf[:, 1] .= rickersource1D.(times, t0, f0)
+    srctf[:, 1] .= rickerstf.(times, t0, f0)
     # receivers
     posrecs = zeros(1, 2)
     posrecs[1, :] = [lx / 3, ly / 2]
@@ -104,7 +104,7 @@ function setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0,
     possrcs = zeros(1, 2)
     possrcs[1, :] = [lx / 2, ly / 2]
     srctf = zeros(nt, 1)
-    srctf[:, 1] .= gaussdersource1D.(times, t0, f0)
+    srctf[:, 1] .= gaussderivstf.(times, t0, f0)
     # receivers
     posrecs = zeros(1, 2)
     posrecs[1, :] = [lx / 3, ly / 2]
@@ -129,7 +129,7 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     possrcs = zeros(1, 3)
     possrcs[1, :] = [lx / 2, ly / 2, lz / 2]
     srctf = zeros(nt, 1)
-    srctf[:, 1] .= rickersource1D.(times, t0, f0)
+    srctf[:, 1] .= rickerstf.(times, t0, f0)
     # receivers
     posrecs = zeros(1, 3)
     posrecs[1, :] = [lx / 3, ly / 2, lz / 2]
@@ -163,7 +163,7 @@ function analytical_solution_constant_vel_constant_density_1D(c0, rho, dt, nt, t
     # analytical solution
     times = collect(range(dt/2; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
-    src = (c0^2 * rho) .* rickersource1D.(times, t0, f0)
+    src = (c0^2 * rho) .* rickerstf.(times, t0, f0)
     # Calculate Green's function
     G = times .* 0.0
     for it in 1:nt
@@ -203,7 +203,7 @@ function analytical_solution_constant_vel_constant_density_2D(c0, rho, dt, nt, t
     # analytical solution
     times = collect(range(dt/2; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
-    src = (c0^2 * rho) .* rickersource1D.(times, t0, f0)
+    src = (c0^2 * rho) .* rickerstf.(times, t0, f0)
     # Calculate Green's function
     G = times .* 0.0
     for it in 1:nt

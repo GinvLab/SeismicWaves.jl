@@ -1,7 +1,5 @@
 
 ```@meta
-Author = "Andrea Zunino"
-Author = "Giacomo Aloisi"
 EditURL = "https://gitlab.com/JuliaGeoph/SeismicWaves.jl/-/tree/main/docs/src/"
 ```
 
@@ -21,24 +19,10 @@ This package additionally provides some functions to solve inverse problems usin
 
 ## Public API
 
-```@docs
-SeismicWaves
-InputParametersAcoustic
-InputParametersAcousticVariableDensity
-CPMLBoundaryConditionParameters
-ReflectiveBoundaryConditionParameters
-VpAcousticCDMaterialProperty
-VpRhoAcousticVDMaterialProperty
-WaveSimul
-ScalarSources
-ScalarReceivers
-Shot
-swforward!
-swmisfit!
-swgradient!
-build_wavesim
-gaussource1D 
-gaussdersource1D
-rickersource1D
+```@autodocs
+Modules = [SeismicWaves]
+Private = false
 ```
+
+
 
