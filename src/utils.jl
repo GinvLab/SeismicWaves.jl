@@ -1,19 +1,19 @@
-@doc raw"""
-    $(TYPEDSIGNATURES)
+@doc """
+$(TYPEDSIGNATURES)
 
 Ricker source (second derivative of gaussian) source time function for current time `t`, activation time `t0` and dominating frequency `f0`.
 """
 rickerstf(t::Real, t0::Real, f0::Real)::Real = (1 - 2 * (pi * f0 * (t - t0))^2) * exp(-(pi * f0 * (t - t0))^2)
 
-@doc raw"""
-     $(TYPEDSIGNATURES) 
+@doc """
+$(TYPEDSIGNATURES) 
 
 First derivative of gaussian source time function for current time `t`, activation time `t0` and dominating frequency `f0`.
 """
 gaussderivstf(t::Real, t0::Real, f0::Real)::Real = (t - t0) * exp(-(pi * f0 * (t - t0))^2)
 
-@doc raw"""
-     $(TYPEDSIGNATURES) 
+@doc """
+$(TYPEDSIGNATURES) 
 
 Gaussian source time function for current time `t`, activation time `t0` and dominating frequency `f0`.
 """
@@ -33,7 +33,7 @@ end
 
 
 """
-     $(TYPEDSIGNATURES) 
+$(TYPEDSIGNATURES) 
 
 Compute an optimal distribution of tasks (nsrc) for a given number of workers (threads).
 Returns a vector of UnitRange object.

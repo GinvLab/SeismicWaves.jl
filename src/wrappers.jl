@@ -271,6 +271,9 @@ $(TYPEDSIGNATURES)
 
 Builds a wave similation based on the input paramters `params` and keyword arguments `kwargs`.
 
+# Positional arguments
+- `params::InputParameters{N}`: input parameters for the simulation, where N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
+
 # Keyword arguments
 - `parall::Symbol = :threads`: controls which backend is used for computation:
     - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:GPU`
