@@ -289,16 +289,16 @@ function build_wavesim(params::InputParameters; parall, kwargs...)
     if parall==:threadpersrc
         nthr = Threads.nthreads()
         #println("  build_wavesim  :threadpersrc")
-        wsim = [build_wavesim(params, params.boundcond; parall, kwargs...) for s=1:nthr]
+        wsim = [build_concrete_wavesim(params, params.boundcond; parall, kwargs...) for s=1:nthr]
     else
-        wsim = build_wavesim(params, params.boundcond; parall, kwargs...)
+        wsim = build_concrete_wavesim(params, params.boundcond; parall, kwargs...)
     end
     return wsim
 end
 
 
 
-build_wavesim(
+build_concrete_wavesim(
     params::InputParametersAcoustic{N},
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
@@ -315,7 +315,7 @@ build_wavesim(
     kwargs...
 )
 
-build_wavesim(
+build_concrete_wavesim(
     params::InputParametersAcousticVariableDensity{N},
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
