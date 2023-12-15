@@ -1,11 +1,21 @@
-"""
-Parameters for acoustic wave simulations
+
+@doc """
+$(TYPEDEF)
+
+Parameters for acoustic wave simulations.
+
+$(TYPEDFIELDS)
 """
 struct InputParametersAcoustic{N} <: InputParameters{N}
+    "Number of time steps"
     ntimesteps::Int
+    "Time step"
     dt::Real
+    "Grid size for each dimension"
     gridsize::NTuple{N, <:Int}
+    "Grid spacing in each direction"
     gridspacing::NTuple{N, <:Real}
+    "Kind of boundary conditions"
     boundcond::InputBoundaryConditionParameters
 end
 
@@ -25,11 +35,23 @@ function InputParametersAcoustic(
     return InputParametersAcoustic{N}(ntimesteps, dt, tuple(gridsize...), tuple(gridspacing...), boundcond)
 end
 
+@doc """
+$(TYPEDEF)
+
+Parameters for variable-density acoustic wave simulations.
+
+$(TYPEDFIELDS)
+"""
 struct InputParametersAcousticVariableDensity{N} <: InputParameters{N}
+    "Number of time steps"
     ntimesteps::Int
+    "Time step"
     dt::Real
+     "Grid size for each dimension"
     gridsize::NTuple{N, <:Int}
+     "Grid spacing in each direction"
     gridspacing::NTuple{N, <:Real}
+    "Kind of boundary conditions"
     boundcond::InputBoundaryConditionParameters
 end
 
@@ -49,16 +71,4 @@ function InputParametersAcousticVariableDensity(
     return InputParametersAcousticVariableDensity{N}(ntimesteps, dt, tuple(gridsize...), tuple(gridspacing...), boundcond)
 end
 
-"""
-Reflective boundary conditions parameters for acoustic wave simulations
-"""
-Base.@kwdef struct ReflectiveBoundaryConditionParameters <: InputBoundaryConditionParameters end
 
-"""
-CPML boundary conditions parameters for acoustic wave simulations
-"""
-Base.@kwdef struct CPMLBoundaryConditionParameters <: InputBoundaryConditionParameters
-    halo::Int = 20
-    rcoef::Real = 0.0001
-    freeboundtop::Bool = true
-end

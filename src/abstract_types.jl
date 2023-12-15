@@ -1,4 +1,9 @@
 
+@doc """
+$(TYPEDEF)
+
+Abstract type for wave simulations.
+"""
 abstract type WaveSimul{N} end
 
 abstract type InputParameters{N} end

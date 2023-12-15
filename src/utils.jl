@@ -1,27 +1,29 @@
-@doc raw"""
-    rickersource1D(t::Real, t0::Real, f0::Real)    
+@doc """
+$(TYPEDSIGNATURES)
 
 Ricker source (second derivative of gaussian) source time function for current time `t`, activation time `t0` and dominating frequency `f0`.
 """
-rickersource1D(t::Real, t0::Real, f0::Real)::Real = (1 - 2 * (pi * f0 * (t - t0))^2) * exp(-(pi * f0 * (t - t0))^2)
+rickerstf(t::Real, t0::Real, f0::Real)::Real = (1 - 2 * (pi * f0 * (t - t0))^2) * exp(-(pi * f0 * (t - t0))^2)
 
-@doc raw"""
-    gaussdersource1D(t::Real, t0::Real, f0::Real)    
+@doc """
+$(TYPEDSIGNATURES) 
 
 First derivative of gaussian source time function for current time `t`, activation time `t0` and dominating frequency `f0`.
 """
-gaussdersource1D(t::Real, t0::Real, f0::Real)::Real = (t - t0) * exp(-(pi * f0 * (t - t0))^2)
+gaussderivstf(t::Real, t0::Real, f0::Real)::Real = (t - t0) * exp(-(pi * f0 * (t - t0))^2)
 
-@doc raw"""
-    gaussource1D(t::Real, t0::Real, f0::Real)
+@doc """
+$(TYPEDSIGNATURES) 
 
 Gaussian source time function for current time `t`, activation time `t0` and dominating frequency `f0`.
 """
-gaussource1D(t::Real, t0::Real, f0::Real)::Real = -exp(-(pi * f0 * (t - t0))^2) / (2 * (pi * f0)^2)
+gaussstf(t::Real, t0::Real, f0::Real)::Real = -exp(-(pi * f0 * (t - t0))^2) / (2 * (pi * f0)^2)
+
 
 struct ArithmeticAverageInterpolation <: InterpolationMethod
     width::Int
 end
+
 
 @views function interp(method::ArithmeticAverageInterpolation, a::Array{<:Real, N}, dim) where {N}
     return sum(
@@ -31,7 +33,7 @@ end
 
 
 """
-    distribsrcs(nsrc::Integer,nw::Integer)
+$(TYPEDSIGNATURES) 
 
 Compute an optimal distribution of tasks (nsrc) for a given number of workers (threads).
 Returns a vector of UnitRange object.

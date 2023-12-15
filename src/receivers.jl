@@ -1,17 +1,30 @@
+@doc """
+$(TYPEDEF)
 
-
-@doc raw"""
 Type representing a multi-receiver configuration for a wave propagation shot.
+
+$(TYPEDFIELDS)
 """
 struct ScalarReceivers{T <: Real} <: Receivers
+    "Receiver positions"
     positions::Matrix{<:Real}
+    "Array holding seismograms (as columns)"
     seismograms::Matrix{T}
+    "Array holding observed seismograms (as columns)"
     observed::Matrix{T}
+    "Inverse of the covariance matrix"
     invcov::AbstractMatrix{T}
+    "Windows of data used for misfit calculations"
     windows::Vector{Pair{Int, Int}}
 
-    @doc raw"""
-        Receivers[{T<:Real = Float64}](positions::Matrix{<:Real}, nt::Int, observed::Union{Matrix{T}, Nothing} = nothing)
+    @doc """
+         ScalarReceivers{T}(
+           positions::Matrix{<:Real},
+           nt::Integer;
+           observed::Union{Matrix{T}, Nothing}=nothing,
+           invcov::Union{AbstractMatrix{T}, Nothing}=nothing,
+           windows::Union{Vector{Pair{Int,Int}}, Nothing}=nothing
+         ) where {T <: Real}$(TYPEDSIGNATURES)
 
     Create a single shot wave propagation receivers configuration from receivers positions.
     """
@@ -47,6 +60,12 @@ end
 
 
 # Default type constructor
+@doc """
+$(SIGNATURES)
+
+Create a single shot wave propagation receivers configuration from receivers positions.
+Default constructor for Float64.
+"""
 ScalarReceivers(positions, nt; observed=nothing, invcov=nothing, windows=nothing) =
     ScalarReceivers{Float64}(positions, nt; observed=observed, invcov=invcov, windows=windows)
 

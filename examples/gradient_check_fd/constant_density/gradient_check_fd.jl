@@ -36,7 +36,7 @@ function setup(nt, c0, c0max, r, dx, dy, dt, halo, rcoef, nx, ny, parall)
     nshots = 10
     f0 = 10
     t0 = 4 / f0
-    srctf = 1000.0 .* rickersource1D.(t, t0, f0)
+    srctf = 1000.0 .* rickerstf.(t, t0, f0)
     dd = 60
     shots = linear_2D_geometry(
         nshots,

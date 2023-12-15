@@ -62,7 +62,7 @@ function exacouprob_wavsim(parall=:serial)
         t0 = 1.20 / f0
         srcstf = zeros(nt, nsrc)
         for s in 1:nsrc
-            srcstf[:, s] .= 1000.0 .* rickersource1D.(t, t0, f0)
+            srcstf[:, s] .= 1000.0 .* rickerstf.(t, t0, f0)
         end
         srcs = ScalarSources(possrcs, srcstf, f0)
 
