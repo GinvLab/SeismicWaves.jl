@@ -2,19 +2,19 @@
 
 # Functions for all ElasticIsoWaveSimul subtypes
 
-@views function check_matprop(model::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperty{N}) where {N}
+@views function check_matprop(wavsim::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperty{N}) where {N}
     # Checks
     vp = sqrt((matprop.λ .+ 2.*matprop.μ) ./ matprop.ρ)
     @assert ndims(vp) == N "Material property dimensionality must be the same as the wavesim!"
-    @assert size(vp) == model.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.ns)"
+    @assert size(vp) == wavsim.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(wavsim.ns)"
     @assert all(matprop.λ .> 0) "Lamè coefficient λ must be positive!"
     @assert all(matprop.μ .> 0) "Lamè coefficient μ must be positive!"
     @assert all(matprop.ρ .> 0) "Density must be positive!"
     
     # Check courant condition
-    vp_max = get_maximum_func(model)(vp)
-    tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
-    courant = vel_max * model.dt * tmp
+    vp_max = get_maximum_func(wavsim)(vp)
+    tmp = sqrt(sum(1 ./ wavsim.gridspacing .^ 2))
+    courant = vel_max * wavsim.dt * tmp
     @debug "Courant number: $(courant)"
     if courant > 1.0
         @warn "Courant condition not satisfied! [$(courant)]"
@@ -25,37 +25,37 @@ end
 
 
 function check_numerics(
-    model::ElasticIsoWaveSimul,
+    wavsim::ElasticIsoWaveSimul,
     shot::Shot;
     min_ppw::Integer=10
 )
     # Check points per wavelengh
-    vel_min = get_minimum_func(model)(sqrt(model.matprop.μ ./ model.matprop.ρ)) # min Vs
-    h_max = maximum(model.gridspacing)
+    vel_min = get_minimum_func(wavsim)(sqrt(wavsim.matprop.μ ./ wavsim.matprop.ρ)) # min Vs
+    h_max = maximum(wavsim.gridspacing)
     ppw = vel_min / shot.srcs.domfreq / h_max
     @debug "Points per wavelength: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
 
-@views function update_matprop!(model::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperty{N}) where {N}
+@views function update_matprop!(wavsim::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperty{N}) where {N}
 
     # Update material properties
-    model.matprop.λ .= matprop.λ
-    model.matprop.μ .= matprop.μ
-    model.matprop.ρ .= matprop.ρ
+    wavsim.matprop.λ .= matprop.λ
+    wavsim.matprop.μ .= matprop.μ
+    wavsim.matprop.ρ .= matprop.ρ
 
     # the following on device?
-    precomp_elaprop!(model.matprop.ρ,model.matprop.μ,model.matprop.λ,
-                     model.matprop.ρ_ihalf_jhalf,
-                     model.matprop.μ_ihalf,model.matprop.μ_jhalf,
-                     model.matprop.λ_ihalf)
+    precomp_elaprop!(wavsim.matprop.ρ,wavsim.matprop.μ,wavsim.matprop.λ,
+                     wavsim.matprop.ρ_ihalf_jhalf,
+                     wavsim.matprop.μ_ihalf,wavsim.matprop.μ_jhalf,
+                     wavsim.matprop.λ_ihalf)
 
     return
 end
 
 
-@views function scale_srctf(model::ElasticIsoWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
+@views function scale_srctf(wavsim::ElasticIsoWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
     scaled_tf = copy(srctf)
     return scaled_tf
 end
@@ -182,7 +182,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         ns_cpml = freetop ? ns[1:(end-1)] : ns
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
-        # Compute model sizes
+        # Compute wavsim sizes
         ls = gridspacing .* (ns .- 1)
         # Initialize material properties
         if N==2
@@ -318,29 +318,29 @@ end
 
 # Specific functions for ElasticIsoCPMLWaveSimul
 
-@views function reset!(model::ElasticIsoCPMLWaveSimul{N}) where {N}
+@views function reset!(wavsim::ElasticIsoCPMLWaveSimul{N}) where {N}
 
     # Reset computational arrays
-    for p in fieldnames(model.velpartic)
-        getfield(model.velpartic,p) .= 0.0
+    for p in fieldnames(wavsim.velpartic)
+        getfield(wavsim.velpartic,p) .= 0.0
     end
-    for p in fieldnames(model.stress)
-        getfield(model.stress,p) .= 0.0
+    for p in fieldnames(wavsim.stress)
+        getfield(wavsim.stress,p) .= 0.0
     end
-    for p in fieldnames(model.ψ)
-        getfield(model.ψ, p) .= 0.0
+    for p in fieldnames(wavsim.ψ)
+        getfield(wavsim.ψ, p) .= 0.0
     end
 
     # Reset gradient arrays
-    if model.gradient
-        for p in eachindex(model.adj)
-            model.adj[p][:] .= 0.0
+    if wavsim.gradient
+        for p in eachindex(wavsim.adj)
+            wavsim.adj[p][:] .= 0.0
         end
-        for p in eachindex(model.grad)
-            model.grad[p] .= 0.0
+        for p in eachindex(wavsim.grad)
+            wavsim.grad[p] .= 0.0
         end
-        for p in fieldnames(model.ψ_adj)
-            getfield(model.ψ_adj, p) .= 0.0
+        for p in fieldnames(wavsim.ψ_adj)
+            getfield(wavsim.ψ_adj, p) .= 0.0
         end
     end
 end

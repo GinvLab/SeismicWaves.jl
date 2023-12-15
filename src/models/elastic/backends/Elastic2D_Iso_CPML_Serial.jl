@@ -103,8 +103,8 @@ function precomp_elaprop!(ρ,μ,λ,ρ_ihalf_jhalf,μ_ihalf,μ_jhalf,λ_ihalf ;
     # μ_ihalf (nx,nz-1) ??
     if harmonicaver_μ==true 
         # harmonic mean for μ
-        @. μ_ihalf = 1.0 / ( 1.0./μ[2:end,:] + 1.0 / μ[1:end-1,:] )
-        @. μ_jhalf = 1.0 / ( 1.0./μ[:,2:end] + 1.0 / μ[:,1:end-1] )
+        @. μ_ihalf = 1.0 / ( 1.0/μ[2:end,:] + 1.0 / μ[1:end-1,:] )
+        @. μ_jhalf = 1.0 / ( 1.0/μ[:,2:end] + 1.0 / μ[:,1:end-1] )
     else
         # arithmetic mean for μ
         @. μ_ihalf = (μ[2:end,:] + μ[1:end-1,:]) / 2.0
@@ -439,17 +439,22 @@ end
 
 
 
-function forward_onestep_CPML!(model,
-                               possrcs_a, srctf_a, posrecs_a, traces_a, it,
-                               freetop, save_trace)
+function forward_onestep_CPML!(wavsim::ElasticIsoWaveSimul{N},
+                               possrcs_a::Array{<:Integer,2},
+                               srctf_a::Matrix{<:Real},
+                               posrecs_a::Array{<:Integer,2},
+                               traces_a::Array{<:Real,N+1},
+                               it::Integer,
+                               freetop::Bool,
+                               save_trace::Bool) where {N}
 
-    vx = model.velpartic.vx
-    vz = model.velpartic.vz
-    σxx = model.stress.σxx
-    σzz = model.stress.σzz
-    σxz = model.stress.σxz
+    vx = wavsim.velpartic.vx
+    vz = wavsim.velpartic.vz
+    σxx = wavsim.stress.σxx
+    σzz = wavsim.stress.σzz
+    σxz = wavsim.stress.σxz
     
-    psi = model.ψ
+    psi = wavsim.ψ
 
     a_x = cpmlcoeffs[1].a
     a_x_half = cpmlcoeffs[1].a_h
@@ -468,9 +473,9 @@ function forward_onestep_CPML!(model,
     μ_ihalf = matprop.μ_ihalf
     μ_jhalf = matprop.μ_jhalf
 
-    Mxx = model.momtens.Mxx
-    Mzz = model.momtens.Mzz
-    Mxz = model.momtens.Mxz
+    Mxx = wavsim.momtens.Mxx
+    Mzz = wavsim.momtens.Mzz
+    Mxz = wavsim.momtens.Mxz
 
     ##
     factx = 1.0/(24.0*dx)
@@ -509,12 +514,12 @@ function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_a, dt, possrcs, it)
     if it<=lensrctf
 
         for s in axes(possrcs, 1)
-            irec = floor(Int, possrcs[s, 1])
-            jrec = floor(Int, possrcs[s, 2])
+            irec = possrcs[s, 1]
+            jrec = possrcs[s, 2]
 
-            σxx[isrc,jsrc] = σxx[isrc,jsrc] + Mxx[s] * srctf_a[it] * dt 
-            σzz[isrc,jsrc] = σzz[isrc,jsrc] + Mzz[s] * srctf_a[it] * dt 
-            σxz[isrc,jsrc] = σxz[isrc,jsrc] + Mxz[s] * srctf_a[it] * dt
+            σxx[isrc,jsrc] += Mxx[s] * srctf_a[it] * dt 
+            σzz[isrc,jsrc] += Mzz[s] * srctf_a[it] * dt 
+            σxz[isrc,jsrc] += Mxz[s] * srctf_a[it] * dt
         end
         
     end
@@ -526,8 +531,8 @@ end
 function record_receivers!(vx,vz,traces_a, posrecs, it)
 
     for ir in axes(posrecs, 1)
-        irec = floor(Int, posrecs[ir, 1])
-        jrec = floor(Int, posrecs[ir, 2])
+        irec = posrecs[ir, 1]
+        jrec = posrecs[ir, 2]
         # interpolate velocities on the same grid?
         N=2 # 2D
         for i=1:N
