@@ -61,7 +61,7 @@ end
 
 struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     # Physics
-    ls::NTuple{N, <:Real}
+    domainextent::NTuple{N, <:Real}
     # Numerics
     ns::NTuple{N, <:Integer}
     gridspacing::NTuple{N, <:Real}
@@ -139,7 +139,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Compute model sizes
-        ls = gridspacing .* (ns .- 1)
+        domainextent = gridspacing .* (ns .- 1)
         # Initialize material properties
         matprop = VpAcousticCDMaterialProperty(zeros(ns...))
 
@@ -238,7 +238,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         end
 
         return new(
-            ls,
+            domainextent,
             ns,
             gridspacing,
             nt,
@@ -374,7 +374,7 @@ end
 
 struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
     # Physics
-    ls::NTuple{N, <:Real}
+    domainextent::NTuple{N, <:Real}
     # Numerics
     ns::NTuple{N, <:Integer}
     gridspacing::NTuple{N, <:Real}
@@ -452,7 +452,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Compute model sizes
-        ls = gridspacing .* (ns .- 1)
+        domainextent = gridspacing .* (ns .- 1)
         # Initialize material properties
         matprop = VpRhoAcousticVDMaterialProperty(zeros(ns...), zeros(ns...))
 
@@ -564,7 +564,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
         end
 
         return new(
-            ls,
+            domainextent,
             ns,
             gridspacing,
             nt,

@@ -9,19 +9,23 @@ using ParallelStencil
 using Logging
 using DocStringExtensions
 
-export InputParametersAcoustic, InputParametersAcousticVariableDensity
-export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
-export VpAcousticCDMaterialProperty, VpRhoAcousticVDMaterialProperty
+# main struct for wave simulation
 export WaveSimul
-
-#export Sources, Receivers, Shot
-export Shot
-export ScalarSources, ScalarReceivers
-export MomentTensorSources, VectorReceivers
-export swforward!, swmisfit!, swgradient!
 export build_wavesim
+# input parameters
+export InputParametersAcoustic, InputParametersAcousticVariableDensity
+# boundary conditions
+export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
+# material properties
+export VpAcousticCDMaterialProperty, VpRhoAcousticVDMaterialProperty
+# export sources, receivers and shots
+export Shot
+export ScalarSources, MomentTensorSources, 
+export ScalarReceivers, VectorReceivers
+# forward, misfit and gradient functions
+export swforward!, swmisfit!, swgradient!
+# source time functions
 export gaussstf, gaussderivstf, rickerstf
-
 
 
 include("abstract_types.jl")
@@ -39,6 +43,7 @@ include("checks.jl")
 include("boundarycond.jl")
 
 include("models/cpmlcoeffs.jl")
+include("models/backend_selection.jl")
 
 include("models/acoustic/acou_abstract_types.jl")
 include("models/acoustic/acou_material_properties.jl")

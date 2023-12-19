@@ -6,7 +6,7 @@
     # Checks
     vp = sqrt((matprop.λ .+ 2.*matprop.μ) ./ matprop.ρ)
     @assert ndims(vp) == N "Material property dimensionality must be the same as the wavesim!"
-    @assert size(vp) == wavsim.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(wavsim.ns)"
+    @assert size(vp) == wavsim.gridsize "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(wavsim.gridsize)"
     @assert all(matprop.λ .> 0) "Lamè coefficient λ must be positive!"
     @assert all(matprop.μ .> 0) "Lamè coefficient μ must be positive!"
     @assert all(matprop.ρ .> 0) "Density must be positive!"
@@ -35,6 +35,7 @@ function check_numerics(
     ppw = vel_min / shot.srcs.domfreq / h_max
     @debug "Points per wavelength: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
+    return
 end
 
 
@@ -46,10 +47,7 @@ end
     wavsim.matprop.ρ .= matprop.ρ
 
     # the following on device?
-    precomp_elaprop!(wavsim.matprop.ρ,wavsim.matprop.μ,wavsim.matprop.λ,
-                     wavsim.matprop.ρ_ihalf_jhalf,
-                     wavsim.matprop.μ_ihalf,wavsim.matprop.μ_jhalf,
-                     wavsim.matprop.λ_ihalf)
+    precomp_elaprop!(wavsim.matprop)
 
     return
 end
@@ -64,7 +62,7 @@ end
 ###########################################################
 
 
-struct Elasticψdomain2D{T<:AstractFloat}
+struct Elasticψdomain2D{T<:AbstractFloat}
     ψ_∂σxx∂x::Array{T,2}
     ψ_∂σxz∂z::Array{T,2}
     ψ_∂σxz∂x::Array{T,2}
@@ -74,19 +72,19 @@ struct Elasticψdomain2D{T<:AstractFloat}
     ψ_∂vz∂x::Array{T,2}
     ψ_∂vx∂z::Array{T,2}
 
-    function Elasticψdomain2D(backend,ns,N,halo)
+    function Elasticψdomain2D(backend,gridsize,N,halo)
 
-        ψ_ns = [ns...]
-        ψ_ns[N] = 2*halo
+        ψ_gridsize = [gridsize...]
+        ψ_gridsize[N] = 2*halo
 
-        ψ_∂σxx∂x = backend.zeros(ψ_ns...)
-        ψ_∂σxz∂z = backend.zeros(ψ_ns...)
-        ψ_∂σxz∂x = backend.zeros(ψ_ns...)
-        ψ_∂σzz∂z = backend.zeros(ψ_ns...)
-        ψ_∂vx∂x  = backend.zeros(ψ_ns...)
-        ψ_∂vz∂z  = backend.zeros(ψ_ns...)
-        ψ_∂vz∂x  = backend.zeros(ψ_ns...)
-        ψ_∂vx∂z  = backend.zeros(ψ_ns...)
+        ψ_∂σxx∂x = backend.zeros(ψ_gridsize...)
+        ψ_∂σxz∂z = backend.zeros(ψ_gridsize...)
+        ψ_∂σxz∂x = backend.zeros(ψ_gridsize...)
+        ψ_∂σzz∂z = backend.zeros(ψ_gridsize...)
+        ψ_∂vx∂x  = backend.zeros(ψ_gridsize...)
+        ψ_∂vz∂z  = backend.zeros(ψ_gridsize...)
+        ψ_∂vz∂x  = backend.zeros(ψ_gridsize...)
+        ψ_∂vx∂z  = backend.zeros(ψ_gridsize...)
  
         T = eltype(ψ_∂σxx∂x)
         return new{T}(ψ_∂σxx∂x,
@@ -120,9 +118,9 @@ end
 
 struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     # Physics
-    ls::NTuple{N, <:Real}
+    domainextent::NTuple{N, <:Real}
     # Numerics
-    ns::NTuple{N, <:Integer}
+    gridsize::NTuple{N, <:Integer}
     gridspacing::NTuple{N, <:Real}
     nt::Integer
     dt::Real
@@ -159,11 +157,12 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
 
     
     function ElasticIsoCPMLWaveSimul{N}(
-        ns::NTuple{N, <:Integer},
+        gridsize::NTuple{N, <:Integer},
         gridspacing::NTuple{N, <:Real},
         nt::Integer,
         dt::Real,
         halo::Integer,
+        rcoef::Real;
         parall::Symbol=:threads,
         freetop::Bool=true,
         gradient::Bool=false,
@@ -172,28 +171,28 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         infoevery::Union{<:Integer, Nothing}=nothing
     ) where {N}
         # Check numerics
-        @assert all(ns .> 0) "All numbers of grid points must be positive!"
-        @assert all(gridspacing .> 0) "All cell sizes must be positive!"
+        @assert all(gridsize .> 0) "All numbers of grid points must be positive!"
+        @assert all(gridspacing .> 0) "All grid spacings must be positive!"
         @assert nt > 0 "Number of timesteps must be positive!"
         @assert dt > 0 "Timestep size must be positive!"
 
         # Check BDC parameters
         @assert halo >= 0 "CPML halo size must be non-negative!"
-        ns_cpml = freetop ? ns[1:(end-1)] : ns
-        @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
+        gridsize_cpml = freetop ? gridsize[1:(end-1)] : gridsize
+        @assert all(n -> n >= 2halo + 3, gridsize_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Compute wavsim sizes
-        ls = gridspacing .* (ns .- 1)
+        domainextent = gridspacing .* (gridsize .- 1)
         # Initialize material properties
         if N==2
-            matprop = ElasticIsoMaterialProperty_Compute2D(λ=backend.zeros(ns...),
-                                                           μ=backend.zeros(ns...),
-                                                           ρ=backend.zerons(ns...),
-                                                           λ_ihalf=backend.zeros((ns.-1)...),
-                                                           μ_ihalf=backend.zeros((ns.-[1,0])...),
-                                                           μ_jhalf=backend.zeros((ns.-[0,1])...),
-                                                           ρ_ihalf_jhalf=backend.zeros((ns.-1)...),
-                                                           )
+            matprop = ElasticIsoMaterialProperty2D(λ=backend.zeros(gridsize...),
+                                                   μ=backend.zeros(gridsize...),
+                                                   ρ=backend.zeros(gridsize...),
+                                                   λ_ihalf=backend.zeros((gridsize.-1)...),
+                                                   μ_ihalf=backend.zeros((gridsize.-[1,0])...),
+                                                   μ_jhalf=backend.zeros((gridsize.-[0,1])...),
+                                                   ρ_ihalf_jhalf=backend.zeros((gridsize.-1)...)
+                                                   )
 
         else
             error("Only elastic 2D is currently implemented.")
@@ -204,13 +203,13 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
 
         # Initialize computational arrays
         if N==2
-            velpartic = Velpartic2D([backend.zeros(ns...) for _ in 1:N]...)  # vx, vy[, vz]
-            stress = Stress2D([backend.zeros(ns...) for _ in 1:(N-1)*3]...)  # vx, vy[, vz]
+            velpartic = Velpartic2D([backend.zeros(gridsize...) for _ in 1:N]...)  # vx, vy[, vz]
+            stress = Stress2D([backend.zeros(gridsize...) for _ in 1:(N-1)*3]...)  # vx, vy[, vz]
         end
       
         ##
         if N==2 # 2D
-            ψ = Elasticψdomain2D(backend,ns,N,halo)
+            ψ = Elasticψdomain2D(backend,gridsize,N,halo)
         else 
             error("Only elastic 2D is currently implemented.")
         end
@@ -223,19 +222,19 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
             error("Gradient for elastic calculations not yet implemented!")
 
             # # Current gradient array
-            # curgrad = backend.zeros(ns...)
+            # curgrad = backend.zeros(gridsize...)
             # # Adjoint arrays
-            # adj = backend.zeros(ns...)
+            # adj = backend.zeros(gridsize...)
             # # Initialize CPML arrays
             # ψ_adj = []
             # ξ_adj = []
             # for i in 1:N
-            #     ψ_ns = [ns...]
-            #     ξ_ns = [ns...]
-            #     ψ_ns[i] = halo + 1
-            #     ξ_ns[i] = halo
-            #     append!(ψ_adj, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
-            #     append!(ξ_adj, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
+            #     ψ_gridsize = [gridsize...]
+            #     ξ_gridsize = [gridsize...]
+            #     ψ_gridsize[i] = halo + 1
+            #     ξ_gridsize[i] = halo
+            #     append!(ψ_adj, [backend.zeros(ψ_gridsize...), backend.zeros(ψ_gridsize...)])
+            #     append!(ξ_adj, [backend.zeros(ξ_gridsize...), backend.zeros(ξ_gridsize...)])
             # end
             # # Checkpointing setup
             # if check_freq !== nothing
@@ -244,7 +243,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
             #     # Time step of last checkpoint
             #     last_checkpoint = floor(Int, nt / check_freq) * check_freq
             #     # Checkpointing arrays
-            #     save_buffer = backend.zeros(ns..., check_freq + 2)      # pressure window buffer
+            #     save_buffer = backend.zeros(gridsize..., check_freq + 2)      # pressure window buffer
             #     checkpoints = Dict{Int, backend.Data.Array}()           # pressure checkpoints
             #     checkpoints_ψ = Dict{Int, Any}()                        # ψ arrays checkpoints
             #     checkpoints_ξ = Dict{Int, Any}()                        # ξ arrays checkpoints
@@ -256,15 +255,15 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
             #     # Preallocate future checkpoints
             #     for it in 1:(nt+1)
             #         if it % check_freq == 0
-            #             checkpoints[it] = backend.zeros(ns...)
-            #             checkpoints[it-1] = backend.zeros(ns...)
+            #             checkpoints[it] = backend.zeros(gridsize...)
+            #             checkpoints[it-1] = backend.zeros(gridsize...)
             #             checkpoints_ψ[it] = copy.(ψ)
             #             checkpoints_ξ[it] = copy.(ξ)
             #         end
             #     end
             # else    # no checkpointing
             #     last_checkpoint = 0                                 # simulate a checkpoint at time step 0 (so buffer will start from -1)
-            #     save_buffer = backend.zeros(ns..., nt + 2)          # save all timesteps (from -1 to nt+1 so nt+2)
+            #     save_buffer = backend.zeros(gridsize..., nt + 2)          # save all timesteps (from -1 to nt+1 so nt+2)
             #     checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints (will remain empty)
             #     checkpoints_ψ = Dict{Int, Any}()                    # ψ arrays checkpoints (will remain empty)
             #     checkpoints_ξ = Dict{Int, Any}()                    # ξ arrays checkpoints (will remain empty)
@@ -275,7 +274,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         end
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? [zeros(ns..., div(nt, snapevery)) for _ in 1:N] : nothing)
+        snapshots = (snapevery !== nothing ? [zeros(gridsize..., div(nt, snapevery)) for _ in 1:N] : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
@@ -284,8 +283,8 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         end
 
         return new(
-            ls,
-            ns,
+            domainextent,
+            gridsize,
             gridspacing,
             nt,
             dt,

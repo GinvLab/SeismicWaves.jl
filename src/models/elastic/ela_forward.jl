@@ -4,8 +4,8 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
     wavsim::ElasticIsoWaveSimul{N},
-    possrcs,
-    posrecs,
+    possrcs::Matrix{<:Integer},
+    posrecs::Matrix{<:Integer},
     srctf,
     recs
 ) where {N}

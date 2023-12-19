@@ -25,11 +25,12 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
            tyreceiver <: ScalarReceivers
         return
 
-    elseif tysim==ElasticIsoCPMLWaveSimul{N} &&
-        tymatprop==MomentTensor2DSources &&
-        tysource<:MomentTensor2DSources &&
-        tyreceiver<:MomentTensor2DSources
+    elseif tysim==ElasticIsoCPMLWaveSimul{2} &&   # <<<<<---------<<<<
+        tymatprop==ElasticIsoMaterialProperty{2} &&
+        tysource <: MomentTensorSources &&
+        tyreceiver <: VectorReceivers
         return
+
     end
 
     return error("Types of WaveSimul, MaterialProperties and Sources/Receivers are incosistent \
@@ -59,7 +60,7 @@ function check_positions(
     Ndim = size(positions, 2)
     for s in axes(positions, 1)
         for c in 1:Ndim
-            @assert (0 <= positions[s, c] <= model.ls[c]) "Position $(positions[s,:]) is not inside the grid!"
+            @assert (0 <= positions[s, c] <= model.domainextent[c]) "Position $(positions[s,:]) is not inside the grid!"
         end
     end
     return
@@ -79,7 +80,7 @@ function check_positions(
                 @assert (
                     model.gridspacing[c] * model.halo <=
                     positions[s, c] <=
-                    model.ls[c] - (model.gridspacing[c] * model.halo)
+                    model.domainextent[c] - (model.gridspacing[c] * model.halo)
                 ) "Position $(positions[s,:]) is inside the CPML region!"
             end
         end

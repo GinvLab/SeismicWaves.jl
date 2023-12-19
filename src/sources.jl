@@ -34,7 +34,7 @@ Default type constructor for Float64.
 """
 ScalarSources(positions, tf, domfreq) = ScalarSources{Float64}(positions, tf, domfreq)
 
-####################################################33
+####################################################
 
 """
 Type representing a 2D moment tensor.

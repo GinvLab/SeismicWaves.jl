@@ -89,36 +89,6 @@ zeros = Base.zeros
 
 
 
-function precomp_elaprop!(ρ,μ,λ,ρ_ihalf_jhalf,μ_ihalf,μ_jhalf,λ_ihalf ;
-                          harmonicaver_μ=true)
-
-    #-------------------------------------------------------------
-    # pre-interpolate properties at half distances between nodes
-    #-------------------------------------------------------------
-    # ρ_ihalf_jhalf (nx-1,nz-1) ??
-    # arithmetic mean for ρ
-    @. ρ_ihalf_jhalf = (ρ[2:end,2:end]+ρ[2:end,1:end-1]+
-        ρ[1:end-1,2:end]+ρ[1:end-1,1:end-1])/4.0
-    # μ_ihalf (nx-1,nz) ??
-    # μ_ihalf (nx,nz-1) ??
-    if harmonicaver_μ==true 
-        # harmonic mean for μ
-        @. μ_ihalf = 1.0 / ( 1.0/μ[2:end,:] + 1.0 / μ[1:end-1,:] )
-        @. μ_jhalf = 1.0 / ( 1.0/μ[:,2:end] + 1.0 / μ[:,1:end-1] )
-    else
-        # arithmetic mean for μ
-        @. μ_ihalf = (μ[2:end,:] + μ[1:end-1,:]) / 2.0
-        @. μ_jhalf = (μ[:,2:end] + μ[:,1:end-1]) / 2.0 
-    end
-    # λ_ihalf (nx-1,nz) ??
-    # arithmetic mean for λ
-    @. λ_ihalf = (λ[2:end,:] + λ[1:end-1,:]) / 2.0
-
-    return
-end
-
-
-
 function update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_z,a_x,a_z,
                     freetop)
     if freetop
@@ -440,6 +410,7 @@ end
 
 
 function forward_onestep_CPML!(wavsim::ElasticIsoWaveSimul{N},
+                               matprop::ElasticIsoMaterialProperty{N},
                                possrcs_a::Array{<:Integer,2},
                                srctf_a::Matrix{<:Real},
                                posrecs_a::Array{<:Integer,2},
@@ -448,6 +419,8 @@ function forward_onestep_CPML!(wavsim::ElasticIsoWaveSimul{N},
                                freetop::Bool,
                                save_trace::Bool) where {N}
 
+    @assert N==2
+    
     vx = wavsim.velpartic.vx
     vz = wavsim.velpartic.vz
     σxx = wavsim.stress.σxx
@@ -477,7 +450,7 @@ function forward_onestep_CPML!(wavsim::ElasticIsoWaveSimul{N},
     Mzz = wavsim.momtens.Mzz
     Mxz = wavsim.momtens.Mxz
 
-    ##
+    ## pre-scale coefficients
     factx = 1.0/(24.0*dx)
     factz = 1.0/(24.0*dz)
     
