@@ -156,15 +156,14 @@ function update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z
             vx[i,j] = vx[i,j] + (dt/ρ[i,j]) * (∂σxx∂x_bkw + ∂σxz∂z_bkw)
             
         end
-    end
-    
+    end    
     return
 end
 
 
 
-function update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,b_x_half,b_z_half,
-                    a_x_half,a_z_half,freetop)
+function update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,
+                    b_x_half,b_z_half,a_x_half,a_z_half,freetop)
 
     if freetop
         for j = 1:2         
@@ -232,7 +231,6 @@ function update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ
             
         end
     end
-
     return
 end
 
@@ -403,7 +401,6 @@ function update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,a_x,a_z
 
         end
     end
-
     return
 end
 
@@ -470,7 +467,8 @@ function forward_onestep_CPML!(wavsim::ElasticIsoWaveSimul{N},
     
 
     # inject sources
-    inject_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_a, dt, possrcs, it)  
+    inject_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_a, dt, possrcs, it)
+    
     # record receivers
     if save_trace
         record_receivers!(vx,vz,traces_a, posrecs, it)
@@ -495,8 +493,7 @@ function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_a, dt, possrcs, it)
             σxz[isrc,jsrc] += Mxz[s] * srctf_a[it] * dt
         end
         
-    end
-    
+    end    
     return
 end
 
@@ -517,7 +514,6 @@ end
 
 
 function correlate_gradient!(  )
-
     # _dt2 = 1 / dt^2
     # nx, nz = size(curgrad)
     # for j in 1:nz

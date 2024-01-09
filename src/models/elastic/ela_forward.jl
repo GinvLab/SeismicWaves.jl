@@ -46,11 +46,15 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
         
         # Print timestep info
         if it % wavsim.infoevery == 0
+            # # Move the cursor to the beginning to overwrite last line
+            # ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+            # REPL.Terminals.clear_line(ter)
+            # REPL.Terminals.cmove_line_up(ter)
             @debug @sprintf(
-                "Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]",
+                "Iteration: %d, simulation time: %g [s]",
                 it,
-                wavsim.dt * (it - 1),
-                maximum(abs.(Array(pcur)))
+                wavsim.dt * (it - 1)
+                )
             )
         end
 

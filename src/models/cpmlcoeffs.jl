@@ -26,7 +26,7 @@ struct CPMLCoefficientsAxis
 end
 
 function compute_CPML_coefficientsAxis!(
-    cpmlcoeffs::CPMLCoefficients,
+    cpmlcoeffs::CPMLCoefficientsAxis,
     vel_max::Real,
     dt::Real,
     halo::Integer,

@@ -20,7 +20,7 @@ export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
 export VpAcousticCDMaterialProperty, VpRhoAcousticVDMaterialProperty
 # export sources, receivers and shots
 export Shot
-export ScalarSources, MomentTensorSources, 
+export ScalarSources, MomentTensorSources
 export ScalarReceivers, VectorReceivers
 # forward, misfit and gradient functions
 export swforward!, swmisfit!, swgradient!

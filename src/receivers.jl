@@ -74,10 +74,10 @@ ScalarReceivers(positions, nt; observed=nothing, invcov=nothing, windows=nothing
 @doc raw"""
 Type representing a multi-receiver configuration for a wave propagation shot.
 """
-# The following using the package ComputedFieldTypes.jl
-@computed struct VectorReceivers{N,T<:Real} <: Receivers
-    positions::Matrix{<:Real}
-    seismograms::Array{N+1}
+# What about using the package ComputedFieldTypes.jl? @computed ...
+struct VectorReceivers{N,T<:Real} <: Receivers
+    positions::Matrix{T}
+    seismograms::Array{T}
     observed::Matrix{T}
     invcov::AbstractMatrix{T}
 
@@ -94,7 +94,7 @@ Type representing a multi-receiver configuration for a wave propagation shot.
         invcov::Union{AbstractMatrix{T}, Nothing}=nothing
     ) where {N,T <: Real}
         @assert size(positions, 1) > 0 "There must be at least one receiver!"
-        seismograms = zeros(T, nt, N, size(positions, 1))
+        seismograms = zeros(T, nt, ndim, size(positions, 1))  ## N+1 !!!  <<<<<<<<--------------<<<<
         if observed !== nothing
             @assert size(seismograms) == size(observed) "Size of observed data is not (# timesteps, # receivers)!"
         else
@@ -105,7 +105,7 @@ Type representing a multi-receiver configuration for a wave propagation shot.
         else
             invcov = nothing
         end
-        return new{N,T}(positions, seismograms, observed, invcov)
+        return new{ndim,T}(positions, seismograms, observed, invcov)
     end
 end
 
