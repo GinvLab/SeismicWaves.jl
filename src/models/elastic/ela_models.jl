@@ -2,9 +2,9 @@
 
 # Functions for all ElasticIsoWaveSimul subtypes
 
-@views function check_matprop(wavsim::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperty{N}) where {N}
+@views function check_matprop(wavsim::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperties{N}) where {N}
     # Checks
-    vp = sqrt((matprop.λ .+ 2.*matprop.μ) ./ matprop.ρ)
+    vp = sqrt((matprop.λ .+ 2.0 * matprop.μ) ./ matprop.ρ)
     @assert ndims(vp) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(vp) == wavsim.gridsize "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(wavsim.gridsize)"
     @assert all(matprop.λ .> 0) "Lamè coefficient λ must be positive!"
@@ -39,7 +39,7 @@ function check_numerics(
 end
 
 
-@views function update_matprop!(wavsim::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperty{N}) where {N}
+@views function update_matprop!(wavsim::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperties{N}) where {N}
 
     # Update material properties
     wavsim.matprop.λ .= matprop.λ
@@ -136,7 +136,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     # Logging parameters
     infoevery::Integer
     # Material properties
-    matprop::ElasticIsoMaterialProperty
+    matprop::ElasticIsoMaterialProperties
     # Forward computation arrays
     velpartic::Any # 2D: 2 comp, 3D: 3 comp
     stress::Any # 2D: 3 arrays, 3D: 6 arrays
@@ -185,14 +185,14 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         domainextent = gridspacing .* (gridsize .- 1)
         # Initialize material properties
         if N==2
-            matprop = ElasticIsoMaterialProperty2D(λ=backend.zeros(gridsize...),
-                                                   μ=backend.zeros(gridsize...),
-                                                   ρ=backend.zeros(gridsize...),
-                                                   λ_ihalf=backend.zeros((gridsize.-1)...),
-                                                   μ_ihalf=backend.zeros((gridsize.-[1,0])...),
-                                                   μ_jhalf=backend.zeros((gridsize.-[0,1])...),
-                                                   ρ_ihalf_jhalf=backend.zeros((gridsize.-1)...)
-                                                   )
+            matprop = ElasticIsoMaterialProperties2D(λ=backend.zeros(gridsize...),
+                                                     μ=backend.zeros(gridsize...),
+                                                     ρ=backend.zeros(gridsize...),
+                                                     λ_ihalf=backend.zeros((gridsize.-1)...),
+                                                     μ_ihalf=backend.zeros((gridsize.-[1,0])...),
+                                                     μ_jhalf=backend.zeros((gridsize.-[0,1])...),
+                                                     ρ_ihalf_jhalf=backend.zeros((gridsize.-1)...)
+                                                     )
 
         else
             error("Only elastic 2D is currently implemented.")

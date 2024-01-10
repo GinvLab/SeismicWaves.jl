@@ -54,7 +54,6 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
                 "Iteration: %d, simulation time: %g [s]",
                 it,
                 wavsim.dt * (it - 1)
-                )
             )
         end
 

@@ -1,5 +1,5 @@
 
-Base.@kwdef struct ElasticIsoMaterialProperty{N} <: MaterialProperties{N}
+Base.@kwdef struct ElasticIsoMaterialProperties{N} <: ElasticMaterialProperties{N}
     λ::Array{<:AbstractFloat, N}
     μ::Array{<:AbstractFloat, N}
     ρ::Array{<:AbstractFloat, N}
@@ -7,7 +7,7 @@ end
 
 
 # Material properties for 2D simulations
-Base.@kwdef struct ElasticIsoMaterialProperty2D <: ElasticIsoMaterialProperty{2}
+Base.@kwdef struct ElasticIsoMaterialProperties2D <: ElasticMaterialProperties{2}
     λ::Array{<:AbstractFloat,2}
     μ::Array{<:AbstractFloat,2}
     ρ::Array{<:AbstractFloat,2}
@@ -36,7 +36,7 @@ end
 
 
 
-function precomp_elaprop!(matprop::ElasticIsoMaterialProperty{2}; harmonicaver_μ=true)
+function precomp_elaprop!(matprop::ElasticIsoMaterialProperties{2}; harmonicaver_μ=true)
     
 # function precomp_elaprop2D!(ρ,μ,λ,ρ_ihalf_jhalf,μ_ihalf,μ_jhalf,λ_ihalf ;
 #                           harmonicaver_μ=true)
