@@ -39,7 +39,7 @@ end
     return scaled_tf
 end
 
-@views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+@views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperties{N}) where {N}
     # Checks
     @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == model.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.ns)"
@@ -48,7 +48,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+@views function update_matprop!(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperties{N}) where {N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     # Precompute factors
@@ -83,7 +83,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     # Gradient smoothing parameters
     smooth_radius::Integer
     # Material properties
-    matprop::VpAcousticCDMaterialProperty
+    matprop::VpAcousticCDMaterialProperties
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Forward computation arrays
@@ -141,7 +141,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         # Compute model sizes
         domainextent = gridspacing .* (ns .- 1)
         # Initialize material properties
-        matprop = VpAcousticCDMaterialProperty(zeros(ns...))
+        matprop = VpAcousticCDMaterialProperties(zeros(ns...))
 
         # Select backend
         backend = select_backend(AcousticCDCPMLWaveSimul{N}, parall)
@@ -341,7 +341,7 @@ end
     return scaled_tf
 end
 
-@views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
+@views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperties{N}) where {N}
     # Checks
     @assert ndims(matprop.vp) == ndims(matprop.rho) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == size(matprop.rho) == model.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.ns)"
@@ -351,7 +351,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
+@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperties{N}) where {N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     copyto!(model.matprop.rho, matprop.rho)
@@ -396,7 +396,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
     # Gradient smoothing parameters
     smooth_radius::Integer
     # Material properties
-    matprop::VpRhoAcousticVDMaterialProperty{N}
+    matprop::VpRhoAcousticVDMaterialProperties{N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Forward computation arrays
@@ -454,7 +454,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
         # Compute model sizes
         domainextent = gridspacing .* (ns .- 1)
         # Initialize material properties
-        matprop = VpRhoAcousticVDMaterialProperty(zeros(ns...), zeros(ns...))
+        matprop = VpRhoAcousticVDMaterialProperties(zeros(ns...), zeros(ns...))
 
         # Select backend
         backend = select_backend(AcousticVDStaggeredCPMLWaveSimul{N}, parall)

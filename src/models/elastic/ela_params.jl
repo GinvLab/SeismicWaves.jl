@@ -1,11 +1,20 @@
-"""
-Parameters for acoustic wave simulations
+@doc """
+$(TYPEDEF)
+
+Parameters for elastic wave simulations
+
+$(TYPEDFIELDS)
 """
 struct InputParametersElastic{N} <: InputParameters{N}
+    "Number of time steps"
     ntimesteps::Int
+    "Time step"
     dt::Real
+    "Grid size for each dimension"
     gridsize::NTuple{N, <:Int}
+    "Grid spacing in each direction"
     gridspacing::NTuple{N, <:Real}
+    "Kind of boundary conditions"
     boundcond::InputBoundaryConditionParameters
 end
 

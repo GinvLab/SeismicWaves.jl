@@ -13,11 +13,12 @@ using DocStringExtensions
 export WaveSimul
 export build_wavesim
 # input parameters
-export InputParametersAcoustic, InputParametersAcousticVariableDensity
+export InputParametersAcoustic, InputParametersElastic
 # boundary conditions
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
 # material properties
-export VpAcousticCDMaterialProperty, VpRhoAcousticVDMaterialProperty
+export VpAcousticCDMaterialProperties, VpRhoAcousticVDMaterialProperties
+export ElasticIsoMaterialProperties
 # export sources, receivers and shots
 export Shot
 export ScalarSources, MomentTensorSources
@@ -71,11 +72,17 @@ include("solve.jl")
 # Main functions
 include("wrappers.jl")
 
-# Acoustic backends
+
+# Acoustic serial backend
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Serial.jl")
 include("models/acoustic/backends/Acoustic2D_CD_CPML_Serial.jl")
 include("models/acoustic/backends/Acoustic3D_CD_CPML_Serial.jl")
 
+# Elastic serial backend
+include("models/elastic/backends/Elastic2D_Iso_CPML_Serial.jl")
+
+
+# Acoustic parallel backends
 ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Threads.jl")
 ParallelStencil.@reset_parallel_stencil()
@@ -99,8 +106,8 @@ ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic2D_VD_CPML_GPU.jl")
 
 
-# Elastic backends
-include("models/acoustic/backends/Elastic2D_Iso_CPML_Serial.jl")
+# Elastic parallel backends
+
 
 
 # Utils

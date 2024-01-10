@@ -1,6 +1,10 @@
 
 module Elastic2D_Iso_CPML_Serial
 
+
+# To get those structs into this module
+using SeismicWaves: ElasticIsoCPMLWaveSimul,ElasticIsoMaterialProperties
+
 # Dummy data module
 module Data
 Array = Base.Array
@@ -334,7 +338,7 @@ function update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_�
 end
 
 
-function update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,a_x,a_z_half,
+function update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,b_x,b_z_half,a_x,a_z_half,
                      freetop)
     
     if freetop
@@ -406,12 +410,12 @@ end
 
 
 
-function forward_onestep_CPML!(wavsim::ElasticIsoWaveSimul{N},
-                               matprop::ElasticIsoMaterialProperty{N},
+function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
+                               matprop::ElasticIsoMaterialProperties{N},
                                possrcs_a::Array{<:Integer,2},
                                srctf_a::Matrix{<:Real},
                                posrecs_a::Array{<:Integer,2},
-                               traces_a::Array{<:Real,N+1},
+                               traces_a::Array{<:Real},
                                it::Integer,
                                freetop::Bool,
                                save_trace::Bool) where {N}
@@ -462,7 +466,7 @@ function forward_onestep_CPML!(wavsim::ElasticIsoWaveSimul{N},
     update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,
                    psi.ψ_∂vx∂x,psi.ψ_∂vz∂z,b_z,a_x_half,a_z,freetop)
     # update stress σxz
-    update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,dt,b_x,b_z_half,
+    update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,b_x,b_z_half,
                 psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
     
 

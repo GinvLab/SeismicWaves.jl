@@ -15,18 +15,18 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
     # Check that the subtypes of WaveSimul, MaterialProperties and Shot are consistent
     N = typeof(wavsim).parameters[1]
     if tysim == AcousticCDCPMLWaveSimul{N} &&
-       tymatprop == VpAcousticCDMaterialProperty{N} &&
+       tymatprop == VpAcousticCDMaterialProperties{N} &&
        tysource <: ScalarSources &&
        tyreceiver <: ScalarReceivers
         return
     elseif tysim == AcousticVDStaggeredCPMLWaveSimul{N} &&
-           tymatprop == VpRhoAcousticVDMaterialProperty{N} &&
+           tymatprop == VpRhoAcousticVDMaterialProperties{N} &&
            tysource <: ScalarSources &&
            tyreceiver <: ScalarReceivers
         return
 
     elseif tysim==ElasticIsoCPMLWaveSimul{2} &&   # <<<<<---------<<<<
-        tymatprop==ElasticIsoMaterialProperty{2} &&
+        tymatprop==ElasticIsoMaterialProperties{2} &&
         tysource <: MomentTensorSources &&
         tyreceiver <: VectorReceivers
         return

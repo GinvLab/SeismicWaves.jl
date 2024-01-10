@@ -27,9 +27,9 @@ function setup(nt, c0, c0max, rho0, rho0max, r, dx, dy, dt, halo, rcoef, nx, ny,
     # create constant and gaussian velocity model
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
-    matprop_const = VpRhoAcousticVDMaterialProperty(c0 .* ones(nx, ny), rho0 .* ones(nx, ny))
+    matprop_const = VpRhoAcousticVDMaterialProperties(c0 .* ones(nx, ny), rho0 .* ones(nx, ny))
     # gaussian perturbed model
-    matprop_gauss = VpRhoAcousticVDMaterialProperty(gaussian_vel_2D(nx, ny, c0, c0max, r), gaussian_vel_2D(nx, ny, rho0, rho0max, r))
+    matprop_gauss = VpRhoAcousticVDMaterialProperties(gaussian_vel_2D(nx, ny, c0, c0max, r), gaussian_vel_2D(nx, ny, rho0, rho0max, r))
 
     ##========================================
     # shots definition
@@ -121,7 +121,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
             println("Computing ($i, $j) gradient wrt vp with FD")
             vp_perturbed = copy(matprop_const.vp)
             vp_perturbed[i, j] += dm_vp
-            matprop_perturbed = VpRhoAcousticVDMaterialProperty(vp_perturbed, matprop_const.rho)
+            matprop_perturbed = VpRhoAcousticVDMaterialProperties(vp_perturbed, matprop_const.rho)
             @time new_misfit = with_logger(error_logger) do
                 swmisfit!(wavesim, matprop_perturbed, shots_obs)
             end
@@ -136,7 +136,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
             println("Computing ($i, $j) gradient wrt rho with FD")
             rho_perturbed = copy(matprop_const.rho)
             rho_perturbed[i, j] += dm_rho
-            matprop_perturbed = VpRhoAcousticVDMaterialProperty(matprop_const.vp, rho_perturbed)
+            matprop_perturbed = VpRhoAcousticVDMaterialProperties(matprop_const.vp, rho_perturbed)
             @time new_misfit = with_logger(error_logger) do
                 swmisfit!(wavesim, matprop_perturbed, shots_obs)
             end

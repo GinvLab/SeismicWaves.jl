@@ -42,7 +42,7 @@ function swforward!(
     out = nothing
     with_logger(logger) do
         # Build wavesim
-        wavesim = build_wavesim(params; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
+        wavesim = build_wavesim(params, matprop; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
         # Solve simulation
         out = run_swforward!(wavesim, matprop, shots)
     end
@@ -122,7 +122,7 @@ function swmisfit!(
     out = nothing
     with_logger(logger) do
         # Build wavesim
-        wavesim = build_wavesim(params; parall=parall, gradient=false)
+        wavesim = build_wavesim(params, matprop; parall=parall, gradient=false)
         # Compute misfit
         out = run_swmisfit!(wavesim, matprop, shots; misfit=misfit)
     end
@@ -214,7 +214,7 @@ function swgradient!(
     out = nothing
     with_logger(logger) do
         # Build wavesim
-        wavesim = build_wavesim(params,matprop; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
+        wavesim = build_wavesim(params, matprop; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
         # Solve simulation
         out = run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit, misfit=misfit)
     end
@@ -285,7 +285,7 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 - `snapevery::Union{<:Integer, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays (only for forward simulations).
 - `infoevery::Union{<:Integer, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-function build_wavesim(params::InputParameters, matprop::MaterialProperties; parall, kwargs...)
+function build_wavesim(params::InputParameters, matprop::MaterialProperties; parall::Symbol, kwargs...)
     if parall==:threadpersrc
         nthr = Threads.nthreads()
         #println("  build_wavesim  :threadpersrc")
@@ -300,7 +300,7 @@ end
 
 build_concrete_wavesim(
     params::InputParametersAcoustic{N},
-    ::VpAcousticCDMaterialProperty
+    ::VpAcousticCDMaterialProperties,
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
     kwargs...
@@ -317,8 +317,8 @@ build_concrete_wavesim(
 )
 
 build_concrete_wavesim(
-    params::InputParametersAcousticVariableDensity{N},
-    ::VpRhoAcousticVDMaterialProperty,
+    params::InputParametersAcoustic{N},
+    ::VpRhoAcousticVDMaterialProperties,
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
     kwargs...

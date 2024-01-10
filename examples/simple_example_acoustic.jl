@@ -39,7 +39,7 @@ function exacouprob(parall=:serial)
     # bottom = repeat(velmod[:, end:end], 1, npad)
     # velmod = hcat(velmod, bottom)
 
-    matprop = VpAcousticCDMaterialProperty(velmod)
+    matprop = VpAcousticCDMaterialProperties(velmod)
 
     ##========================================
     # shots definition
@@ -113,7 +113,7 @@ function exacouprob(parall=:serial)
 
     newvelmod = matprop.vp .- 0.2
     newvelmod[30:40, 33:44] *= 0.9
-    matprop_grad = VpAcousticCDMaterialProperty(newvelmod)
+    matprop_grad = VpAcousticCDMaterialProperties(newvelmod)
 
     @time grad = swgradient!(params,
                              matprop_grad,

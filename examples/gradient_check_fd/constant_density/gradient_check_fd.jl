@@ -27,9 +27,9 @@ function setup(nt, c0, c0max, r, dx, dy, dt, halo, rcoef, nx, ny, parall)
     # create constant and gaussian velocity model
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
-    matprop_const = VpAcousticCDMaterialProperty(c0 .* ones(nx, ny))
+    matprop_const = VpAcousticCDMaterialProperties(c0 .* ones(nx, ny))
     # gaussian perturbed model
-    matprop_gauss = VpAcousticCDMaterialProperty(gaussian_vel_2D(nx, ny, c0, c0max, r))
+    matprop_gauss = VpAcousticCDMaterialProperties(gaussian_vel_2D(nx, ny, c0, c0max, r))
 
     ##========================================
     # shots definition
@@ -104,7 +104,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
             println("Computing ($i, $j) gradient with FD")
             vp_perturbed = copy(matprop_const.vp)
             vp_perturbed[i, j] += dm
-            matprop_perturbed = VpAcousticCDMaterialProperty(vp_perturbed)
+            matprop_perturbed = VpAcousticCDMaterialProperties(vp_perturbed)
             @time new_misfit = with_logger(error_logger) do
                 swmisfit!(wavesim, matprop_perturbed, shots_obs)
             end

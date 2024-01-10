@@ -23,7 +23,7 @@ with_logger(error_logger) do
             nx = 501
             r = 100
             vel = gaussian_vel_1D(nx, c0, c0max, r)
-            matprop = VpAcousticCDMaterialProperty(vel)
+            matprop = VpAcousticCDMaterialProperties(vel)
             # numerics
             nt = 500
             dx = 2.5
@@ -76,7 +76,7 @@ with_logger(error_logger) do
             nx = 501
             r = 100
             vel = gaussian_vel_1D(nx, c0, c0max, r)
-            matprop = VpAcousticCDMaterialProperty(vel)
+            matprop = VpAcousticCDMaterialProperties(vel)
             # numerics
             nt = 500
             dx = 2.5
@@ -133,7 +133,7 @@ with_logger(error_logger) do
             nx = ny = 801
             r = 150
             vel = gaussian_vel_2D(nx, ny, c0, c0max, r)
-            matprop = VpAcousticCDMaterialProperty(vel)
+            matprop = VpAcousticCDMaterialProperties(vel)
             # numerics
             nt = 700
             dx = dy = 2.5
@@ -189,7 +189,7 @@ with_logger(error_logger) do
             nx = ny = 801
             r = 150
             vel = gaussian_vel_2D(nx, ny, c0, c0max, r)
-            matprop = VpAcousticCDMaterialProperty(vel)
+            matprop = VpAcousticCDMaterialProperties(vel)
             # numerics
             nt = 700
             dx = dy = 2.5

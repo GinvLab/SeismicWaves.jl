@@ -126,6 +126,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     dt::Real
     # BDC and CPML parameters
     halo::Integer
+    rcoef::Real
     freetop::Bool
     # Gradient computation setup
     gradient::Bool
@@ -136,7 +137,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     # Logging parameters
     infoevery::Integer
     # Material properties
-    matprop::ElasticIsoMaterialProperties
+    matprop::AbstrElasticIsoMaterialProperties
     # Forward computation arrays
     velpartic::Any # 2D: 2 comp, 3D: 3 comp
     stress::Any # 2D: 3 arrays, 3D: 6 arrays
@@ -154,7 +155,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     checkpoints_ψ::Any
     # Backend
     backend::Module
-
+    parall::Symbol
     
     function ElasticIsoCPMLWaveSimul{N}(
         gridsize::NTuple{N, <:Integer},
@@ -163,7 +164,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         dt::Real,
         halo::Integer,
         rcoef::Real;
-        parall::Symbol=:threads,
+        parall::Symbol=:serial,
         freetop::Bool=true,
         gradient::Bool=false,
         check_freq::Union{<:Integer, Nothing}=nothing,
@@ -183,6 +184,10 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
 
         # Compute wavsim sizes
         domainextent = gridspacing .* (gridsize .- 1)
+       
+        # Select backend
+        backend = select_backend(ElasticIsoCPMLWaveSimul{N}, parall)
+
         # Initialize material properties
         if N==2
             matprop = ElasticIsoMaterialProperties2D(λ=backend.zeros(gridsize...),
@@ -197,9 +202,6 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
         else
             error("Only elastic 2D is currently implemented.")
         end
-
-        # Select backend
-        backend = select_backend(ElasticIsoCPMLWaveSimul{N}, parall)
 
         # Initialize computational arrays
         if N==2
@@ -299,7 +301,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
             matprop,
             velpartic,
             stress,
-            cpmlcoeff,
+            cpmlcoeffs,
             ψ,
             gradient ? adj : nothing,
             gradient ? ψ_adj : nothing,
@@ -308,7 +310,8 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
             gradient ? save_buffer : nothing,
             gradient ? checkpoints : nothing,
             gradient ? checkpoints_ψ : nothing,
-            backend
+            backend,
+            parall
         )
     end
 end

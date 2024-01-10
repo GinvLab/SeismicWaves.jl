@@ -11,7 +11,7 @@ function select_backend(
 ) where {parall}
     parasym = [:serial, :threads, :GPU, :threadpersrc]
     error(
-        "No backend found for model of type $(wavesim_type) and `parall` $(parall). Argument `parall` must be one of the following symbols: $parasym."
+        "No backend found for model of type $(wavesim_type) and `parall =` $(parall). Argument `parall` must be one of the following symbols: $parasym."
     )
 end
 
