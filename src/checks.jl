@@ -19,6 +19,7 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
        tysource <: ScalarSources &&
        tyreceiver <: ScalarReceivers
         return
+
     elseif tysim == AcousticVDStaggeredCPMLWaveSimul{N} &&
            tymatprop == VpRhoAcousticVDMaterialProperties{N} &&
            tysource <: ScalarSources &&
@@ -34,7 +35,7 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
     end
 
     return error("Types of WaveSimul, MaterialProperties and Sources/Receivers are incosistent \
-        \n $(typeof(wavsim)), $(typeof(matprop)), $(typeof(shots[1].srcs)), $(typeof(shots[1].recs))")
+        \n $(typeof(wavsim)), \n $(typeof(matprop)), \n $(typeof(shots[1].srcs)), $(typeof(shots[1].recs))")
 end
 
 function check_shot(model::WaveSimul, shot::Shot; kwargs...)

@@ -22,6 +22,7 @@ export ElasticIsoMaterialProperties
 # export sources, receivers and shots
 export Shot
 export ScalarSources, MomentTensorSources
+export MomentTensor2D, MomentTensor3D
 export ScalarReceivers, VectorReceivers
 # forward, misfit and gradient functions
 export swforward!, swmisfit!, swgradient!

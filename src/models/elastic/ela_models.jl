@@ -4,7 +4,7 @@
 
 @views function check_matprop(wavsim::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperties{N}) where {N}
     # Checks
-    vp = sqrt((matprop.λ .+ 2.0 * matprop.μ) ./ matprop.ρ)
+    vp = sqrt.((matprop.λ .+ 2.0 * matprop.μ) ./ matprop.ρ)
     @assert ndims(vp) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(vp) == wavsim.gridsize "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(wavsim.gridsize)"
     @assert all(matprop.λ .> 0) "Lamè coefficient λ must be positive!"
@@ -12,8 +12,8 @@
     @assert all(matprop.ρ .> 0) "Density must be positive!"
     
     # Check courant condition
-    vp_max = get_maximum_func(wavsim)(vp)
-    tmp = sqrt(sum(1 ./ wavsim.gridspacing .^ 2))
+    vel_max = get_maximum_func(wavsim)(vp)
+    tmp = sqrt.(sum(1 ./ wavsim.gridspacing .^ 2))
     courant = vel_max * wavsim.dt * tmp
     @debug "Courant number: $(courant)"
     if courant > 1.0
@@ -30,7 +30,7 @@ function check_numerics(
     min_ppw::Integer=10
 )
     # Check points per wavelengh
-    vel_min = get_minimum_func(wavsim)(sqrt(wavsim.matprop.μ ./ wavsim.matprop.ρ)) # min Vs
+    vel_min = get_minimum_func(wavsim)(sqrt.(wavsim.matprop.μ ./ wavsim.matprop.ρ)) # min Vs
     h_max = maximum(wavsim.gridspacing)
     ppw = vel_min / shot.srcs.domfreq / h_max
     @debug "Points per wavelength: $(ppw)"
@@ -193,7 +193,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
             matprop = ElasticIsoMaterialProperties2D(λ=backend.zeros(gridsize...),
                                                      μ=backend.zeros(gridsize...),
                                                      ρ=backend.zeros(gridsize...),
-                                                     λ_ihalf=backend.zeros((gridsize.-1)...),
+                                                     λ_ihalf=backend.zeros((gridsize.-[1,0])...),
                                                      μ_ihalf=backend.zeros((gridsize.-[1,0])...),
                                                      μ_jhalf=backend.zeros((gridsize.-[0,1])...),
                                                      ρ_ihalf_jhalf=backend.zeros((gridsize.-1)...)

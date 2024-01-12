@@ -37,18 +37,18 @@ ScalarSources(positions, tf, domfreq) = ScalarSources{Float64}(positions, tf, do
 ####################################################
 
 """
-Type representing a 2D moment tensor.
+Type representing vector components of a 2D moment tensor.
 """
-struct MomentTensor2D{T <: Real} <: MomentTensor
+Base.@kwdef struct MomentTensor2D{T <: Real} <: MomentTensor
   Mxx::Vector{T}
   Mzz::Vector{T}
   Mxz::Vector{T}
 end
 
 """
-Type representing a 2D moment tensor.
+Type representing vector components of a 2D moment tensor.
 """
-struct MomentTensor3D{T <: Real} <: MomentTensor
+Base.@kwdef struct MomentTensor3D{T <: Real} <: MomentTensor
   Mxx::Vector{T}
   Myy::Vector{T}
   Mzz::Vector{T}
@@ -62,7 +62,7 @@ end
 Type representing a multi-source configuration for a wave propagation shot.
 """
 struct MomentTensorSources{N, T <: Real} <: Sources
-    positions::Matrix{<:Real}
+    positions::Matrix{T}
     tf::Matrix{T}
     momtens::MomentTensor
     domfreq::T
@@ -77,13 +77,13 @@ struct MomentTensorSources{N, T <: Real} <: Sources
 
     Create a single shot wave propagation source configuration from source positions, time-functions and a dominant frequency.
     """
-    function MomentTensorSources{N,T}(positions::Matrix{<:Real}, tf::Matrix{T},  momtens::MomentTensor, domfreq::T) where {N, T <: Real}
+    function MomentTensorSources{N,T}(positions::Matrix{T}, tf::Matrix{T}, momtens::MomentTensor, domfreq::T) where {N, T <: Real}
         @assert size(positions, 1) > 0 "There must be at least one source!"
         @assert size(positions, 1) == size(tf, 2) "Number of sources do not match between positions and time-functions!"
-        if N==1
-            @assert typeof(momtens)==MomentTensor2D
-        elseif N==2
-            @assert typeof(momtens)==MomentTensor3D
+        if N==2
+            @assert typeof(momtens)<:MomentTensor2D
+        elseif N==3
+            @assert typeof(momtens)<:MomentTensor3D
         else
             error("MomentTensorSources: Moment tensor neither 2D nor 3D.")
         end
@@ -92,6 +92,13 @@ struct MomentTensorSources{N, T <: Real} <: Sources
 end
 
 # Default type constructor {Float64}
-MomentTensorSources(positions, tf, momtens, domfreq) = MomentTensorSources{Float64}(positions, tf, momtens, domfreq)
+MomentTensorSources(positions, tf, momtens, domfreq) = begin
+    if typeof(momtens)<:MomentTensor2D
+        ndim=2
+    elseif typeof(momtens)<:MomentTensor3D
+        ndim=3
+    end
+    MomentTensorSources{ndim,Float64}(positions, tf, momtens, domfreq)
+end
 
 ####################################################

@@ -29,15 +29,15 @@ end
 
 # Functions for all AcousticCDWaveSimul subtypes
 
-@views function scale_srctf(model::AcousticCDWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
-    # scale with boxcar and timestep size
-    scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt^2)
-    # scale with velocity squared at each source position
-    for s in axes(scaled_tf, 2)
-        scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] .^ 2
-    end
-    return scaled_tf
-end
+# @views function scale_srctf(model::AcousticCDWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
+#     # scale with boxcar and timestep size
+#     scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt^2)
+#     # scale with velocity squared at each source position
+#     for s in axes(scaled_tf, 2)
+#         scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] .^ 2
+#     end
+#     return scaled_tf
+# end
 
 @views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperties{N}) where {N}
     # Checks

@@ -36,7 +36,7 @@ end
 
 
 
-function precomp_elaprop!(matprop::ElasticIsoMaterialProperties{2}; harmonicaver_μ=true)
+function precomp_elaprop!(matprop::ElasticIsoMaterialProperties2D; harmonicaver_μ=true)
     
 # function precomp_elaprop2D!(ρ,μ,λ,ρ_ihalf_jhalf,μ_ihalf,μ_jhalf,λ_ihalf ;
 #                           harmonicaver_μ=true)
@@ -46,22 +46,22 @@ function precomp_elaprop!(matprop::ElasticIsoMaterialProperties{2}; harmonicaver
     #-------------------------------------------------------------
     # ρ_ihalf_jhalf (nx-1,nz-1) ??
     # arithmetic mean for ρ
-    @. ρ_ihalf_jhalf = (ρ[2:end,2:end]+ρ[2:end,1:end-1]+
-        ρ[1:end-1,2:end]+ρ[1:end-1,1:end-1])/4.0
+    @. matprop.ρ_ihalf_jhalf = (matprop.ρ[2:end,2:end]+matprop.ρ[2:end,1:end-1]+
+        matprop.ρ[1:end-1,2:end]+matprop.ρ[1:end-1,1:end-1])/4.0
     # μ_ihalf (nx-1,nz) ??
     # μ_ihalf (nx,nz-1) ??
     if harmonicaver_μ==true 
         # harmonic mean for μ
-        @. μ_ihalf = 1.0 / ( 1.0/μ[2:end,:] + 1.0 / μ[1:end-1,:] )
-        @. μ_jhalf = 1.0 / ( 1.0/μ[:,2:end] + 1.0 / μ[:,1:end-1] )
+        @. matprop.μ_ihalf = 1.0 / ( 1.0/matprop.μ[2:end,:] + 1.0 / matprop.μ[1:end-1,:] )
+        @. matprop.μ_jhalf = 1.0 / ( 1.0/matprop.μ[:,2:end] + 1.0 / matprop.μ[:,1:end-1] )
     else
         # arithmetic mean for μ
-        @. μ_ihalf = (μ[2:end,:] + μ[1:end-1,:]) / 2.0
-        @. μ_jhalf = (μ[:,2:end] + μ[:,1:end-1]) / 2.0 
+        @. matprop.μ_ihalf = (matprop.μ[2:end,:] + matprop.μ[1:end-1,:]) / 2.0
+        @. matprop.μ_jhalf = (matprop.μ[:,2:end] + matprop.μ[:,1:end-1]) / 2.0 
     end
     # λ_ihalf (nx-1,nz) ??
     # arithmetic mean for λ
-    @. λ_ihalf = (λ[2:end,:] + λ[1:end-1,:]) / 2.0
+    @. matprop.λ_ihalf = (matprop.λ[2:end,:] + matprop.λ[1:end-1,:]) / 2.0
 
     return
 end

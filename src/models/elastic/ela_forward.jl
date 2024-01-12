@@ -3,7 +3,7 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
 
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
-    wavsim::ElasticIsoWaveSimul{N},
+    wavsim::ElasticIsoCPMLWaveSimul{N},
     possrcs::Matrix{<:Integer},
     posrecs::Matrix{<:Integer},
     srctf,
@@ -13,10 +13,10 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     # Numerics
     nt = wavsim.nt
     # Wrap sources and receivers arrays
-    possrcs_a = wavsim.backend.Data.Array(possrcs)
-    posrecs_a = wavsim.backend.Data.Array(posrecs)
-    srctf_a  = wavsim.backend.Data.Array(srctf)
-    traces_a = wavsim.backend.Data.Array(recs.seismograms)
+    possrcs_bk = wavsim.backend.Data.Array(possrcs)
+    posrecs_bk = wavsim.backend.Data.Array(posrecs)
+    srctf_bk  = wavsim.backend.Data.Array(srctf)
+    traces_bk = wavsim.backend.Data.Array(recs.seismograms)
 
     ## ONLY 2D for now!!!
     Mxx = wavsim.backend.Data.Array(momtens.Mxx)
@@ -29,7 +29,7 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        wavsim.backend.forward_onestep_CPML!(wavsim, possrcs_a, srctf_a, posrecs_a, traces_a, it,
+        wavsim.backend.forward_onestep_CPML!(wavsim, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it,
                                             freetop, save_trace)
 
                                             # wavsim.velpartic..., wavsim.stress...,
@@ -65,6 +65,6 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     end
 
     # Save traces
-    copyto!(recs.seismograms, traces_a)
+    copyto!(recs.seismograms, traces_bk)
     return
 end
