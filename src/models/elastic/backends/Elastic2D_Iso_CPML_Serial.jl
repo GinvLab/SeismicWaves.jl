@@ -239,7 +239,8 @@ function update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂
 end
 
 
-function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x,ψ_∂vz∂z,
+function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
+                        vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x,ψ_∂vz∂z,
                         b_x_half,b_z,a_x_half,a_z,freetop)
 
     if freetop==true
@@ -338,7 +339,9 @@ function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_
 end
 
 
-function update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,μ_jhalf,b_x,b_z_half,a_x,a_z_half,
+function update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
+                     μ_jhalf,b_x,b_z_half,
+                     ψ_∂vx∂z,ψ_∂vz∂x,a_x,a_z_half,
                      freetop)
     
     if freetop
@@ -411,10 +414,10 @@ end
 
 
 function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
-                               possrcs_a::Array{<:Integer,2},
-                               srctf_a::Matrix{<:Real},
-                               posrecs_a::Array{<:Integer,2},
-                               traces_a::Array{<:Real},
+                               possrcs_bk::Array{<:Integer,2},
+                               srctf_bk::Matrix{<:Real},
+                               posrecs_bk::Array{<:Integer,2},
+                               traces_bk::Array{<:Real},
                                it::Integer,
                                Mxx::Vector{<:Real},
                                Mzz::Vector{<:Real},
@@ -468,38 +471,42 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
                psi.ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,freetop)
 
     # update stresses σxx and σzz 
-    update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,
-                   psi.ψ_∂vx∂x,psi.ψ_∂vz∂z,b_z,a_x_half,a_z,freetop)
+    update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
+                   vx,vz,dt,λ_ihalf,μ_ihalf,
+                   psi.ψ_∂vx∂x,psi.ψ_∂vz∂z,
+                   b_x_half,b_z,a_x_half,a_z,freetop)
     # update stress σxz
-    update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,μ_jhalf,b_x,b_z_half,
+    update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
+                μ_jhalf,b_x,b_z_half,
                 psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
     
 
     # inject sources
-    inject_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_a, dt, possrcs, it)
+    inject_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_bk, dt, possrcs_bk, it)
     
     # record receivers
     if save_trace
-        record_receivers!(vx,vz,traces_a, posrecs, it)
+        record_receivers!(vx,vz,traces_bk, posrecs_bk, it)
     end
     
     return
 end
 
 
-function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_a, dt, possrcs, it)
+function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk, it)
 
     ## Inject the source as stress from moment tensor
     ##  See Igel 2017 Computational Seismology (book) page 31, 2.6.1
+    lensrctf = length(srctf_bk)
     if it<=lensrctf
 
-        for s in axes(possrcs, 1)
-            irec = possrcs[s, 1]
-            jrec = possrcs[s, 2]
+        for s in axes(possrcs_bk, 1)
+            isrc = possrcs_bk[s, 1]
+            jsrc = possrcs_bk[s, 2]
 
-            σxx[isrc,jsrc] += Mxx[s] * srctf_a[it] * dt 
-            σzz[isrc,jsrc] += Mzz[s] * srctf_a[it] * dt 
-            σxz[isrc,jsrc] += Mxz[s] * srctf_a[it] * dt
+            σxx[isrc,jsrc] += Mxx[s] * srctf_bk[it] * dt 
+            σzz[isrc,jsrc] += Mzz[s] * srctf_bk[it] * dt 
+            σxz[isrc,jsrc] += Mxz[s] * srctf_bk[it] * dt
         end
         
     end    
@@ -507,7 +514,7 @@ function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_a, dt, possrcs, it)
 end
 
 
-function record_receivers!(vx,vz,traces_a, posrecs, it)
+function record_receivers!(vx,vz,traces_bk, posrecs, it)
 
     for ir in axes(posrecs, 1)
         irec = posrecs[ir, 1]
@@ -515,7 +522,7 @@ function record_receivers!(vx,vz,traces_a, posrecs, it)
         # interpolate velocities on the same grid?
         N=2 # 2D
         for i=1:N
-            traces_a[it,i,ir] = vx[irec, jrec]
+            traces_bk[it,i,ir] = vx[irec, jrec]
         end
     end
     return

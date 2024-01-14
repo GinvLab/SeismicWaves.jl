@@ -66,19 +66,26 @@ struct Elasticψdomain2D{T<:AbstractFloat}
     ψ_∂vz∂x::Array{T,2}
     ψ_∂vx∂z::Array{T,2}
 
-    function Elasticψdomain2D(backend,gridsize,N,halo)
+    function Elasticψdomain2D(backend,gridsize,halo)
 
+        @assert length(gridsize)==2
         ψ_gridsize = [gridsize...]
-        ψ_gridsize[N] = 2*halo
 
-        ψ_∂σxx∂x = backend.zeros(ψ_gridsize...)
-        ψ_∂σxz∂z = backend.zeros(ψ_gridsize...)
-        ψ_∂σxz∂x = backend.zeros(ψ_gridsize...)
-        ψ_∂σzz∂z = backend.zeros(ψ_gridsize...)
-        ψ_∂vx∂x  = backend.zeros(ψ_gridsize...)
-        ψ_∂vz∂z  = backend.zeros(ψ_gridsize...)
-        ψ_∂vz∂x  = backend.zeros(ψ_gridsize...)
-        ψ_∂vx∂z  = backend.zeros(ψ_gridsize...)
+        @show gridsize,ψ_gridsize
+        gs1,gs2 = copy(ψ_gridsize),copy(ψ_gridsize)
+        gs1[1] = 2*halo
+        gs2[2] = 2*halo
+
+        @show gs1,gs2
+       
+        ψ_∂σxx∂x = backend.zeros( gs1...)
+        ψ_∂σxz∂z = backend.zeros( gs2...)
+        ψ_∂σxz∂x = backend.zeros( gs1...) 
+        ψ_∂σzz∂z = backend.zeros( gs2...)
+        ψ_∂vx∂x  = backend.zeros( gs1...)
+        ψ_∂vz∂z  = backend.zeros( gs2...)
+        ψ_∂vz∂x  = backend.zeros( gs1...)
+        ψ_∂vx∂z  = backend.zeros( gs2...)
  
         T = eltype(ψ_∂σxx∂x)
         return new{T}(ψ_∂σxx∂x,
@@ -205,7 +212,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
       
         ##
         if N==2 # 2D
-            ψ = Elasticψdomain2D(backend,gridsize,N,halo)
+            ψ = Elasticψdomain2D(backend,gridsize,halo)
         else 
             error("Only elastic 2D is currently implemented.")
         end

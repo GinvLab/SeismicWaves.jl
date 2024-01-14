@@ -77,8 +77,9 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
 
         # Save snapshot
         if snapenabled(wavsim) && it % wavsim.snapevery == 0
-            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            wavsim.snapshots[fill(Colon(), N)..., div(it, wavsim.snapevery)] .= Array(pcur)
+            error("Snapshot for elastic not yet implemented...")
+            #@debug @sprintf("Snapping iteration: %d", it)
+            #wavsim.snapshots[fill(Colon(), N)..., div(it, wavsim.snapevery)] .= Array(pcur)
         end
     end
 
