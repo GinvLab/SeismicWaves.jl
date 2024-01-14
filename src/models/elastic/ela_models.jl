@@ -53,12 +53,6 @@ end
 end
 
 
-@views function scale_srctf(wavsim::ElasticIsoWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
-    scaled_tf = copy(srctf)
-    return scaled_tf
-end
-
-
 ###########################################################
 
 
@@ -323,13 +317,13 @@ end
 @views function reset!(wavsim::ElasticIsoCPMLWaveSimul{N}) where {N}
 
     # Reset computational arrays
-    for p in fieldnames(wavsim.velpartic)
+    for p in propertynames(wavsim.velpartic)
         getfield(wavsim.velpartic,p) .= 0.0
     end
-    for p in fieldnames(wavsim.stress)
+    for p in propertynames(wavsim.stress)
         getfield(wavsim.stress,p) .= 0.0
     end
-    for p in fieldnames(wavsim.ψ)
+    for p in propertynames(wavsim.ψ)
         getfield(wavsim.ψ, p) .= 0.0
     end
 
@@ -341,7 +335,7 @@ end
         for p in eachindex(wavsim.grad)
             wavsim.grad[p] .= 0.0
         end
-        for p in fieldnames(wavsim.ψ_adj)
+        for p in propertynames(wavsim.ψ_adj)
             getfield(wavsim.ψ_adj, p) .= 0.0
         end
     end

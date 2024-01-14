@@ -1,22 +1,34 @@
 
 swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryConditionTrait(wavsim), wavsim, args...)
 
+
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
     wavsim::ElasticIsoCPMLWaveSimul{N},
-    possrcs::Matrix{<:Integer},
-    posrecs::Matrix{<:Integer},
-    srctf,
-    recs
-) where {N}
-       
+    shot::Shot
+    # possrcs::Matrix{<:Integer},
+    # posrecs::Matrix{<:Integer},
+    # srctf,
+    # recs
+    ) where {N}
+
+    @show propertynames(wavsim,true)
+
+    # scale source time function, etc.
+    # find nearest grid points indexes for both sources and receivers
+    possrcs = find_nearest_grid_points(wavsim, shot.srcs.positions)
+    posrecs = find_nearest_grid_points(wavsim, shot.recs.positions)
+
+    srctf = shot.srcs.tf
+    momtens = shot.srcs.momtens
+
     # Numerics
     nt = wavsim.nt
     # Wrap sources and receivers arrays
     possrcs_bk = wavsim.backend.Data.Array(possrcs)
     posrecs_bk = wavsim.backend.Data.Array(posrecs)
     srctf_bk  = wavsim.backend.Data.Array(srctf)
-    traces_bk = wavsim.backend.Data.Array(recs.seismograms)
+    traces_bk = wavsim.backend.Data.Array(shot.recs.seismograms)
 
     ## ONLY 2D for now!!!
     Mxx = wavsim.backend.Data.Array(momtens.Mxx)
@@ -29,8 +41,14 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        wavsim.backend.forward_onestep_CPML!(wavsim, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it,
-                                            freetop, save_trace)
+        wavsim.backend.forward_onestep_CPML!(wavsim,
+                                             possrcs_bk,
+                                             srctf_bk,
+                                             posrecs_bk,
+                                             traces_bk,
+                                             it,
+                                             Mxx,Mzz,Mxz,
+                                             save_trace=true)
 
                                             # wavsim.velpartic..., wavsim.stress...,
                                             # wavsim.λ_ihalf

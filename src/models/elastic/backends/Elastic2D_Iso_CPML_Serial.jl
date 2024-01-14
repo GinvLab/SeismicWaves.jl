@@ -93,7 +93,7 @@ zeros = Base.zeros
 
 
 
-function update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_z,a_x,a_z,
+function update_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_z,a_x,a_z,
                     freetop)
     if freetop
         for j = 1:2
@@ -131,7 +131,7 @@ function update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z
                 # right boundary
                 # ii = i - (nx - halo) + 1
                 ii = i - (nx - 2*halo) + 1  # == ii = i - (nx - halo) + 1 + halo
-                ψ_∂σxx∂x[ii,j] = b_x[i2] * ψ_∂σxx∂x[ii,j] + a_x[ii] * ∂σxx∂x_bkw
+                ψ_∂σxx∂x[ii,j] = b_x[ii] * ψ_∂σxx∂x[ii,j] + a_x[ii] * ∂σxx∂x_bkw
                 ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[ii,j]
             end
             # y boundaries
@@ -166,7 +166,7 @@ end
 
 
 
-function update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,
+function update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,
                     b_x_half,b_z_half,a_x_half,a_z_half,freetop)
 
     if freetop
@@ -239,7 +239,7 @@ function update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ
 end
 
 
-function update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x,ψ_∂vz∂z,
+function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x,ψ_∂vz∂z,
                         b_x_half,b_z,a_x_half,a_z,freetop)
 
     if freetop==true
@@ -338,7 +338,7 @@ function update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,ψ_�
 end
 
 
-function update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,b_x,b_z_half,a_x,a_z_half,
+function update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,μ_jhalf,b_x,b_z_half,a_x,a_z_half,
                      freetop)
     
     if freetop
@@ -411,17 +411,26 @@ end
 
 
 function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
-                               matprop::ElasticIsoMaterialProperties{N},
                                possrcs_a::Array{<:Integer,2},
                                srctf_a::Matrix{<:Real},
                                posrecs_a::Array{<:Integer,2},
                                traces_a::Array{<:Real},
                                it::Integer,
-                               freetop::Bool,
-                               save_trace::Bool) where {N}
+                               Mxx::Vector{<:Real},
+                               Mzz::Vector{<:Real},
+                               Mxz::Vector{<:Real};
+                               save_trace::Bool=true) where {N}
 
     @assert N==2
-    
+    freetop = wavsim.freetop
+    cpmlcoeffs = wavsim.cpmlcoeffs
+    matprop = wavsim.matprop
+    dx = wavsim.gridspacing[1]
+    dz = wavsim.gridspacing[2]
+    dt = wavsim.dt
+    nx,nz = wavsim.gridsize[1:2]
+    halo = wavsim.halo
+
     vx = wavsim.velpartic.vx
     vz = wavsim.velpartic.vz
     σxx = wavsim.stress.σxx
@@ -440,33 +449,29 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
     b_z = cpmlcoeffs[2].b
     b_z_half = cpmlcoeffs[2].b_h
 
-    λ_ihal = matprop.λ_ihal
+    λ_ihalf = matprop.λ_ihalf
     ρ = matprop.ρ
     ρ_ihalf_jhalf = matprop.ρ_ihalf_jhalf
     μ = matprop.μ
     μ_ihalf = matprop.μ_ihalf
     μ_jhalf = matprop.μ_jhalf
 
-    Mxx = wavsim.momtens.Mxx
-    Mzz = wavsim.momtens.Mzz
-    Mxz = wavsim.momtens.Mxz
-
     ## pre-scale coefficients
     factx = 1.0/(24.0*dx)
     factz = 1.0/(24.0*dz)
     
     # update velocity vx 
-    update_vx!(vx,factx,factz,σxx,σxz,dt,ρ,psi.ψ_∂σxx∂x,psi.ψ_∂σxz∂z,
+    update_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,psi.ψ_∂σxx∂x,psi.ψ_∂σxz∂z,
                b_x,b_z,a_x,a_z,freetop)
     # update velocity vz
-    update_vz!(vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,psi.ψ_∂σxz∂x,
+    update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,psi.ψ_∂σxz∂x,
                psi.ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,freetop)
 
     # update stresses σxx and σzz 
-    update_σxxσzz!(σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,
+    update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,vx,vz,dt,λ_ihalf,μ_ihalf,b_x_half,
                    psi.ψ_∂vx∂x,psi.ψ_∂vz∂z,b_z,a_x_half,a_z,freetop)
     # update stress σxz
-    update_σxz!(σxz,factx,factz,vx,vz,dt,μ_jhalf,b_x,b_z_half,
+    update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,μ_jhalf,b_x,b_z_half,
                 psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
     
 

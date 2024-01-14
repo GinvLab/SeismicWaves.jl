@@ -1,8 +1,10 @@
 
+# Generic function
 swforward_1shot!(wavsim::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryConditionTrait(wavsim), wavsim, args...)
 
+
 # Scaling for AcousticCDWaveSimul
-@views function possrcrec_scaletf(wavsim::AcousticCDCMPLWaveSimul{N},
+@views function possrcrec_scaletf(wavsim::AcousticCDCPMLWaveSimul{N},
                                   shot::Shot) where {N}
     # find nearest grid points indexes for both sources and receivers
     possrcs = find_nearest_grid_points(wavsim, shot.srcs.positions)

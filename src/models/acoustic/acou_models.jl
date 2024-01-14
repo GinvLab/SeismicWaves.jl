@@ -331,15 +331,15 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
     end
 end
 
-@views function scale_srctf(model::AcousticVDStaggeredWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
-    # scale with boxcar and timestep size
-    scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt)
-    # scale with velocity squared times density at each source position (its like dividing by m0)
-    for s in axes(scaled_tf, 2)
-        scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] ^ 2 * model.matprop.rho[positions[s, :]...]
-    end
-    return scaled_tf
-end
+# @views function scale_srctf(model::AcousticVDStaggeredWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
+#     # scale with boxcar and timestep size
+#     scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt)
+#     # scale with velocity squared times density at each source position (its like dividing by m0)
+#     for s in axes(scaled_tf, 2)
+#         scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] ^ 2 * model.matprop.rho[positions[s, :]...]
+#     end
+#     return scaled_tf
+# end
 
 @views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperties{N}) where {N}
     # Checks
