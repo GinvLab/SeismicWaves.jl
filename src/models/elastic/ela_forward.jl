@@ -12,8 +12,6 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     # recs
     ) where {N}
 
-    @show propertynames(wavsim,true)
-
     # scale source time function, etc.
     # find nearest grid points indexes for both sources and receivers
     possrcs = find_nearest_grid_points(wavsim, shot.srcs.positions)
@@ -64,13 +62,13 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
         
         # Print timestep info
         if it % wavsim.infoevery == 0
-            # # Move the cursor to the beginning to overwrite last line
+            # Move the cursor to the beginning to overwrite last line
             # ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
             # REPL.Terminals.clear_line(ter)
             # REPL.Terminals.cmove_line_up(ter)
-            @debug @sprintf(
-                "Iteration: %d, simulation time: %g [s]",
-                it,
+            @info @sprintf(
+                "Iteration: %d/%d, simulation time: %g [s]",
+                it,nt,
                 wavsim.dt * (it - 1)
             )
         end
@@ -84,6 +82,6 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     end
 
     # Save traces
-    copyto!(recs.seismograms, traces_bk)
+    copyto!(shot.recs.seismograms, traces_bk)
     return
 end

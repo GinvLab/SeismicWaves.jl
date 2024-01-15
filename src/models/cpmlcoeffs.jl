@@ -41,8 +41,6 @@ function compute_CPML_coefficientsAxis!(
     a_l, a_r, b_l, b_r = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "ongrd")
     a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "halfgrd")
 
-    @show size(a_hl),size(a_hr),size(cpmlcoeffs.a_h)
-
     copyto!(cpmlcoeffs.a, vcat(a_l,a_r))
     copyto!(cpmlcoeffs.a_h, vcat(a_hl,a_hr))
     copyto!(cpmlcoeffs.b, vcat(b_l,b_r))

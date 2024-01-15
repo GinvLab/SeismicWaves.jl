@@ -71,13 +71,10 @@ struct Elasticψdomain2D{T<:AbstractFloat}
         @assert length(gridsize)==2
         ψ_gridsize = [gridsize...]
 
-        @show gridsize,ψ_gridsize
         gs1,gs2 = copy(ψ_gridsize),copy(ψ_gridsize)
         gs1[1] = 2*halo
         gs2[2] = 2*halo
 
-        @show gs1,gs2
-       
         ψ_∂σxx∂x = backend.zeros( gs1...)
         ψ_∂σxz∂z = backend.zeros( gs2...)
         ψ_∂σxz∂x = backend.zeros( gs1...) 

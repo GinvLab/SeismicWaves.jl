@@ -158,7 +158,7 @@ function update_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_
 
             # update velocity
             vx[i,j] = vx[i,j] + (dt/ρ[i,j]) * (∂σxx∂x_bkw + ∂σxz∂z_bkw)
-            
+
         end
     end    
     return
@@ -465,10 +465,15 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
     
     # update velocity vx 
     update_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,psi.ψ_∂σxx∂x,psi.ψ_∂σxz∂z,
-               b_x,b_z,a_x,a_z,freetop)
+               b_x,b_z,a_x,a_z,freetop)    
     # update velocity vz
     update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,psi.ψ_∂σxz∂x,
                psi.ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,freetop)
+ #@show it,extrema(vx),extrema(vz)
+    if any(isnan.(vx)) || any(isnan.(vz))
+        error("isnan vx or vz")
+    end
+
 
     # update stresses σxx and σzz 
     update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
@@ -479,10 +484,11 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
     update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
                 μ_jhalf,b_x,b_z_half,
                 psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
-    
+#@show it,extrema(σxx),extrema(σzz),extrema(σxz)
 
     # inject sources
     inject_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_bk, dt, possrcs_bk, it)
+#@show it,extrema(srctf_bk[it])
     
     # record receivers
     if save_trace
@@ -504,9 +510,14 @@ function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk,
             isrc = possrcs_bk[s, 1]
             jsrc = possrcs_bk[s, 2]
 
+            # @show "A $it",σxx[isrc,jsrc],σzz[isrc,jsrc],σxz[isrc,jsrc]
+            # @show  dt,srctf_bk[it],Mxx[s],Mzz[s],Mxz[s]
+
             σxx[isrc,jsrc] += Mxx[s] * srctf_bk[it] * dt 
             σzz[isrc,jsrc] += Mzz[s] * srctf_bk[it] * dt 
             σxz[isrc,jsrc] += Mxz[s] * srctf_bk[it] * dt
+
+            # @show "B $it",σxx[isrc,jsrc],σzz[isrc,jsrc],σxz[isrc,jsrc]
         end
         
     end    
