@@ -123,14 +123,26 @@ function update_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_
             # C-PML stuff
             ##=======================
             # x boundaries
-            if i <= halo 
+            
+            # con1 = (i <= halo)
+            # con2 = (i >= nx - halo + 1)
+            # if con1 || con2
+            #     ii = i
+            #     if con2
+            #         ii = i - (nx - 2*halo) + 1
+            #     end
+            #     # left or right boundary
+            #     ψ_∂σxx∂x[ii,j] = b_x[ii] * ψ_∂σxx∂x[ii,j] + a_x[ii] * ∂σxx∂x_bkw
+            #     ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[ii,j]
+            # end
+
+            if i <= halo  # 
                 # left boundary
                 ψ_∂σxx∂x[i,j] = b_x[i] * ψ_∂σxx∂x[i,j] + a_x[i] * ∂σxx∂x_bkw
                 ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[i,j]
             elseif i >= nx - halo + 1 
                 # right boundary
-                # ii = i - (nx - halo) + 1
-                ii = i - (nx - 2*halo) + 1  # == ii = i - (nx - halo) + 1 + halo
+                ii = i - (nx - 2*halo) 
                 ψ_∂σxx∂x[ii,j] = b_x[ii] * ψ_∂σxx∂x[ii,j] + a_x[ii] * ∂σxx∂x_bkw
                 ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[ii,j]
             end
@@ -141,17 +153,16 @@ function update_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_
                 ∂σxz∂z_bkw = ∂σxz∂z_bkw + ψ_∂σxz∂z[i,j]
             elseif j >= nz - halo + 1 
                 # bottom boundary
-                # jj = j - (nz - halo) + 1
-                jj = j - (nz - 2*halo) + 1
+                jj = j - (nz - 2*halo) 
                 ψ_∂σxz∂z[i,jj] = b_z[jj] * ψ_∂σxz∂z[i,jj] + a_z[jj] * ∂σxz∂z_bkw
                 ∂σxz∂z_bkw = ∂σxz∂z_bkw + ψ_∂σxz∂z[i,jj]
             end
             ##=======================
             
-            # # C-PML stuff 
+            # # C-PML stuff
+            # # DO NOT delete this part!
             # ψ_∂σxx∂x[i,j] = b_x[i] * ψ_∂σxx∂x[i,j] + a_x[i] * ∂σxx∂x_bkw
             # ψ_∂σxz∂z[i,j] = b_z[j] * ψ_∂σxz∂z[i,j] + a_z[j] * ∂σxz∂z_bkw
-            
             # # derivatives
             # ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[i,j]
             # ∂σxz∂z_bkw = ∂σxz∂z_bkw + ψ_∂σxz∂z[i,j]
@@ -198,35 +209,33 @@ function update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂
             # C-PML stuff
             ##=======================
             # x boundaries
-            if i <= halo + 1
+            if i <= halo 
                 # left boundary
-                ψ_∂σxz∂x[i,j] = b_x_half[i] * ψ_∂σxz∂x[i,j] + ψ_∂σxz∂x[i,j] + a_x_half[i]*∂σxz∂x_fwd
+                ψ_∂σxz∂x[i,j] = b_x_half[i] * ψ_∂σxz∂x[i,j] + a_x_half[i]*∂σxz∂x_fwd
                 ∂σxz∂x_fwd = ∂σxz∂x_fwd + ψ_∂σxz∂x[i,j]
-            elseif i >= nx - halo
+            elseif i >= nx - halo + 1
                 # right boundary
-                # ii = i - (nx - halo) + 1
-                ii = i - (nx - 2*halo) + 1
-                ψ_∂σxz∂x[ii,j] = b_x_half[ii] * ψ_∂σxz∂x[ii,j] + ψ_∂σxz∂x[ii,j] + a_x_half[ii]*∂σxz∂x_fwd
+                ii = i - (nx - 2*halo) 
+                ψ_∂σxz∂x[ii,j] = b_x_half[ii] * ψ_∂σxz∂x[ii,j] + a_x_half[ii]*∂σxz∂x_fwd
                 ∂σxz∂x_fwd = ∂σxz∂x_fwd + ψ_∂σxz∂x[ii,j]
             end
             # y boundaries
-            if j <= halo +1 && freetop==false # + 1
+            if j <= halo && freetop==false # + 1
                 # top boundary
                 ψ_∂σzz∂z[i,j] = b_z_half[j] * ψ_∂σzz∂z[i,j] + a_z_half[j]*∂σzz∂z_fwd
                 ∂σzz∂z_fwd = ∂σzz∂z_fwd + ψ_∂σzz∂z[i,j]
-            elseif j >= nz - halo
+            elseif j >= nz - halo + 1
                 # bottom boundary
-                # jj = j - (nz - halo) + 1
-                jj = j - (nz - 2*halo) + 1
+                jj = j - (nz - 2*halo) 
                 ψ_∂σzz∂z[i,jj] = b_z_half[jj] * ψ_∂σzz∂z[i,jj] + a_z_half[jj]*∂σzz∂z_fwd
                 ∂σzz∂z_fwd = ∂σzz∂z_fwd + ψ_∂σzz∂z[i,jj]
             end
             ##=======================
 
-            # # C-PML stuff 
+            # # C-PML stuff
+            # # DO NOT delete this part!
             # ψ_∂σxz∂x[i,j] = b_x_half[i] * ψ_∂σxz∂x[i,j] + a_x_half[i]*∂σxz∂x_fwd
             # ψ_∂σzz∂z[i,j] = b_z_half[j] * ψ_∂σzz∂z[i,j] + a_z_half[j]*∂σzz∂z_fwd
-            
             # ∂σxz∂x_fwd = ∂σxz∂x_fwd + ψ_∂σxz∂x[i,j]
             # ∂σzz∂z_fwd = ∂σzz∂z_fwd + ψ_∂σzz∂z[i,j]
 
@@ -292,14 +301,13 @@ function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
             # C-PML stuff
             ##=======================
             # x boundaries
-            if i <= halo + 1
+            if i <= halo 
                 # left boundary
                 ψ_∂vx∂x[i,j] = b_x_half[i] * ψ_∂vx∂x[i,j] + a_x_half[i]*∂vx∂x_fwd
                 ∂vx∂x_fwd = ∂vx∂x_fwd + ψ_∂vx∂x[i,j]
-            elseif i >= nx - halo
+            elseif i >= nx - halo + 1
                 # right boundary
-                # ii = i - (nx - halo) + 1
-                ii = i - (nx - 2*halo) + 1
+                ii = i - (nx - 2*halo) 
                 ψ_∂vx∂x[ii,j] = b_x_half[ii] * ψ_∂vx∂x[ii,j] + a_x_half[ii]*∂vx∂x_fwd
                 ∂vx∂x_fwd = ∂vx∂x_fwd + ψ_∂vx∂x[ii,j]
             end
@@ -310,17 +318,16 @@ function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
                 ∂vz∂z_bkd = ∂vz∂z_bkd + ψ_∂vz∂z[i,j]
             elseif j >= nz - halo + 1
                 # bottom boundary
-                # jj = j - (nz - halo) + 1
-                jj = j - (nz - 2*halo) + 1 
+                jj = j - (nz - 2*halo)
                 ψ_∂vz∂z[i,jj] = b_z[jj] * ψ_∂vz∂z[i,jj] + a_z[jj]*∂vz∂z_bkd
                 ∂vz∂z_bkd = ∂vz∂z_bkd + ψ_∂vz∂z[i,jj]
             end
             ##=======================
             
-            # # C-PML stuff 
+            # # C-PML stuff
+            # # DO NOT delete this part!
             # ψ_∂vx∂x[i,j] = b_x_half[i] * ψ_∂vx∂x[i,j] + a_x_half[i]*∂vx∂x_fwd
             # ψ_∂vz∂z[i,j] = b_z[j] * ψ_∂vz∂z[i,j] + a_z[j]*∂vz∂z_bkd
-
             # ∂vx∂x_fwd = ∂vx∂x_fwd + ψ_∂vx∂x[i,j]
             # ∂vz∂z_bkd = ∂vz∂z_bkd + ψ_∂vz∂z[i,j]
             
@@ -377,29 +384,27 @@ function update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
                 ∂vz∂x_bkd = ∂vz∂x_bkd + ψ_∂vz∂x[i,j]
             elseif i >= nx - halo + 1
                 # right boundary
-                # ii = i - (nx - halo) + 1
-                ii = i - (nx - 2*halo) + 1
+                ii = i - (nx - 2*halo) 
                 ψ_∂vz∂x[ii,j] = b_x[ii] * ψ_∂vz∂x[ii,j] + a_x[ii]*∂vz∂x_bkd
                 ∂vz∂x_bkd = ∂vz∂x_bkd + ψ_∂vz∂x[ii,j]
             end
             # y boundaries
-            if j <= halo +1 && freetop==false 
+            if j <= halo  && freetop==false 
                 # top boundary
                 ψ_∂vx∂z[i,j] = b_z_half[j] * ψ_∂vx∂z[i,j] + a_z_half[j]*∂vx∂z_fwd
                 ∂vx∂z_fwd = ∂vx∂z_fwd + ψ_∂vx∂z[i,j]
-            elseif j >= nz - halo 
+            elseif j >= nz - halo + 1
                 # bottom boundary
-                #jj = j - (nz - halo) + 1
-                jj = j - (nz - 2*halo) + 1 
+                jj = j - (nz - 2*halo) 
                 ψ_∂vx∂z[i,jj] = b_z_half[jj] * ψ_∂vx∂z[i,jj] + a_z_half[jj]*∂vx∂z_fwd
                 ∂vx∂z_fwd = ∂vx∂z_fwd + ψ_∂vx∂z[i,jj]
             end
             ##=======================
             
-            # # C-PML stuff 
+            # # C-PML stuff
+            # # DO NOT delete this part!
             # ψ_∂vz∂x[i,j] = b_x[i] * ψ_∂vz∂x[i,j] + a_x[i]*∂vz∂x_bkd
             # ψ_∂vx∂z[i,j] = b_z_half[j] * ψ_∂vx∂z[i,j] + a_z_half[j]*∂vx∂z_fwd
-            
             # ∂vz∂x_bkd = ∂vz∂x_bkd + ψ_∂vz∂x[i,j]
             # ∂vx∂z_fwd = ∂vx∂z_fwd + ψ_∂vx∂z[i,j]
             
@@ -469,11 +474,6 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
     # update velocity vz
     update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,psi.ψ_∂σxz∂x,
                psi.ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,freetop)
- #@show it,extrema(vx),extrema(vz)
-    if any(isnan.(vx)) || any(isnan.(vz))
-        error("isnan vx or vz")
-    end
-
 
     # update stresses σxx and σzz 
     update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
@@ -484,15 +484,13 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
     update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
                 μ_jhalf,b_x,b_z_half,
                 psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
-#@show it,extrema(σxx),extrema(σzz),extrema(σxz)
 
     # inject sources
     inject_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_bk, dt, possrcs_bk, it)
-#@show it,extrema(srctf_bk[it])
     
     # record receivers
     if save_trace
-        record_receivers!(vx,vz,traces_bk, posrecs_bk, it)
+        record_receivers2D!(vx,vz,traces_bk, posrecs_bk, it)
     end
     
     return
@@ -525,22 +523,20 @@ function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk,
 end
 
 
-function record_receivers!(vx,vz,traces_bk, posrecs, it)
+function record_receivers2D!(vx,vz,traces_bk, posrecs, it)
 
     for ir in axes(posrecs, 1)
         irec = posrecs[ir, 1]
         jrec = posrecs[ir, 2]
         # interpolate velocities on the same grid?
-        N=2 # 2D
-        for i=1:N
-            traces_bk[it,i,ir] = vx[irec, jrec]
-        end
+        traces_bk[it,1,ir] = vx[irec, jrec]
+        traces_bk[it,2,ir] = vz[irec, jrec]
     end
     return
 end
 
 
-function correlate_gradient!(  )
+#function correlate_gradient!(  )
     # _dt2 = 1 / dt^2
     # nx, nz = size(curgrad)
     # for j in 1:nz
@@ -548,8 +544,8 @@ function correlate_gradient!(  )
     #         curgrad[i, j] = curgrad[i, j] + (adjcur[i, j] * (pcur[i, j] - 2.0 * pold[i, j] + pveryold[i, j]) * _dt2)
     #     end
     # end
-    return 
-end
+    # return 
+#end
 
 
 #########################################

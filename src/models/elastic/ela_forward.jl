@@ -28,10 +28,14 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     srctf_bk  = wavsim.backend.Data.Array(srctf)
     traces_bk = wavsim.backend.Data.Array(shot.recs.seismograms)
 
-    ## ONLY 2D for now!!!
-    Mxx = wavsim.backend.Data.Array(momtens.Mxx)
-    Mzz = wavsim.backend.Data.Array(momtens.Mzz)
-    Mxz = wavsim.backend.Data.Array(momtens.Mxz)
+    if N==2
+        ## ONLY 2D for now!!!
+        Mxx = wavsim.backend.Data.Array(momtens.Mxx)
+        Mzz = wavsim.backend.Data.Array(momtens.Mzz)
+        Mxz = wavsim.backend.Data.Array(momtens.Mxz)
+    elseif N==3
+        error("swforward_1shot!(): Elastic 3D not yet implemented!")
+    end
 
     # Reset wavesim
     reset!(wavsim)
@@ -75,9 +79,13 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
 
         # Save snapshot
         if snapenabled(wavsim) && it % wavsim.snapevery == 0
-            error("Snapshot for elastic not yet implemented...")
-            #@debug @sprintf("Snapping iteration: %d", it)
-            #wavsim.snapshots[fill(Colon(), N)..., div(it, wavsim.snapevery)] .= Array(pcur)
+            #error("Snapshot for elastic not yet implemented...")
+            @debug @sprintf("Snapping iteration: %d", it)
+            dummyidxs = fill(Colon(), N)
+            # Vx
+            wavsim.snapshots[1][dummyidxs..., div(it, wavsim.snapevery)] .= Array(wavsim.velpartic.vx)
+            # Vz
+            wavsim.snapshots[2][dummyidxs..., div(it, wavsim.snapevery)] .= Array(wavsim.velpartic.vz)
         end
     end
 
