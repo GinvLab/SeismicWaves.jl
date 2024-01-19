@@ -71,7 +71,7 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
             # REPL.Terminals.clear_line(ter)
             # REPL.Terminals.cmove_line_up(ter)
             @info @sprintf(
-                "Iteration: %d/%d, simulation time: %g [s]",
+                "Iteration: %d/%d, simulation time: %g s",
                 it,nt,
                 wavsim.dt * (it - 1)
             )

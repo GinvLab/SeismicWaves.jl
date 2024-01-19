@@ -93,8 +93,8 @@ zeros = Base.zeros
 
 
 
-function update_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_z,a_x,a_z,
-                    freetop)
+function update_4thord_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_∂σxz∂z,b_x,b_z,a_x,a_z,
+                           freetop)
     if freetop
         for j = 1:2
             for i = 3:nx-1
@@ -103,7 +103,14 @@ function update_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,ψ_∂σxx∂x,ψ_
                 # σxx derivative only in x so no problem
                 ∂σxx∂x_bkw = factx * ( σxx[i-2,j] -27.0*σxx[i-1,j] +27.0*σxx[i,j] -σxx[i+1,j] )
                 # image, mirroring σxz[i,j-2] = -σxz[i,j+1], etc.
-                ∂σxz∂z_bkw = factz * ( -σxz[i,j+1] +27.0*σxz[i,j] +27.0*σxz[i,j] -σxz[i,j+1] )
+                #∂σxz∂z_bkw = factz * ( -σxz[i,j+1] +27.0*σxz[i,j] +27.0*σxz[i,j] -σxz[i,j+1] )
+                if j==1
+                    # j bwd-> -2 -1|0 1 (mirror -2 and -1)
+                    ∂σxz∂z_bkw = factz * ( -σxz[i,j+1] +27.0*σxz[i,j] +27.0*σxz[i,j] -σxz[i,j+1] )
+                elseif j==2
+                    # j bwd-> -2|-1 0 1 (mirror only -2)
+                    ∂σxz∂z_bkw = factz * ( -σxz[i,j] -27.0*σxz[i,j-1] +27.0*σxz[i,j] -σxz[i,j+1] )
+                end
                 # update velocity
                 vx[i,j] = vx[i,j] + (dt/ρ[i,j]) * (∂σxx∂x_bkw + ∂σxz∂z_bkw)
 
@@ -177,8 +184,8 @@ end
 
 
 
-function update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,
-                    b_x_half,b_z_half,a_x_half,a_z_half,freetop)
+function update_4thord_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂σxz∂x,ψ_∂σzz∂z,
+                           b_x_half,b_z_half,a_x_half,a_z_half,freetop)
 
     if freetop
         for j = 1:2         
@@ -188,7 +195,14 @@ function update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂
                 # σxz derivative only in x so no problem
                 ∂σxz∂x_fwd = factx * ( σxz[i-1,j] -27.0*σxz[i,j] +27.0*σxz[i+1,j] -σxz[i+2,j] )
                 # image, mirroring σzz[i,j-1] = -σxz[i,j+2], etc.
-                ∂σzz∂z_fwd = factz * ( -σzz[i,j+2] +27.0*σzz[i,j+1] +27.0*σzz[i,j+1] -σzz[i,j+2] )
+                #∂σzz∂z_fwd = factz * ( -σzz[i,j+2] +27.0*σzz[i,j+1] +27.0*σzz[i,j+1] -σzz[i,j+2] )
+                if j==1
+                    # j fwd-> -1 0| 1 2 (mirror -2 and -1)
+                    ∂σzz∂z_fwd = factz * ( -σzz[i,j+2] +27.0*σzz[i,j+1] +27.0*σzz[i,j+1] -σzz[i,j+2] )
+                elseif j==2
+                    # j fwd-> -1|0 1 2 (mirror only -1)
+                    ∂σzz∂z_fwd = factz * ( -σzz[i,j+2] +27.0*σzz[i,j] +27.0*σzz[i,j+1] -σzz[i,j+2] )
+                end
                 # update velocity (ρ has been interpolated in advance)
                 vz[i,j] = vz[i,j] + (dt/ρ_ihalf_jhalf[i,j]) * (∂σxz∂x_fwd + ∂σzz∂z_fwd)
                 
@@ -248,9 +262,9 @@ function update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,ψ_∂
 end
 
 
-function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
-                        vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x,ψ_∂vz∂z,
-                        b_x_half,b_z,a_x_half,a_z,freetop)
+function update_4thord_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
+                               vx,vz,dt,λ_ihalf,μ_ihalf,ψ_∂vx∂x,ψ_∂vz∂z,
+                               b_x_half,b_z,a_x_half,a_z,freetop)
 
     if freetop==true
         # σxx, σzz
@@ -263,13 +277,12 @@ function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
             # using boundary condition to calculate ∂vz∂z_bkd from ∂vx∂x_fwd
             ∂vz∂z_bkd = -(1.0-2.0*μ_ihalf[i,j]/λ_ihalf[i,j])*∂vx∂x_fwd
             # σxx
-            σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd +
-                λ_ihalf[i,j] * dt * ∂vz∂z_bkd
-            
+            # σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd + λ_ihalf[i,j] * dt * ∂vz∂z_bkd
+            σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j] - λ_ihalf[i,j] / (λ_ihalf[i,j] +2 +μ_ihalf[i,j]) + 2*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd
             # σzz
             σzz[i,j] = 0.0 # we are on the free surface!
         end
-        
+
         # j=2: we are just below the surface (1/2)
         j = 2
         for i = 2:nx-2  
@@ -280,12 +293,10 @@ function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
             ∂vz∂z_bkd = factz * ( 0.0 -27.0*vz[i,j-1] +27.0*vz[i,j] -vz[i,j+1] )
             # σxx
             σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd +
-                λ_ihalf[i,j] * dt * ∂vz∂z_bkd
-            
+                λ_ihalf[i,j] * dt * ∂vz∂z_bkd            
             # σzz
             σzz[i,j] = σzz[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt* ∂vz∂z_bkd +
                 λ_ihalf[i,j] * dt * ∂vx∂x_fwd
-
         end
     end
 
@@ -346,7 +357,7 @@ function update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
 end
 
 
-function update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
+function update_4thord_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
                      μ_jhalf,b_x,b_z_half,
                      ψ_∂vx∂z,ψ_∂vz∂x,a_x,a_z_half,
                      freetop)
@@ -359,10 +370,8 @@ function update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
             ∂vx∂z_fwd = factz * ( 0.0 -27.0*vx[i,j] +27.0*vx[i,j+1] -vx[i,j+2] )
             # vz derivative only in x so no problem
             ∂vz∂x_bkd = factx * ( vz[i-2,j] -27.0*vz[i-1,j] +27.0*vz[i,j] -vz[i+1,j] )
-            
             # σxz
             σxz[i,j] = σxz[i,j] + μ_jhalf[i,j] * dt * (∂vx∂z_fwd + ∂vz∂x_bkd)
-
         end
     end
 
@@ -469,24 +478,27 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
     factz = 1.0/(24.0*dz)
     
     # update velocity vx 
-    update_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,psi.ψ_∂σxx∂x,psi.ψ_∂σxz∂z,
-               b_x,b_z,a_x,a_z,freetop)    
+    update_4thord_vx!(nx,nz,halo,vx,factx,factz,σxx,σxz,dt,ρ,psi.ψ_∂σxx∂x,psi.ψ_∂σxz∂z,
+                      b_x,b_z,a_x,a_z,freetop)    
     # update velocity vz
-    update_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,psi.ψ_∂σxz∂x,
-               psi.ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,freetop)
+    update_4thord_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf,psi.ψ_∂σxz∂x,
+                      psi.ψ_∂σzz∂z,b_x_half,b_z_half,a_x_half,a_z_half,freetop)
+
+    # inject sources (external body force)
+    #inject_bodyforce_sources!(vx,vz,fx,fz,srctf_bk, dt, possrcs_bk,it)
 
     # update stresses σxx and σzz 
-    update_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
-                   vx,vz,dt,λ_ihalf,μ_ihalf,
-                   psi.ψ_∂vx∂x,psi.ψ_∂vz∂z,
-                   b_x_half,b_z,a_x_half,a_z,freetop)
+    update_4thord_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
+                          vx,vz,dt,λ_ihalf,μ_ihalf,
+                          psi.ψ_∂vx∂x,psi.ψ_∂vz∂z,
+                          b_x_half,b_z,a_x_half,a_z,freetop)
     # update stress σxz
-    update_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
-                μ_jhalf,b_x,b_z_half,
-                psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
+    update_4thord_σxz!(nx,nz,halo,σxz,factx,factz,vx,vz,dt,
+                       μ_jhalf,b_x,b_z_half,
+                       psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
 
-    # inject sources
-    inject_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_bk, dt, possrcs_bk, it)
+    # inject sources (moment tensor type of internal force)
+    inject_momten_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_bk, dt, possrcs_bk, it)
     
     # record receivers
     if save_trace
@@ -497,7 +509,7 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
 end
 
 
-function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk, it)
+function inject_momten_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk, it)
 
     ## Inject the source as stress from moment tensor
     ##  See Igel 2017 Computational Seismology (book) page 31, 2.6.1
@@ -508,16 +520,10 @@ function inject_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk,
             isrc = possrcs_bk[s, 1]
             jsrc = possrcs_bk[s, 2]
 
-            # @show "A $it",σxx[isrc,jsrc],σzz[isrc,jsrc],σxz[isrc,jsrc]
-            # @show  dt,srctf_bk[it],Mxx[s],Mzz[s],Mxz[s]
-
             σxx[isrc,jsrc] += Mxx[s] * srctf_bk[it] * dt 
             σzz[isrc,jsrc] += Mzz[s] * srctf_bk[it] * dt 
             σxz[isrc,jsrc] += Mxz[s] * srctf_bk[it] * dt
-
-            # @show "B $it",σxx[isrc,jsrc],σzz[isrc,jsrc],σxz[isrc,jsrc]
         end
-        
     end    
     return
 end
