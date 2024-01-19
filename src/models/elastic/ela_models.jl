@@ -30,11 +30,14 @@ function check_numerics(
     min_ppw::Integer=10
 )
     # Check points per wavelengh
-    vel_min = get_minimum_func(wavsim)(sqrt.(wavsim.matprop.μ ./ wavsim.matprop.ρ)) # min Vs
+    # min Vs
+    vel_min = get_minimum_func(wavsim)(sqrt.(wavsim.matprop.μ ./ wavsim.matprop.ρ)) 
     h_max = maximum(wavsim.gridspacing)
-    ppw = vel_min / shot.srcs.domfreq / h_max
+    ppw = vel_min / (shot.srcs.domfreq * h_max)  # (shot.srcs.domfreq * h_max) ?
     @debug "Points per wavelength: $(ppw)"
-    @assert ppw >= min_ppw "Not enough points per wavelengh!"
+    @assert ppw >= min_ppw "Not enough points per wavelength!"
+    fmax = shot.srcs.domfreq
+    @debug "dh should be <= $(vel_min/(8*fmax)) "
     return
 end
 

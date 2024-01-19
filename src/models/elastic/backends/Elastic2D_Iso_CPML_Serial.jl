@@ -201,7 +201,7 @@ function update_4thord_vz!(nx,nz,halo,vz,factx,factz,σxz,σzz,dt,ρ_ihalf_jhalf
                     ∂σzz∂z_fwd = factz * ( -σzz[i,j+2] +27.0*σzz[i,j+1] +27.0*σzz[i,j+1] -σzz[i,j+2] )
                 elseif j==2
                     # j fwd-> -1|0 1 2 (mirror only -1)
-                    ∂σzz∂z_fwd = factz * ( -σzz[i,j+2] +27.0*σzz[i,j] +27.0*σzz[i,j+1] -σzz[i,j+2] )
+                    ∂σzz∂z_fwd = factz * ( -σzz[i,j+2] -27.0*σzz[i,j] +27.0*σzz[i,j+1] -σzz[i,j+2] )
                 end
                 # update velocity (ρ has been interpolated in advance)
                 vz[i,j] = vz[i,j] + (dt/ρ_ihalf_jhalf[i,j]) * (∂σxz∂x_fwd + ∂σzz∂z_fwd)
@@ -278,7 +278,7 @@ function update_4thord_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
             ∂vz∂z_bkd = -(1.0-2.0*μ_ihalf[i,j]/λ_ihalf[i,j])*∂vx∂x_fwd
             # σxx
             # σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd + λ_ihalf[i,j] * dt * ∂vz∂z_bkd
-            σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j] - λ_ihalf[i,j] / (λ_ihalf[i,j] +2 +μ_ihalf[i,j]) + 2*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd
+            σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j] - λ_ihalf[i,j] / (λ_ihalf[i,j]+2+μ_ihalf[i,j]) + 2*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd
             # σzz
             σzz[i,j] = 0.0 # we are on the free surface!
         end
@@ -295,7 +295,7 @@ function update_4thord_σxxσzz!(nx,nz,halo,σxx,σzz,factx,factz,
             σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd +
                 λ_ihalf[i,j] * dt * ∂vz∂z_bkd            
             # σzz
-            σzz[i,j] = σzz[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt* ∂vz∂z_bkd +
+            σzz[i,j] = σzz[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vz∂z_bkd +
                 λ_ihalf[i,j] * dt * ∂vx∂x_fwd
         end
     end
