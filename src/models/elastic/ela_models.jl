@@ -33,11 +33,12 @@ function check_numerics(
     # min Vs
     vel_min = get_minimum_func(wavsim)(sqrt.(wavsim.matprop.μ ./ wavsim.matprop.ρ)) 
     h_max = maximum(wavsim.gridspacing)
-    ppw = vel_min / (shot.srcs.domfreq * h_max)  # (shot.srcs.domfreq * h_max) ?
+    fmax = shot.srcs.domfreq * 2.0
+    ppw = vel_min / (fmax * h_max) 
     @debug "Points per wavelength: $(ppw)"
-    @assert ppw >= min_ppw "Not enough points per wavelength!"
-    fmax = shot.srcs.domfreq
-    @debug "dh should be <= $(vel_min/(8*fmax)) "
+
+    dh0 = round((vel_min/(min_ppw*fmax)),digits=2)
+    @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
     return
 end
 
