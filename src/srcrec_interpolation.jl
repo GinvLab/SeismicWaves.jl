@@ -50,7 +50,6 @@ Compute 1-D coefficients for windowed (Kaiser) sync interpolation of source or r
 - `beta` (optional): 'beta' parameter for the Kaiser windowing function
 
 """
-
 function coeffsinc1D(xstart::Real,Δx::Real,xcenter::Real, kind::Symbol ;
                      npts::Int64=4, beta::Union{Nothing,Real}=nothing)
     ## Coefficients for sinc interpolation
@@ -120,15 +119,31 @@ end
 
 #####################################################################
 
+"""
+
+Compute 2-D coefficients for windowed (Kaiser) sync interpolation of source or receiver position.
+
+# Parameters
+
+- `xstart`, `zstart`: origin coordinates of the grid
+- `Δx`,`Δz` : grid spacing
+- `xcenter`, `zcenter`: coordinates of source or receiver point
+- `nx`,`nz`: grid size in x and y
+- `kind`: vector of symbols :monopole or :dipole, i.e., using sinc or derivative of sinc
+- `npts` (optional): half-number of grid points for the window
+- `beta` (optional): 'beta' parameter for the Kaiser windowing function
+
+"""
 function coeffsinc2D(xstart::Real,zstart::Real,Δx::Real,Δz::Real,xcenter::Real,zcenter::Real,
                      nx::Integer,nz::Integer,kind::Vector{Symbol} ;
                      npts::Int64=4, beta::Union{Nothing,Real}=nothing)
 
     ## Calculate the 2D array of coefficients
-    xcoe,xidx = coeffsinc1D(xstart,Δx,xcenter,kind[1])
-    zcoe,zidx = coeffsinc1D(zstart,Δz,zcenter,kind[2])
+    xcoe,xidx = coeffsinc1D(xstart,Δx,xcenter,kind[1],npts=npts,beta=beta)
+    zcoe,zidx = coeffsinc1D(zstart,Δz,zcenter,kind[2],npts=npts,beta=beta)
 
     function reflectcoeffsinc(coe,idx,n)
+        
         if idx[1] < 1
             # We are before the edge
             nab = count( idx.<1 )
@@ -141,6 +156,7 @@ function coeffsinc2D(xstart::Real,zstart::Real,Δx::Real,Δz::Real,xcenter::Real
             coe[nab+1:2*nab] .-= reflcoe
             # Create a new set of coefficients excluding those above the surface
             coe = coe[nab+1:end]
+            
         elseif idx[end] > n
             # We are past the edge
             nab = count( idx.>n )
@@ -154,6 +170,7 @@ function coeffsinc2D(xstart::Real,zstart::Real,Δx::Real,Δz::Real,xcenter::Real
             # Create a new set of coefficients excluding those above the surface
             coe = coe[1:end-nab]
         end
+        
         return coe,idx
     end
 
@@ -161,7 +178,7 @@ function coeffsinc2D(xstart::Real,zstart::Real,Δx::Real,Δz::Real,xcenter::Real
     xcoe,xidx = reflectcoeffsinc(xcoe,xidx,nx)
     zcoe,zidx = reflectcoeffsinc(zcoe,zidx,nz)
 
-    # tensor product of x and y
+    # tensor product of coeff. in x and z
     xzcoeff = zeros(typeof(xcenter),length(xcoe),length(zcoe))
     for j in eachindex(zcoe)
         for i in eachindex(xcoe)
@@ -181,7 +198,7 @@ end
 #     zstart = 3.0
 #     z0 = 6.12
 #     Δz = 0.35
-#     xidx,zidx,xzcoeff = coeffsinc2D(xstart,zstart,Δx,Δz,x0,z0,[:monopole,:monopole])
+#     xidx,zidx,xzcoeff = coeffsinc2D(xstart,zstart,Δx,Δz,x0,z0,nx,nz,[:monopole,:monopole])
 #     @show xidx
 #     @show zidx
 #     @show xzcoeff
