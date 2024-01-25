@@ -428,15 +428,27 @@ end
 
 
 function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
-                               possrcs_bk::Array{<:Integer,2},
+                               srccoeij_bk::Array{<:Integer},
+                               srccoeval_bk::Array{<:Real},
+                               reccoeij_bk::Array{<:Integer},
+                               reccoeval_bk::Array{<:Real},
                                srctf_bk::Matrix{<:Real},
-                               posrecs_bk::Array{<:Integer,2},
                                traces_bk::Array{<:Real},
                                it::Integer,
-                               Mxx::Vector{<:Real},
-                               Mzz::Vector{<:Real},
-                               Mxz::Vector{<:Real};
+                               Mxx_bk::Vector{<:Real},
+                               Mzz_bk::Vector{<:Real},
+                               Mxz_bk::Vector{<:Real};
                                save_trace::Bool=true) where {N}
+    # function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
+    #                            possrcs_bk::Array{<:Integer,2},
+    #                            srctf_bk::Matrix{<:Real},
+    #                            posrecs_bk::Array{<:Integer,2},
+    #                            traces_bk::Array{<:Real},
+    #                            it::Integer,
+    #                            Mxx_bk::Vector{<:Real},
+    #                            Mzz_bk::Vector{<:Real},
+    #                            Mxz_bk::Vector{<:Real};
+    #                            save_trace::Bool=true) where {N}
 
     @assert N==2
     freetop = wavsim.freetop
@@ -498,46 +510,72 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
                        psi.ψ_∂vx∂z,psi.ψ_∂vz∂x,a_x,a_z_half,freetop)
 
     # inject sources (moment tensor type of internal force)
-    inject_momten_sources!(σxx,σzz,σxz,Mxx,Mzz,Mxz, srctf_bk, dt, possrcs_bk, it)
+    inject_momten_sources2D!(σxx,σzz,σxz,Mxx_bk,Mzz_bk,Mxz_bk,srctf_bk,dt,
+                           srccoeij_bk,srccoeval_bk,it)
+                           #possrcs_bk,it)
     
     # record receivers
     if save_trace
-        record_receivers2D!(vx,vz,traces_bk, posrecs_bk, it)
+        record_receivers2D!(vx,vz,traces_bk,reccoeij_bk,reccoeval_bk,it)
     end
     
     return
 end
 
-
-function inject_momten_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk, it)
+function inject_momten_sources2D!(σxx,σzz,σxz,Mxx,Mzz,Mxz,srctf_bk,dt,srccoeij_bk,srccoeval_bk,it)
+#function inject_momten_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk, it)
 
     ## Inject the source as stress from moment tensor
     ##  See Igel 2017 Computational Seismology (book) page 31, 2.6.1
     lensrctf = length(srctf_bk)
     if it<=lensrctf
-
-        for s in axes(possrcs_bk, 1)
-            isrc = possrcs_bk[s, 1]
-            jsrc = possrcs_bk[s, 2]
-
-            σxx[isrc,jsrc] += Mxx[s] * srctf_bk[it] * dt 
-            σzz[isrc,jsrc] += Mzz[s] * srctf_bk[it] * dt 
-            σxz[isrc,jsrc] += Mxz[s] * srctf_bk[it] * dt
+        # total number of interpolation points
+        nsrcpts = size(srccoeij_bk,1)
+        # p runs on all interpolation points defined by the windowed sinc function
+        # s runs on all actual source locations as specified by user input
+        for p=1:nsrcpts
+            # [src_id, i, j]
+            s,isrc,jsrc = srccoeij_bk[p,:]
+            # update stresses on points computed from sinc interpolation 
+            #     scaled with the coefficients' values
+            σxx[isrc,jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it] * dt 
+            σzz[isrc,jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it] * dt 
+            σxz[isrc,jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it] * dt
         end
+        
+        # for s in axes(possrcs_bk, 1)
+        #     isrc = possrcs_bk[s, 1]
+        #     jsrc = possrcs_bk[s, 2]
+        #     σxx[isrc,jsrc] += Mxx[s] * srctf_bk[it] * dt 
+        #     σzz[isrc,jsrc] += Mzz[s] * srctf_bk[it] * dt 
+        #     σxz[isrc,jsrc] += Mxz[s] * srctf_bk[it] * dt
+        # end
     end    
     return
 end
 
 
-function record_receivers2D!(vx,vz,traces_bk, posrecs, it)
+function record_receivers2D!(vx,vz,traces_bk,reccoeij_bk,reccoeval_bk,it)
 
-    for ir in axes(posrecs, 1)
-        irec = posrecs[ir, 1]
-        jrec = posrecs[ir, 2]
-        # interpolate velocities on the same grid?
-        traces_bk[it,1,ir] = vx[irec, jrec]
-        traces_bk[it,2,ir] = vz[irec, jrec]
+    # total number of interpolation points
+    nrecpts = size(reccoeij_bk,1)
+    # p runs on all interpolation points defined by the windowed sinc function
+    # s runs on all actual source locations as specified by user input
+    for p=1:nrecpts
+        # [src_id, i, j]
+        r,irec,jrec = reccoeij_bk[p,:]
+        # update traces by summing up values from all sinc interpolation points
+        traces_bk[it,1,r] += vx[irec,jrec]
+        traces_bk[it,2,r] += vz[irec,jrec]
     end
+    
+    # for ir in axes(posrecs, 1)
+    #     irec = posrecs[ir, 1]
+    #     jrec = posrecs[ir, 2]
+    #     # interpolate velocities on the same grid?
+    #     traces_bk[it,1,ir] = vx[irec, jrec]
+    #     traces_bk[it,2,ir] = vz[irec, jrec]
+    # end
     return
 end
 

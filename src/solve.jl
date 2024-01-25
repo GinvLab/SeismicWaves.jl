@@ -35,8 +35,6 @@ end
 
     # Shots loop
     for singleshot in shots
-        srcs = singleshot.srcs
-        recs = singleshot.recs
         # Initialize shot
         @info "Initializing shot"
         #possrcs, posrecs, srctf = init_shot!(wavsim, singleshot)
@@ -95,8 +93,6 @@ end
         # loop on the subset of shots per each WaveSimul 
         for s in grpshots[w]  
             singleshot = shots[s]
-            srcs = singleshot.srcs
-            recs = singleshot.recs
             # Initialize shot
             @info "Initializing shot"
             #possrcs, posrecs, srctf = init_shot!(wavsim[w], singleshot)
@@ -135,8 +131,6 @@ end
     # Compute total misfit for all shots
     totmisfitval = 0
     for singleshot in shots
-        srcs = singleshot.srcs
-        recs = singleshot.recs
         @info "Checking invcov matrix"
         if typeof(wavsim)<:Vector{<:WaveSimul} 
             check_invcov_matrix(wavsim[1], recs.invcov)
@@ -176,8 +170,6 @@ end
     # Shots loop
     for (s,singleshot) in enumerate(shots)
         @info "Shot #$s"
-        srcs = singleshot.srcs
-        recs = singleshot.recs
         # Initialize shot
         @info "Initializing shot"
         #possrcs, posrecs, srctf = init_shot!(wavsim, singleshot)
@@ -249,8 +241,6 @@ end
         for s in grpshots[w]  
             singleshot = shots[s]
             @info "Shot #$s"
-            srcs = singleshot.srcs
-            recs = singleshot.recs
             # Initialize shot
             @info "Initializing shot"
             #possrcs, posrecs, srctf = init_shot!(wavsim[w], singleshot)

@@ -1,8 +1,6 @@
 
 
-using SpecialFunctions
-
-#####################################################################
+####################################################################
 
 """
 
@@ -50,7 +48,7 @@ Compute 1-D coefficients for windowed (Kaiser) sync interpolation of source or r
 - `beta` (optional): 'beta' parameter for the Kaiser windowing function
 
 """
-function coeffsinc1D(xstart::Real,Δx::Real,xcenter::Real, kind::Symbol ;
+function coeffsinc1D(xstart::Real,Δx::Real,xcenter::Real, kind::Symbol, nx::Integer ;
                      npts::Int64=4, beta::Union{Nothing,Real}=nothing)
     ## Coefficients for sinc interpolation
     ##  in 1D
@@ -63,7 +61,8 @@ function coeffsinc1D(xstart::Real,Δx::Real,xcenter::Real, kind::Symbol ;
     ### Julia:  sinc(x) =
     ###    \sin(\pi x) / (\pi x) if x \neq 0, and 1 if x = 0
     ###
-    @assert xcenter >= xstart 
+    @assert xcenter >= xstart
+    @assert xcenter <= (nx-1)*Δx+xstart
     
     if beta==nothing
         if kind==:monopole
@@ -139,11 +138,14 @@ function coeffsinc2D(xstart::Real,zstart::Real,Δx::Real,Δz::Real,xcenter::Real
                      npts::Int64=4, beta::Union{Nothing,Real}=nothing)
 
     ## Calculate the 2D array of coefficients
-    xcoe,xidx = coeffsinc1D(xstart,Δx,xcenter,kind[1],npts=npts,beta=beta)
-    zcoe,zidx = coeffsinc1D(zstart,Δz,zcenter,kind[2],npts=npts,beta=beta)
+    xcoe,xidx = coeffsinc1D(xstart,Δx,xcenter,kind[1],nx,npts=npts,beta=beta)
+    zcoe,zidx = coeffsinc1D(zstart,Δz,zcenter,kind[2],nz,npts=npts,beta=beta)
 
-    function reflectcoeffsinc(coe,idx,n)
-        
+    function reflectcoeffsinc(coe,idx,nmax)
+        #
+        # "Reflect" coefficients past the edge, i.e., mirror and subtract them
+        #  from the internal ones
+        #
         if idx[1] < 1
             # We are before the edge
             nab = count( idx.<1 )
@@ -157,9 +159,9 @@ function coeffsinc2D(xstart::Real,zstart::Real,Δx::Real,Δz::Real,xcenter::Real
             # Create a new set of coefficients excluding those above the surface
             coe = coe[nab+1:end]
             
-        elseif idx[end] > n
+        elseif idx[end] > nmax
             # We are past the edge
-            nab = count( idx.>n )
+            nab = count( idx.>nmax )
             # get the "reflected" coefficients
             reflcoe = coe[end:-1:end-nab+1]
             # Create a new set of indices excluding those above the surface
@@ -174,7 +176,7 @@ function coeffsinc2D(xstart::Real,zstart::Real,Δx::Real,Δz::Real,xcenter::Real
         return coe,idx
     end
 
-    ## Crop coefficients if they go beyond model edges
+    ## Crop and reflect coefficients if they go beyond model edges [Hicks 2002, Geophysics]
     xcoe,xidx = reflectcoeffsinc(xcoe,xidx,nx)
     zcoe,zidx = reflectcoeffsinc(zcoe,zidx,nz)
 
@@ -204,4 +206,6 @@ end
 #     @show xzcoeff
 #     fig,ax,hm=heatmap(xzcoeff); Colorbar(fig[1,2],hm); fig
 # end
+#####################################################################
+
 #####################################################################

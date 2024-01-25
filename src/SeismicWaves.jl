@@ -4,10 +4,12 @@ Module for generalized wave propagation solvers.
 module SeismicWaves
 
 using LinearAlgebra
+using SpecialFunctions
 using Printf
 using ParallelStencil
 using Logging
 using DocStringExtensions
+
 
 # main struct for wave simulation
 export WaveSimul
@@ -42,8 +44,11 @@ include("receivers.jl")
 include("shot.jl")
 include("checks.jl")
 include("boundarycond.jl")
+include("srcrec_interpolation.jl")
 
 include("models/cpmlcoeffs.jl")
+
+
 
 # Acoustic
 include("models/acoustic/acou_abstract_types.jl")
