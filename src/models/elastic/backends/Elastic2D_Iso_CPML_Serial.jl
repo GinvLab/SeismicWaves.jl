@@ -485,6 +485,12 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
     μ_ihalf = matprop.μ_ihalf
     μ_jhalf = matprop.μ_jhalf
 
+    # @show size(vx),size(vz)
+    # @show size(σxx),size(σzz),size(σxz)
+    # @show size(a_x),size(a_x_half)
+    # @show size(b_x),size(b_x_half)
+    # error("\nExiting...")
+
     ## pre-scale coefficients
     factx = 1.0/(24.0*dx)
     factz = 1.0/(24.0*dz)
