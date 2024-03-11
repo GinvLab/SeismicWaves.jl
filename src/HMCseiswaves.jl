@@ -69,7 +69,7 @@ function (acouprob::AcouWavCDProb)(vecvel::Vector{Float64}, kind::Symbol)
 
     # reshape vector to 2D array
     velNd = reshape(vecvel, acouprob.inpars.gridsize...)
-    matprop = VpAcousticCDMaterialProperty(velNd)
+    matprop = VpAcousticCDMaterialProperties(velNd)
 
     @assert length(acouprob.shots[1].recs.observed) != 0
 

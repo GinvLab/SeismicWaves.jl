@@ -7,7 +7,7 @@ Material properties for acoustic constant-density simulation.
 
 $(TYPEDFIELDS)
 """
-struct VpAcousticCDMaterialProperty{N} <: MaterialProperties{N}
+struct VpAcousticCDMaterialProperties{N} <: MaterialProperties{N}
     "P-wave velocity"
     vp::Array{<:Float64, N}
 end
@@ -20,7 +20,7 @@ Material properties for acoustic variable-density simulation.
 
 $(TYPEDFIELDS)
 """
-mutable struct VpRhoAcousticVDMaterialProperty{N} <: MaterialProperties{N}
+mutable struct VpRhoAcousticVDMaterialProperties{N} <: MaterialProperties{N}
     "P-wave velocity"
     vp::Array{<:Float64, N}
     "Density"
@@ -29,7 +29,7 @@ mutable struct VpRhoAcousticVDMaterialProperty{N} <: MaterialProperties{N}
     interp_method::InterpolationMethod
 
     @doc """
-        VpRhoAcousticVDMaterialProperty{N}(
+        VpRhoAcousticVDMaterialProperties{N}(
           vp::Array{<:Float64, N},
           rho::Array{<:Float64, N};
           interp_method::InterpolationMethod=ArithmeticAverageInterpolation(2)
@@ -37,7 +37,7 @@ mutable struct VpRhoAcousticVDMaterialProperty{N} <: MaterialProperties{N}
 
     Constructor for material properties for acoustic variable-density simulation.
     """
-    function VpRhoAcousticVDMaterialProperty{N}(
+    function VpRhoAcousticVDMaterialProperties{N}(
         vp::Array{<:Float64, N},
         rho::Array{<:Float64, N};
         interp_method::InterpolationMethod=ArithmeticAverageInterpolation(2)
@@ -52,7 +52,7 @@ $(SIGNATURES)
 
 Constructor to avoid specifying dimensions to create material properties for acoustic variable-density simulation.
 """
-VpRhoAcousticVDMaterialProperty(vp, rho; kwargs...) = VpRhoAcousticVDMaterialProperty{length(size(vp))}(vp, rho; kwargs...)
+VpRhoAcousticVDMaterialProperties(vp, rho; kwargs...) = VpRhoAcousticVDMaterialProperties{length(size(vp))}(vp, rho; kwargs...)
 
 interpolate(a::Array{<:Float64, N}, interp_method) where {N} = collect(interp(interp_method, a, i) for i in 1:N)
 interpolate_jacobian(a::Array{<:Float64, N}, interp_method) where {N} = collect(jacobian(interp_method, a, i) for i in 1:N)

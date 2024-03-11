@@ -29,17 +29,17 @@ end
 
 # Functions for all AcousticCDWaveSimul subtypes
 
-@views function scale_srctf(model::AcousticCDWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
-    # scale with boxcar and timestep size
-    scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt^2)
-    # scale with velocity squared at each source position
-    for s in axes(scaled_tf, 2)
-        scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] .^ 2
-    end
-    return scaled_tf
-end
+# @views function scale_srctf(model::AcousticCDWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
+#     # scale with boxcar and timestep size
+#     scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt^2)
+#     # scale with velocity squared at each source position
+#     for s in axes(scaled_tf, 2)
+#         scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] .^ 2
+#     end
+#     return scaled_tf
+# end
 
-@views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+@views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperties{N}) where {N}
     # Checks
     @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == model.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.ns)"
@@ -48,7 +48,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperty{N}) where {N}
+@views function update_matprop!(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperties{N}) where {N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     # Precompute factors
@@ -61,7 +61,7 @@ end
 
 struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     # Physics
-    ls::NTuple{N, <:Real}
+    domainextent::NTuple{N, <:Real}
     # Numerics
     ns::NTuple{N, <:Integer}
     gridspacing::NTuple{N, <:Real}
@@ -83,7 +83,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     # Gradient smoothing parameters
     smooth_radius::Integer
     # Material properties
-    matprop::VpAcousticCDMaterialProperty
+    matprop::VpAcousticCDMaterialProperties
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Forward computation arrays
@@ -139,9 +139,9 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Compute model sizes
-        ls = gridspacing .* (ns .- 1)
+        domainextent = gridspacing .* (ns .- 1)
         # Initialize material properties
-        matprop = VpAcousticCDMaterialProperty(zeros(ns...))
+        matprop = VpAcousticCDMaterialProperties(zeros(ns...))
 
         # Select backend
         backend = select_backend(AcousticCDCPMLWaveSimul{N}, parall)
@@ -163,7 +163,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
             append!(ξ, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
         end
         # Initialize CPML coefficients
-        cpmlcoeffs = tuple([CPMLCoefficients(halo, backend) for _ in 1:N]...)
+        cpmlcoeffs = tuple([CPMLCoefficients(halo, backend, sizehalfgrdplusone=true) for _ in 1:N]...)
         # Build CPML coefficient arrays for computations (they are just references to cpmlcoeffs)
         a_coeffs = []
         b_coeffs = []
@@ -238,7 +238,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         end
 
         return new(
-            ls,
+            domainextent,
             ns,
             gridspacing,
             nt,
@@ -331,17 +331,17 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
     end
 end
 
-@views function scale_srctf(model::AcousticVDStaggeredWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
-    # scale with boxcar and timestep size
-    scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt)
-    # scale with velocity squared times density at each source position (its like dividing by m0)
-    for s in axes(scaled_tf, 2)
-        scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] ^ 2 * model.matprop.rho[positions[s, :]...]
-    end
-    return scaled_tf
-end
+# @views function scale_srctf(model::AcousticVDStaggeredWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
+#     # scale with boxcar and timestep size
+#     scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt)
+#     # scale with velocity squared times density at each source position (its like dividing by m0)
+#     for s in axes(scaled_tf, 2)
+#         scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] ^ 2 * model.matprop.rho[positions[s, :]...]
+#     end
+#     return scaled_tf
+# end
 
-@views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
+@views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperties{N}) where {N}
     # Checks
     @assert ndims(matprop.vp) == ndims(matprop.rho) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == size(matprop.rho) == model.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.ns)"
@@ -351,7 +351,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperty{N}) where {N}
+@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperties{N}) where {N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     copyto!(model.matprop.rho, matprop.rho)
@@ -374,7 +374,7 @@ end
 
 struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
     # Physics
-    ls::NTuple{N, <:Real}
+    domainextent::NTuple{N, <:Real}
     # Numerics
     ns::NTuple{N, <:Integer}
     gridspacing::NTuple{N, <:Real}
@@ -396,7 +396,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
     # Gradient smoothing parameters
     smooth_radius::Integer
     # Material properties
-    matprop::VpRhoAcousticVDMaterialProperty{N}
+    matprop::VpRhoAcousticVDMaterialProperties{N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Forward computation arrays
@@ -452,9 +452,9 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Compute model sizes
-        ls = gridspacing .* (ns .- 1)
+        domainextent = gridspacing .* (ns .- 1)
         # Initialize material properties
-        matprop = VpRhoAcousticVDMaterialProperty(zeros(ns...), zeros(ns...))
+        matprop = VpRhoAcousticVDMaterialProperties(zeros(ns...), zeros(ns...))
 
         # Select backend
         backend = select_backend(AcousticVDStaggeredCPMLWaveSimul{N}, parall)
@@ -564,7 +564,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
         end
 
         return new(
-            ls,
+            domainextent,
             ns,
             gridspacing,
             nt,

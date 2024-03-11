@@ -17,7 +17,7 @@ function forward_example()
             velmod[i, j] = 2000.0 + 12.0 * (j - 1)
         end
     end
-    matprop = VpAcousticCDMaterialProperty(velmod)
+    matprop = VpAcousticCDMaterialProperties(velmod)
     ##========================================
     # shots definition
     nshots = 6

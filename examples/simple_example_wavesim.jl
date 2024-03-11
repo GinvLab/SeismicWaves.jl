@@ -41,7 +41,7 @@ function exacouprob_wavsim(parall=:serial)
     # bottom = repeat(velmod[:, end:end], 1, npad)
     # velmod = hcat(velmod, bottom)
 
-    matprop = VpAcousticCDMaterialProperty(velmod)
+    matprop = VpAcousticCDMaterialProperties(velmod)
 
     ##========================================
     # shots definition
@@ -138,7 +138,7 @@ function exacouprob_wavsim(parall=:serial)
 
     newvelmod = matprop.vp .- 0.2
     newvelmod[30:40, 33:44] *= 0.9
-    matprop_grad = VpAcousticCDMaterialProperty(newvelmod)
+    matprop_grad = VpAcousticCDMaterialProperties(newvelmod)
 
     ##
     check_freq = ceil(Int, sqrt(params.ntimesteps)) #nothing #200 #ceil(Int, sqrt(params.ntimesteps))

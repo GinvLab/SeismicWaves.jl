@@ -24,7 +24,7 @@ end
 function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx - 1) * dx
-    vel = VpAcousticCDMaterialProperty(c0 .* ones(nx))
+    vel = VpAcousticCDMaterialProperties(c0 .* ones(nx))
     # input parameters
     params = InputParametersAcoustic(nt, dt, [nx], [dx],
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
@@ -47,7 +47,7 @@ end
 function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx - 1) * dx
-    matprop = VpRhoAcousticVDMaterialProperty(c0 .* ones(nx), ρ0 .* ones(nx))
+    matprop = VpRhoAcousticVDMaterialProperties(c0 .* ones(nx), ρ0 .* ones(nx))
     # input parameters
     params = InputParametersAcousticVariableDensity(nt, dt, [nx], [dx],
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
@@ -71,7 +71,7 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
-    vel = VpAcousticCDMaterialProperty(c0 .* ones(nx, ny))
+    vel = VpAcousticCDMaterialProperties(c0 .* ones(nx, ny))
     # input parameters
     params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
@@ -95,7 +95,7 @@ function setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0,
     # constant velocity setup
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
-    matprop = VpRhoAcousticVDMaterialProperty(c0 .* ones(nx, ny), ρ0 .* ones(nx, ny))
+    matprop = VpRhoAcousticVDMaterialProperties(c0 .* ones(nx, ny), ρ0 .* ones(nx, ny))
     # input parameters
     params = InputParametersAcousticVariableDensity(nt, dt, [nx, ny], [dx, dy],
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
@@ -119,7 +119,7 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
     lz = (nz - 1) * dz
-    vel = VpAcousticCDMaterialProperty(c0 .* ones(nx, ny, nz))
+    vel = VpAcousticCDMaterialProperties(c0 .* ones(nx, ny, nz))
     # input parameters
     params = InputParametersAcoustic(nt, dt, [nx, ny, nz], [dx, dy, dz],
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))

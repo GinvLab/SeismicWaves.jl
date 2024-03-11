@@ -4,12 +4,17 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
 @views function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimul{N},
-    possrcs,
-    posrecs,
-    srctf,
-    recs,
+    shot::Shot,
+    # possrcs,
+    # posrecs,
+    # srctf,
+    # recs,
     misfit
     )::Array{<:Real} where {N}
+
+    # scale source time function, etc.
+    possrcs,posrecs,scal_srctf = possrcrec_scaletf(wavsim,shot)
+
     # Numerics
     nt = model.nt
     # Initialize pressure and factors arrays
@@ -21,10 +26,10 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     adjcur = model.adjcur
     adjnew = model.adjnew
     # Wrap sources and receivers arrays
-    possrcs_a = model.backend.Data.Array(possrcs)
-    posrecs_a = model.backend.Data.Array(posrecs)
-    srctf_a = model.backend.Data.Array(srctf)
-    traces_a = model.backend.Data.Array(recs.seismograms)
+    possrcs_bk = model.backend.Data.Array(possrcs)
+    posrecs_bk = model.backend.Data.Array(posrecs)
+    srctf_bk = model.backend.Data.Array(scal_srctf)
+    traces_bk = model.backend.Data.Array(recs.seismograms)
     # Reset wavesim
     reset!(model)
 
@@ -35,7 +40,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             pold, pcur, pnew, model.fact,
             model.gridspacing..., model.halo,
             model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
-            possrcs_a, srctf_a, posrecs_a, traces_a, it
+            possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it
         )
         # Print timestep info
         if it % model.infoevery == 0
@@ -62,13 +67,13 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     end
 
     @info "Saving seismograms"
-    copyto!(recs.seismograms, traces_a)
+    copyto!(recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    residuals_a = model.backend.Data.Array(dχ_du(misfit, recs))
+    residuals_bk = model.backend.Data.Array(dχ_du(misfit, recs))
 
     # Prescale residuals (fact = vel^2 * dt^2)
-    model.backend.prescale_residuals!(residuals_a, posrecs_a, model.fact)
+    model.backend.prescale_residuals!(residuals_bk, posrecs_bk, model.fact)
 
     @debug "Computing gradients"
     # Current checkpoint
@@ -79,8 +84,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         adjold, adjcur, adjnew = model.backend.forward_onestep_CPML!(
             adjold, adjcur, adjnew, model.fact,
             model.gridspacing..., model.halo,
-            model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_coeffs...,
-            posrecs_a, residuals_a, nothing, nothing, it;   # adjoint sources positions are receivers
+            model.ψ_bkdj..., model.ξ_bkdj..., model.a_coeffs..., model.b_coeffs...,
+            posrecs_bk, residuals_bk, nothing, nothing, it;   # adjoint sources positions are receivers
             save_trace=false
         )
         # Print timestep info
@@ -115,7 +120,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
                     pold, pcur, pnew, model.fact,
                     model.gridspacing..., model.halo,
                     model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
-                    possrcs_a, srctf_a, nothing, nothing, recit;
+                    possrcs_bk, srctf_bk, nothing, nothing, recit;
                     save_trace=false
                 )
                 if recit % model.infoevery == 0
@@ -148,12 +153,17 @@ end
 @views function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticVDStaggeredCPMLWaveSimul{N},
-    possrcs,
-    posrecs,
-    srctf,
-    recs,
+    shot::Shot,
+    # possrcs,
+    # posrecs,
+    # srctf,
+    # recs,
     misfit
-)::Array{<:Real} where {N}
+    )::Array{<:Real} where {N}
+
+    # scale source time function, etc.
+    possrcs,posrecs,scal_srctf = possrcrec_scaletf(wavsime,shot)
+
     # Numerics
     nt = model.nt
     # Initialize pressure and velocities arrays
@@ -163,10 +173,10 @@ end
     adjpcur = model.adjpcur
     adjvcur = model.adjvcur
     # Wrap sources and receivers arrays
-    possrcs_a = model.backend.Data.Array(possrcs)
-    posrecs_a = model.backend.Data.Array(posrecs)
-    srctf_a = model.backend.Data.Array(srctf)
-    traces_a = model.backend.Data.Array(recs.seismograms)
+    possrcs_bk = model.backend.Data.Array(possrcs)
+    posrecs_bk = model.backend.Data.Array(posrecs)
+    srctf_bk = model.backend.Data.Array(scal_srctf)
+    traces_bk = model.backend.Data.Array(recs.seismograms)
     # Reset wavesim
     reset!(model)
 
@@ -177,7 +187,7 @@ end
             pcur, vcur..., model.fact_m0, model.fact_m1_stag...,
             model.gridspacing..., model.halo,
             model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
-            possrcs_a, srctf_a, posrecs_a, traces_a, it
+            possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it
         )
         # Print timestep info
         if it % model.infoevery == 0
@@ -206,13 +216,13 @@ end
     end
 
     @info "Saving seismograms"
-    copyto!(recs.seismograms, traces_a)
+    copyto!(recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    residuals_a = model.backend.Data.Array(dχ_du(misfit, recs))
+    residuals_bk = model.backend.Data.Array(dχ_du(misfit, recs))
 
     # Prescale residuals (fact = vel^2 * rho * dt)
-    model.backend.prescale_residuals!(residuals_a, posrecs_a, model.fact_m0)
+    model.backend.prescale_residuals!(residuals_bk, posrecs_bk, model.fact_m0)
 
     @debug "Computing gradients"
     # Current checkpoint
@@ -223,8 +233,8 @@ end
         model.backend.backward_onestep_CPML!(
             adjpcur, adjvcur..., model.fact_m0, model.fact_m1_stag...,
             model.gridspacing..., model.halo,
-            model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_coeffs...,
-            posrecs_a, residuals_a, it; # adjoint sources positions are receivers
+            model.ψ_bkdj..., model.ξ_bkdj..., model.a_coeffs..., model.b_coeffs...,
+            posrecs_bk, residuals_bk, it; # adjoint sources positions are receivers
         )
         # Print timestep info
         if it % model.infoevery == 0
@@ -257,7 +267,7 @@ end
                     pcur, vcur..., model.fact_m0, model.fact_m1_stag...,
                     model.gridspacing..., model.halo,
                     model.ψ..., model.ξ..., model.a_coeffs..., model.b_coeffs...,
-                    possrcs_a, srctf_a, nothing, nothing, recit;
+                    possrcs_bk, srctf_bk, nothing, nothing, recit;
                     save_trace=false
                 )
                 if recit % model.infoevery == 0
