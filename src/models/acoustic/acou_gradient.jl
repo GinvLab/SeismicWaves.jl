@@ -5,10 +5,6 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimul{N},
     shot::Shot,
-    # possrcs,
-    # posrecs,
-    # srctf,
-    # recs,
     misfit
 )::Array{<:Real} where {N}
 
@@ -154,10 +150,6 @@ end
     ::CPMLBoundaryCondition,
     model::AcousticVDStaggeredCPMLWaveSimul{N},
     shot::Shot,
-    # possrcs,
-    # posrecs,
-    # srctf,
-    # recs,
     misfit
 )::Array{<:Real} where {N}
 

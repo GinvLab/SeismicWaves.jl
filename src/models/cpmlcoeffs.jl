@@ -41,13 +41,6 @@ function compute_CPML_coefficientsAxis!(
     a_l, a_r, b_l, b_r = calc_Kab_CPML_staggeredgrid(halo, dt, npower, d0, alpha_max, :startongrd)
     a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML_staggeredgrid(halo, dt, npower, d0, alpha_max, :starthalfgrd)
 
-    # @show size(cpmlcoeffs.a),size(a_l),size(a_r)
-    # @show size(cpmlcoeffs.a_h),size(a_hl),size(a_hr)
-    # @show a_l
-    # @show a_hl
-    # @show a_r
-    # @show a_hr
-
     copyto!(cpmlcoeffs.a, vcat(a_l, a_r))
     copyto!(cpmlcoeffs.a_h, vcat(a_hl, a_hr))
     copyto!(cpmlcoeffs.b, vcat(b_l, b_r))
@@ -93,9 +86,6 @@ struct CPMLCoefficients
         end
     end
 end
-
-# Default type constructor
-# CPMLCoefficients(halo) = CPMLCoefficients{Float64}(halo)
 
 function calc_Kab_CPML_staggeredgrid(
     halo::Integer,
@@ -151,15 +141,6 @@ function calc_Kab_CPML_staggeredgrid(
     alpha_right = alpha_max_pml .* (1.0 .- normdist_right)
     b_right = exp.(.-(d_right ./ K_right .+ alpha_right) .* dt)
     a_right = d_right .* (b_right .- 1.0) ./ (K_right .* (d_right .+ K_right .* alpha_right))
-
-    # println()
-    # @show onwhere
-    # @show dist_left
-    # @show dist_right
-    # @show normdist_left
-    # @show normdist_right
-    # @show a_left
-    # @show a_right
 
     if K_max_pml === nothing
         return a_left, a_right, b_left, b_right

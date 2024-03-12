@@ -24,10 +24,6 @@ end
     ::CPMLBoundaryCondition,
     wavsim::AcousticCDCPMLWaveSimul{N},
     shot::Shot
-    # possrcs,
-    # posrecs,
-    # srctf,
-    # recs
 ) where {N}
 
     # scale source time function, etc.
@@ -101,10 +97,6 @@ end
     ::CPMLBoundaryCondition,
     wavsim::AcousticVDStaggeredCPMLWaveSimul{N},
     shot::Shot
-    # possrcs,
-    # posrecs,
-    # srctf,
-    # recs
 ) where {N}
 
     # scale source time function, etc.

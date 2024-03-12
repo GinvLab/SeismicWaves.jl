@@ -29,16 +29,6 @@ end
 
 # Functions for all AcousticCDWaveSimul subtypes
 
-# @views function scale_srctf(model::AcousticCDWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
-#     # scale with boxcar and timestep size
-#     scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt^2)
-#     # scale with velocity squared at each source position
-#     for s in axes(scaled_tf, 2)
-#         scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] .^ 2
-#     end
-#     return scaled_tf
-# end
-
 @views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperties{N}) where {N}
     # Checks
     @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
@@ -330,16 +320,6 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
         @warn "Courant condition not satisfied! [$(courant)]"
     end
 end
-
-# @views function scale_srctf(model::AcousticVDStaggeredWaveSimul, srctf::Matrix{<:Real}, positions::Matrix{<:Int})::Matrix{<:Real}
-#     # scale with boxcar and timestep size
-#     scaled_tf = srctf ./ prod(model.gridspacing) .* (model.dt)
-#     # scale with velocity squared times density at each source position (its like dividing by m0)
-#     for s in axes(scaled_tf, 2)
-#         scaled_tf[:, s] .*= model.matprop.vp[positions[s, :]...] ^ 2 * model.matprop.rho[positions[s, :]...]
-#     end
-#     return scaled_tf
-# end
 
 @views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperties{N}) where {N}
     # Checks
