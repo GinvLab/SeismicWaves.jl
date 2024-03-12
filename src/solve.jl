@@ -133,12 +133,12 @@ end
     for singleshot in shots
         @info "Checking invcov matrix"
         if typeof(wavsim)<:Vector{<:WaveSimul} 
-            check_invcov_matrix(wavsim[1], recs.invcov)
+            check_invcov_matrix(wavsim[1], singleshot.recs.invcov)
         else
-            check_invcov_matrix(wavsim, recs.invcov)
+            check_invcov_matrix(wavsim, singleshot.recs.invcov)
         end
         @info "Computing misfit"
-        totmisfitval += misfit(recs, matprop)
+        totmisfitval += misfit(singleshot.recs, matprop)
     end
 
     return totmisfitval
@@ -175,7 +175,7 @@ end
         #possrcs, posrecs, srctf = init_shot!(wavsim, singleshot)
         init_shot!(wavsim, singleshot)
         @info "Checking invcov matrix"
-        check_invcov_matrix(wavsim, recs.invcov)
+        check_invcov_matrix(wavsim, singleshot.recs.invcov)
         # Compute forward solver
         @info "Computing gradient solver"
         # curgrad = swgradient_1shot!(
@@ -191,7 +191,7 @@ end
         # Compute misfit if needed
         if compute_misfit
             @info "Computing misfit"
-            totmisfitval += misfit(recs, matprop)
+            totmisfitval += misfit(singleshot.recs, matprop)
         end
     end
 
@@ -246,7 +246,7 @@ end
             #possrcs, posrecs, srctf = init_shot!(wavsim[w], singleshot)
             init_shot!(wavsim[w], singleshot)
             @info "Checking invcov matrix"
-            check_invcov_matrix(wavsim[w], recs.invcov)
+            check_invcov_matrix(wavsim[w], singleshot.recs.invcov)
             # Compute forward solver
             @info "Computing gradient solver"
             # curgrad = swgradient_1shot!(
@@ -262,7 +262,7 @@ end
             # Compute misfit if needed
             if compute_misfit
                 @info "Computing misfit"
-                allmisfitval[s] = misfit(recs, matprop)
+                allmisfitval[s] = misfit(singleshot.recs, matprop)
             end
         end
     end

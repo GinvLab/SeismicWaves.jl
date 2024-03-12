@@ -113,7 +113,7 @@ function exacouprob_wavsim(parall=:serial)
     end
 
     println("\nswforward! - wavesim")        
-    wavesim_fwd = build_wavesim(params; parall=parall,
+    wavesim_fwd = build_wavesim(params, matprop; parall=parall,
                                 gradient=false)
     
     for i=1:3
@@ -157,7 +157,7 @@ function exacouprob_wavsim(parall=:serial)
 
 
     println("\nswgradient! - wavesim")
-    wavesim_grad = build_wavesim(params; parall=parall,
+    wavesim_grad = build_wavesim(params, matprop; parall=parall,
                                  gradient=true,
                                  check_freq=check_freq)
     

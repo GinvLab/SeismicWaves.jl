@@ -13,7 +13,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     )::Array{<:Real} where {N}
 
     # scale source time function, etc.
-    possrcs,posrecs,scal_srctf = possrcrec_scaletf(wavsim,shot)
+    possrcs,posrecs,scal_srctf = possrcrec_scaletf(model,shot)
 
     # Numerics
     nt = model.nt
@@ -29,7 +29,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     possrcs_bk = model.backend.Data.Array(possrcs)
     posrecs_bk = model.backend.Data.Array(posrecs)
     srctf_bk = model.backend.Data.Array(scal_srctf)
-    traces_bk = model.backend.Data.Array(recs.seismograms)
+    traces_bk = model.backend.Data.Array(shot.recs.seismograms)
     # Reset wavesim
     reset!(model)
 
@@ -67,10 +67,10 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     end
 
     @info "Saving seismograms"
-    copyto!(recs.seismograms, traces_bk)
+    copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    residuals_bk = model.backend.Data.Array(dχ_du(misfit, recs))
+    residuals_bk = model.backend.Data.Array(dχ_du(misfit, shot.recs))
 
     # Prescale residuals (fact = vel^2 * dt^2)
     model.backend.prescale_residuals!(residuals_bk, posrecs_bk, model.fact)
@@ -84,7 +84,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         adjold, adjcur, adjnew = model.backend.forward_onestep_CPML!(
             adjold, adjcur, adjnew, model.fact,
             model.gridspacing..., model.halo,
-            model.ψ_bkdj..., model.ξ_bkdj..., model.a_coeffs..., model.b_coeffs...,
+            model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_coeffs...,
             posrecs_bk, residuals_bk, nothing, nothing, it;   # adjoint sources positions are receivers
             save_trace=false
         )
@@ -162,7 +162,7 @@ end
     )::Array{<:Real} where {N}
 
     # scale source time function, etc.
-    possrcs,posrecs,scal_srctf = possrcrec_scaletf(wavsime,shot)
+    possrcs,posrecs,scal_srctf = possrcrec_scaletf(model,shot)
 
     # Numerics
     nt = model.nt
@@ -176,7 +176,7 @@ end
     possrcs_bk = model.backend.Data.Array(possrcs)
     posrecs_bk = model.backend.Data.Array(posrecs)
     srctf_bk = model.backend.Data.Array(scal_srctf)
-    traces_bk = model.backend.Data.Array(recs.seismograms)
+    traces_bk = model.backend.Data.Array(shot.recs.seismograms)
     # Reset wavesim
     reset!(model)
 
@@ -216,10 +216,10 @@ end
     end
 
     @info "Saving seismograms"
-    copyto!(recs.seismograms, traces_bk)
+    copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    residuals_bk = model.backend.Data.Array(dχ_du(misfit, recs))
+    residuals_bk = model.backend.Data.Array(dχ_du(misfit, shot.recs))
 
     # Prescale residuals (fact = vel^2 * rho * dt)
     model.backend.prescale_residuals!(residuals_bk, posrecs_bk, model.fact_m0)
@@ -233,7 +233,7 @@ end
         model.backend.backward_onestep_CPML!(
             adjpcur, adjvcur..., model.fact_m0, model.fact_m1_stag...,
             model.gridspacing..., model.halo,
-            model.ψ_bkdj..., model.ξ_bkdj..., model.a_coeffs..., model.b_coeffs...,
+            model.ψ_adj..., model.ξ_adj..., model.a_coeffs..., model.b_coeffs...,
             posrecs_bk, residuals_bk, it; # adjoint sources positions are receivers
         )
         # Print timestep info

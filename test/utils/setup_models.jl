@@ -49,7 +49,7 @@ function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, r
     lx = (nx - 1) * dx
     matprop = VpRhoAcousticVDMaterialProperties(c0 .* ones(nx), ρ0 .* ones(nx))
     # input parameters
-    params = InputParametersAcousticVariableDensity(nt, dt, [nx], [dx],
+    params = InputParametersAcoustic(nt, dt, [nx], [dx],
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     times = collect(range(0.0; step=dt, length=nt))
@@ -97,7 +97,7 @@ function setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0,
     ly = (ny - 1) * dy
     matprop = VpRhoAcousticVDMaterialProperties(c0 .* ones(nx, ny), ρ0 .* ones(nx, ny))
     # input parameters
-    params = InputParametersAcousticVariableDensity(nt, dt, [nx, ny], [dx, dy],
+    params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     times = collect(range(0.0; step=dt, length=nt))

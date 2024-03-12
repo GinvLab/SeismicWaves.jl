@@ -60,7 +60,7 @@ function setup(nt, c0, c0max, r, dx, dy, dt, halo, rcoef, nx, ny, parall)
     params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy], boundcond)
 
     # Wave simulation builder
-    wavesim = build_wavesim(params; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)))
+    wavesim = build_wavesim(params, matprop_const; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)))
 
     return wavesim, shots, matprop_const, matprop_gauss
 end

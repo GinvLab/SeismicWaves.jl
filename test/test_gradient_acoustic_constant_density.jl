@@ -1,4 +1,4 @@
-using Test
+using Test, LinearAlgebra
 using SeismicWaves
 using CUDA: CUDA
 
@@ -41,6 +41,9 @@ with_logger(error_logger) do
 
             # Check that gradient is non zero
             @test !all(g -> g == 0.0, grad)
+            # Check that misfits are non zero
+            @test !(misfit ≈ 0.0)
+            @test !(misfit_check ≈ 0.0)
             # Check that misfits are equivalent
             @test misfit ≈ misfit_check
         end
@@ -73,6 +76,9 @@ with_logger(error_logger) do
 
             # Check that gradient is non zero
             @test !all(g -> g == 0.0, grad)
+            # Check that misfits are non zero
+            @test !(misfit ≈ 0.0)
+            @test !(misfit_check ≈ 0.0)
             # Check that misfits are equivalent
             @test misfit ≈ misfit_check
         end
@@ -104,6 +110,9 @@ with_logger(error_logger) do
 
             # Check that gradient is non zero
             @test !all(g -> g == 0.0, grad)
+            # Check that misfits are non zero
+            @test !(misfit ≈ 0.0)
+            @test !(misfit_check ≈ 0.0)
             # Check that misfits are equivalent
             @test misfit ≈ misfit_check
         end
@@ -135,6 +144,9 @@ with_logger(error_logger) do
 
             # Check that gradient is non zero
             @test !all(g -> g == 0.0, grad)
+            # Check that misfits are non zero
+            @test !(misfit ≈ 0.0)
+            @test !(misfit_check ≈ 0.0)
             # Check that misfits are equivalent
             @test misfit ≈ misfit_check
         end

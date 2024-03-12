@@ -45,7 +45,7 @@ end
     possrcs_bk = wavsim.backend.Data.Array(possrcs)
     posrecs_bk = wavsim.backend.Data.Array(posrecs)
     srctf_bk  = wavsim.backend.Data.Array(scal_srctf)
-    traces_bk = wavsim.backend.Data.Array(recs.seismograms)
+    traces_bk = wavsim.backend.Data.Array(shot.recs.seismograms)
     # Reset wavesim
     reset!(wavsim)
 
@@ -76,7 +76,7 @@ end
     end
 
     # Save traces
-    copyto!(recs.seismograms, traces_bk)
+    copyto!(shot.recs.seismograms, traces_bk)
 end
 
 
@@ -94,7 +94,7 @@ end
     scal_srctf = shot.srcs.tf ./ prod(wavsim.gridspacing) .* (wavsim.dt)  
     # scale with velocity squared times density at each source position (its like dividing by m0)
     for s in axes(scal_srctf, 2)
-        scal_srctf[:, s] .*= wavsim.matprop.vp[possrcs[s, :]...] .^ 2 * wavsim.matprop.rho[positions[s, :]...]
+        scal_srctf[:, s] .*= wavsim.matprop.vp[possrcs[s, :]...] .^ 2 .* wavsim.matprop.rho[possrcs[s, :]...]
     end
 
     return possrcs,posrecs,scal_srctf
@@ -112,7 +112,7 @@ end
     ) where {N}
 
     # scale source time function, etc.
-    possrcs,posrecs,scal_srctf = possrcrec_scaletf(wavsime,shot)
+    possrcs,posrecs,scal_srctf = possrcrec_scaletf(wavsim,shot)
 
     # Pressure and velocity arrays
     pcur = wavsim.pcur
@@ -123,7 +123,7 @@ end
     possrcs_bk = wavsim.backend.Data.Array(possrcs)
     posrecs_bk = wavsim.backend.Data.Array(posrecs)
     srctf_bk = wavsim.backend.Data.Array(scal_srctf)
-    traces_bk = wavsim.backend.Data.Array(recs.seismograms)
+    traces_bk = wavsim.backend.Data.Array(shot.recs.seismograms)
     # Reset wavesim
     reset!(wavsim)
 
@@ -154,5 +154,5 @@ end
     end
 
     # Save traces
-    copyto!(recs.seismograms, traces_bk)
+    copyto!(shot.recs.seismograms, traces_bk)
 end

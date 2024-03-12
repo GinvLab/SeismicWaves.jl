@@ -35,7 +35,7 @@ with_logger(error_logger) do
             # wave simulation
             params = InputParametersAcoustic(nt, dt, [nx], [dx],
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params; parall=parall)
+            wavesim = build_wavesim(params, matprop; parall=parall)
 
             # single source at 10 grid points from CPML boundary
             times = collect(range(0.0; step=dt, length=nt))
@@ -88,7 +88,7 @@ with_logger(error_logger) do
             # wave simulation
             params = InputParametersAcoustic(nt, dt, [nx], [dx],
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params; parall=parall)
+            wavesim = build_wavesim(params, matprop; parall=parall)
 
             # multiple sources at differece distances
             times = collect(range(0.0; step=dt, length=nt))
@@ -145,7 +145,7 @@ with_logger(error_logger) do
             # wave simulation
             params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params; parall=parall)
+            wavesim = build_wavesim(params, matprop; parall=parall)
 
             # single source at 10 grid points from top CPML boundary
             times = collect(range(0.0; step=dt, length=nt))
@@ -201,7 +201,7 @@ with_logger(error_logger) do
             # wave simulation
             params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params; parall=parall)
+            wavesim = build_wavesim(params, matprop; parall=parall)
 
             # multiple sources at differece distances
             times = collect(range(0.0; step=dt, length=nt))
