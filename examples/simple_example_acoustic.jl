@@ -93,11 +93,11 @@ function exacouprob(parall=:serial)
     logger = ConsoleLogger(Error)
     ## compute the seismograms
     @time snapshots = swforward!(params,
-                                 matprop,
-                                 shots;
-                                 parall=parall,
-                                 infoevery=infoevery,
-                                 logger=logger )
+        matprop,
+        shots;
+        parall=parall,
+        infoevery=infoevery,
+        logger=logger)
     #snapevery=snapevery)
 
     ##===============================================
@@ -116,11 +116,11 @@ function exacouprob(parall=:serial)
     matprop_grad = VpAcousticCDMaterialProperties(newvelmod)
 
     @time grad = swgradient!(params,
-                             matprop_grad,
-                             shots_grad;
-                             parall=parall,
-                             logger=logger )
-    
+        matprop_grad,
+        shots_grad;
+        parall=parall,
+        logger=logger)
+
     return params, velmod, shots#, snapshots, grad
 end
 

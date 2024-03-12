@@ -12,7 +12,6 @@ struct VpAcousticCDMaterialProperties{N} <: MaterialProperties{N}
     vp::Array{<:Float64, N}
 end
 
-
 @doc """
 $(TYPEDEF)
 
@@ -45,7 +44,6 @@ mutable struct VpRhoAcousticVDMaterialProperties{N} <: MaterialProperties{N}
         return new(vp, rho, interp_method)
     end
 end
-
 
 @doc """
 $(SIGNATURES)

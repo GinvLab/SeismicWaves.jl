@@ -6,20 +6,20 @@ struct CPMLCoefficientsAxis
     b_h::Any
 
     function CPMLCoefficientsAxis(halo::Integer, backend::Module,
-                                  sizehalfgrdplusone::Bool=false)
+        sizehalfgrdplusone::Bool=false)
         if sizehalfgrdplusone
             return new(
-            backend.zeros(2 * halo),
-            backend.zeros(2 * (halo+1) +1 ),
-            backend.zeros(2 * halo),
-            backend.zeros(2 * (halo+1) +1),
+                backend.zeros(2 * halo),
+                backend.zeros(2 * (halo + 1) + 1),
+                backend.zeros(2 * halo),
+                backend.zeros(2 * (halo + 1) + 1)
             )
         else
             return new(
-            backend.zeros(2 * halo),
-            backend.zeros(2 * (halo+1)),
-            backend.zeros(2 * halo),
-            backend.zeros(2 * (halo+1))
+                backend.zeros(2 * halo),
+                backend.zeros(2 * (halo + 1)),
+                backend.zeros(2 * halo),
+                backend.zeros(2 * (halo + 1))
             )
         end
     end
@@ -38,7 +38,7 @@ function compute_CPML_coefficientsAxis!(
     alpha_max = π * f0  # CPML α multiplicative factor (half of dominating angular frequency)
     npower = 2.0  # CPML power coefficient
     d0 = -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness)  # damping profile
-    a_l, a_r, b_l, b_r     = calc_Kab_CPML_staggeredgrid(halo, dt, npower, d0, alpha_max, :startongrd)
+    a_l, a_r, b_l, b_r = calc_Kab_CPML_staggeredgrid(halo, dt, npower, d0, alpha_max, :startongrd)
     a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML_staggeredgrid(halo, dt, npower, d0, alpha_max, :starthalfgrd)
 
     # @show size(cpmlcoeffs.a),size(a_l),size(a_r)
@@ -48,10 +48,10 @@ function compute_CPML_coefficientsAxis!(
     # @show a_r
     # @show a_hr
 
-    copyto!(cpmlcoeffs.a, vcat(a_l,a_r))
-    copyto!(cpmlcoeffs.a_h, vcat(a_hl,a_hr))
-    copyto!(cpmlcoeffs.b, vcat(b_l,b_r))
-    copyto!(cpmlcoeffs.b_h, vcat(b_hl,b_hr))
+    copyto!(cpmlcoeffs.a, vcat(a_l, a_r))
+    copyto!(cpmlcoeffs.a_h, vcat(a_hl, a_hr))
+    copyto!(cpmlcoeffs.b, vcat(b_l, b_r))
+    copyto!(cpmlcoeffs.b_h, vcat(b_hl, b_hr))
 end
 
 #################################################################
@@ -67,28 +67,28 @@ struct CPMLCoefficients
     b_hr::Any
 
     function CPMLCoefficients(halo::Integer, backend::Module,
-                              sizehalfgrdplusone::Bool=false)
+        sizehalfgrdplusone::Bool=false)
         if sizehalfgrdplusone
             return new(
-            backend.zeros(halo),
-            backend.zeros(halo),
-            backend.zeros(halo + 1),
-            backend.zeros(halo + 1),
-            backend.zeros(halo),
-            backend.zeros(halo),
-            backend.zeros(halo + 1),
-            backend.zeros(halo + 1)
+                backend.zeros(halo),
+                backend.zeros(halo),
+                backend.zeros(halo + 1),
+                backend.zeros(halo + 1),
+                backend.zeros(halo),
+                backend.zeros(halo),
+                backend.zeros(halo + 1),
+                backend.zeros(halo + 1)
             )
         else
             return new(
-            backend.zeros(halo),
-            backend.zeros(halo),
-            backend.zeros(halo),
-            backend.zeros(halo),
-            backend.zeros(halo),
-            backend.zeros(halo),
-            backend.zeros(halo),
-            backend.zeros(halo)
+                backend.zeros(halo),
+                backend.zeros(halo),
+                backend.zeros(halo),
+                backend.zeros(halo),
+                backend.zeros(halo),
+                backend.zeros(halo),
+                backend.zeros(halo),
+                backend.zeros(halo)
             )
         end
     end
@@ -96,7 +96,6 @@ end
 
 # Default type constructor
 # CPMLCoefficients(halo) = CPMLCoefficients{Float64}(halo)
-
 
 function calc_Kab_CPML_staggeredgrid(
     halo::Integer,
@@ -122,17 +121,17 @@ function calc_Kab_CPML_staggeredgrid(
     end
 
     # distance from edge node
-    dist_left  = collect(LinRange(shift_left,  Kab_size+shift_left-1,  Kab_size))
-    dist_right = collect(LinRange(shift_right, Kab_size+shift_right-1, Kab_size))
+    dist_left = collect(LinRange(shift_left, Kab_size + shift_left - 1, Kab_size))
+    dist_right = collect(LinRange(shift_right, Kab_size + shift_right - 1, Kab_size))
 
     if halo != 0
-        normdist_left = reverse(dist_left) ./ (halo-0.5)
-        normdist_right = dist_right ./ (halo-0.5)
+        normdist_left = reverse(dist_left) ./ (halo - 0.5)
+        normdist_right = dist_right ./ (halo - 0.5)
     else
         normdist_left = reverse(dist_left)
         normdist_right = dist_right
     end
-   
+
     if K_max_pml === nothing
         K_left = 1.0
     else
@@ -161,14 +160,13 @@ function calc_Kab_CPML_staggeredgrid(
     # @show normdist_right
     # @show a_left
     # @show a_right
-    
+
     if K_max_pml === nothing
         return a_left, a_right, b_left, b_right
     else
         return a_left, a_right, b_left, b_right, K_left, K_right
     end
 end
-
 
 #####################################
 
@@ -187,7 +185,7 @@ function compute_CPML_coefficients!(
     d0 = -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness)     # damping profile
     if halo == 0 # fix for thickness == 0 generating NaNs
         d0 = 0.0
-    end                                         
+    end
     a_l, a_r, b_l, b_r = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "ongrd")
     a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "halfgrd")
 

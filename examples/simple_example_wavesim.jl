@@ -21,7 +21,7 @@ function exacouprob_wavsim(parall=:serial)
     nx = 301 #300 #211
     nz = 288 #300 #120
     dh = 10.0 # meters
-    @show nx,nz
+    @show nx, nz
 
     #@show (nx-1)*dh, (nz-1)*dh
 
@@ -97,32 +97,31 @@ function exacouprob_wavsim(parall=:serial)
     ## compute the seismograms
 
     println("####>>>>  parall = $parall <<<<####")
-    if parall==:threads || parall==:threadpersrc
+    if parall == :threads || parall == :threadpersrc
         @show Threads.nthreads()
     end
 
-    
     println("\nswforward! - NO wavesim")
-    for i=1:3
+    for i in 1:3
         @time snapshots = swforward!(params,
-                                     matprop,
-                                     shots;
-                                     parall=parall,
-                                     infoevery=infoevery,
-                                     logger=logger )
+            matprop,
+            shots;
+            parall=parall,
+            infoevery=infoevery,
+            logger=logger)
     end
 
-    println("\nswforward! - wavesim")        
+    println("\nswforward! - wavesim")
     wavesim_fwd = build_wavesim(params, matprop; parall=parall,
-                                gradient=false)
-    
-    for i=1:3
+        gradient=false)
+
+    for i in 1:3
         @time snapshots = swforward!(wavesim_fwd,
-                                     matprop,
-                                     shots;
-                                     logger=logger )
-    end  
-    
+            matprop,
+            shots;
+            logger=logger)
+    end
+
     #snapevery=snapevery)
 
     ##===============================================
@@ -146,33 +145,30 @@ function exacouprob_wavsim(parall=:serial)
     grad = nothing
 
     println("\nswgradient! - NO wavesim")
-    for i=1:3
+    for i in 1:3
         @time grad = swgradient!(params,
-                                 matprop_grad,
-                                 shots_grad;
-                                 check_freq=check_freq,
-                                 parall=parall,
-                                 logger=logger )
+            matprop_grad,
+            shots_grad;
+            check_freq=check_freq,
+            parall=parall,
+            logger=logger)
     end
-
 
     println("\nswgradient! - wavesim")
     wavesim_grad = build_wavesim(params, matprop; parall=parall,
-                                 gradient=true,
-                                 check_freq=check_freq)
-    
-    for i=1:3
+        gradient=true,
+        check_freq=check_freq)
+
+    for i in 1:3
         @time grad = swgradient!(wavesim_grad,
-                                 matprop_grad,
-                                 shots_grad;
-                                 logger=logger )
+            matprop_grad,
+            shots_grad;
+            logger=logger)
     end
 
-    
-    jldsave("fwd_grad_$(parall).jld",shots=shots,grad=grad)
+    jldsave("fwd_grad_$(parall).jld"; shots=shots, grad=grad)
 
     return params, velmod, shots, grad
 end
 
 ##################################################################
-

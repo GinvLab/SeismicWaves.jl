@@ -33,15 +33,13 @@ end
         pnew[i] = 2.0 * pcur[i] - pold[i] + fact[i] * (d2p_dx2)
     end
 
-@views function update_ψ!(ψ_l, ψ_r, pcur, halo, nx, _dx, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
-    for i in 1:(halo+1)
+@views update_ψ!(ψ_l, ψ_r, pcur, halo, nx, _dx, a_x_hl, a_x_hr, b_x_hl, b_x_hr) = for i in 1:(halo+1)
         ii = i + nx - halo - 2  # shift for right boundary pressure indices
         # left boundary
         ψ_l[i] = b_x_hl[i] * ψ_l[i] + a_x_hl[i] * (pcur[i+1] - pcur[i]) * _dx
         # right boundary
         ψ_r[i] = b_x_hr[i] * ψ_r[i] + a_x_hr[i] * (pcur[ii+1] - pcur[ii]) * _dx
     end
-end
 
 @views function update_p_CPML!(
     pold, pcur, pnew, halo, fact, nx, _dx, _dx2,

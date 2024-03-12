@@ -70,5 +70,3 @@ end
 
 #     return InputParametersAcousticVariableDensity{N}(ntimesteps, dt, tuple(gridsize...), tuple(gridspacing...), boundcond)
 # end
-
-

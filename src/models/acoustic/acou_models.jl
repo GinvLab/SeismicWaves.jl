@@ -111,7 +111,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     # Backend
     backend::Module
     parall::Symbol
-    
+
     function AcousticCDCPMLWaveSimul{N}(
         ns::NTuple{N, <:Integer},
         gridspacing::NTuple{N, <:Real},
@@ -324,7 +324,7 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
 @views function check_courant_condition(model::AcousticVDStaggeredWaveSimul{N}, vp::Array{<:Real, N}) where {N}
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
-    courant = vel_max * model.dt * tmp * 7/6    # 7/6 comes from the higher order stencil
+    courant = vel_max * model.dt * tmp * 7 / 6    # 7/6 comes from the higher order stencil
     @debug "Courant number: $(courant)"
     if courant > 1
         @warn "Courant condition not satisfied! [$(courant)]"

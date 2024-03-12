@@ -1,5 +1,4 @@
 
-
 select_backend(wavesim_type::Type{<:WaveSimul}, parall::Symbol) =
     select_backend(BoundaryConditionTrait(wavesim_type), GridTrait(wavesim_type), wavesim_type, Val{parall})
 
@@ -58,7 +57,6 @@ select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggere
     Acoustic2D_VD_CPML_Threads
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{2}}, ::Type{Val{:GPU}}) =
     Acoustic2D_VD_CPML_GPU
-
 
 # Backend selections for ElasticIsoWaveSimul
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:ElasticIsoWaveSimul{2}}, ::Type{Val{:serial}}) =

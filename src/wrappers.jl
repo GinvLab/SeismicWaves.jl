@@ -33,11 +33,10 @@ function swforward!(
     parall::Symbol=:threads,
     snapevery::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
-    logger::Union{Nothing,AbstractLogger}=nothing
+    logger::Union{Nothing, AbstractLogger}=nothing
 )::Union{Vector{AbstractArray}, Nothing} where {N}
-
-    if logger==nothing
-        logger=current_logger()
+    if logger == nothing
+        logger = current_logger()
     end
     out = nothing
     with_logger(logger) do
@@ -48,7 +47,6 @@ function swforward!(
     end
     return out
 end
-
 
 @doc """
 
@@ -71,10 +69,10 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 - `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays.  
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
     """
-function swforward!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
-                    logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N}
-    if logger==nothing
-        logger=current_logger()
+function swforward!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
+    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {N}
+    if logger == nothing
+        logger = current_logger()
     end
     out = nothing
     with_logger(logger) do
@@ -113,11 +111,10 @@ function swmisfit!(
     shots::Vector{<:Shot};  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads,
     misfit::AbstractMisfit=L2Misfit(nothing),
-    logger::Union{Nothing,AbstractLogger}=nothing
+    logger::Union{Nothing, AbstractLogger}=nothing
 )::Real where {N}
-
-    if logger==nothing
-        logger=current_logger()
+    if logger == nothing
+        logger = current_logger()
     end
     out = nothing
     with_logger(logger) do
@@ -128,7 +125,6 @@ function swmisfit!(
     end
     return out
 end
-
 
 @doc """
 
@@ -150,10 +146,10 @@ Receivers traces are stored in the `Receivers` object for each shot.
     
 See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 """
-function swmisfit!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot}; 
-                   logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N}
-    if logger==nothing
-        logger=current_logger()
+function swmisfit!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
+    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {N}
+    if logger == nothing
+        logger = current_logger()
     end
     out = nothing
     with_logger(logger) do
@@ -198,18 +194,17 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 function swgradient!(
     params::InputParameters{N},
     matprop::MaterialProperties{N},
-    shots::Vector{<:Shot}; 
+    shots::Vector{<:Shot};
     parall::Symbol=:threads,
     check_freq::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing),
     smooth_radius::Integer=5,
-    logger::Union{Nothing,AbstractLogger}=nothing
+    logger::Union{Nothing, AbstractLogger}=nothing
 )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
-
-    if logger==nothing
-        logger=current_logger()
+    if logger == nothing
+        logger = current_logger()
     end
     out = nothing
     with_logger(logger) do
@@ -220,7 +215,6 @@ function swgradient!(
     end
     return out
 end
-
 
 @doc """
 
@@ -251,10 +245,10 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `smooth_radius::Integer = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
 - `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used. 
 """
-function swgradient!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
-                     logger::Union{Nothing,AbstractLogger}=nothing, kwargs...) where {N} 
-    if logger==nothing
-        logger=current_logger()
+function swgradient!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
+    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {N}
+    if logger == nothing
+        logger = current_logger()
     end
     out = nothing
     with_logger(logger) do
@@ -262,7 +256,7 @@ function swgradient!(wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}, matpro
     end
     return out
 end
-        
+
 #######################################################
 
 @doc """
@@ -286,17 +280,15 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 - `infoevery::Union{<:Integer, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
 function build_wavesim(params::InputParameters, matprop::MaterialProperties; parall::Symbol, kwargs...)
-    if parall==:threadpersrc
+    if parall == :threadpersrc
         nthr = Threads.nthreads()
         #println("  build_wavesim  :threadpersrc")
-        wsim = [build_concrete_wavesim(params, matprop, params.boundcond; parall, kwargs...) for s=1:nthr]
+        wsim = [build_concrete_wavesim(params, matprop, params.boundcond; parall, kwargs...) for s in 1:nthr]
     else
         wsim = build_concrete_wavesim(params, matprop, params.boundcond; parall, kwargs...)
     end
     return wsim
 end
-
-
 
 build_concrete_wavesim(
     params::InputParametersAcoustic{N},

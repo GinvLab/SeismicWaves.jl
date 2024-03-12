@@ -1,7 +1,6 @@
 
 swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryConditionTrait(wavsim), wavsim, args...)
 
-
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
     wavsim::ElasticIsoCPMLWaveSimul{N},
@@ -10,23 +9,23 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     # posrecs::Matrix{<:Integer},
     # srctf,
     # recs
-    ) where {N}
+) where {N}
 
     # scale source time function, etc.
     # find nearest grid points indexes for both sources and receivers
     # possrcs = find_nearest_grid_points(wavsim, shot.srcs.positions)
     # posrecs = find_nearest_grid_points(wavsim, shot.recs.positions)
 
-    if N==2
+    if N == 2
         # interpolation coefficients for sources
-        srccoeij,srccoeval = spreadsrcrecinterp2D(wavsim.gridspacing,wavsim.gridsize,
-                                                  shot.srcs.positions,
-                                                  nptssinc=4,xstart=0.0,zstart=0.0)
+        srccoeij, srccoeval = spreadsrcrecinterp2D(wavsim.gridspacing, wavsim.gridsize,
+            shot.srcs.positions;
+            nptssinc=4, xstart=0.0, zstart=0.0)
         # interpolation coefficients for receivers
-        reccoeij,reccoeval = spreadsrcrecinterp2D(wavsim.gridspacing,wavsim.gridsize,
-                                                  shot.recs.positions,
-                                                  nptssinc=4,xstart=0.0,zstart=0.0)
-    elseif N==3
+        reccoeij, reccoeval = spreadsrcrecinterp2D(wavsim.gridspacing, wavsim.gridsize,
+            shot.recs.positions;
+            nptssinc=4, xstart=0.0, zstart=0.0)
+    elseif N == 3
         error("swforward_1shot!(): Elastic 3D not yet implemented!")
     end
 
@@ -37,26 +36,26 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
 
     # Numerics
     nt = wavsim.nt
- 
+
     # Wrap sources and receivers arrays
-    
+
     # possrcs_bk = wavsim.backend.Data.Array(possrcs)
     # posrecs_bk = wavsim.backend.Data.Array(posrecs)
-    
+
     srccoeij_bk = wavsim.backend.Data.Array(srccoeij)
     srccoeval_bk = wavsim.backend.Data.Array(srccoeval)
     reccoeij_bk = wavsim.backend.Data.Array(reccoeij)
     reccoeval_bk = wavsim.backend.Data.Array(reccoeval)
 
-    srctf_bk  = wavsim.backend.Data.Array(srctf)
+    srctf_bk = wavsim.backend.Data.Array(srctf)
     traces_bk = wavsim.backend.Data.Array(shot.recs.seismograms)
 
-    if N==2
+    if N == 2
         ## ONLY 2D for now!!!
         Mxx_bk = wavsim.backend.Data.Array(momtens.Mxx)
         Mzz_bk = wavsim.backend.Data.Array(momtens.Mzz)
         Mxz_bk = wavsim.backend.Data.Array(momtens.Mxz)
-    elseif N==3
+    elseif N == 3
         error("swforward_1shot!(): Elastic 3D not yet implemented!")
     end
 
@@ -67,19 +66,18 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
 
     # Time loop
     for it in 1:nt
-
-        if N==2
+        if N == 2
             # Compute one forward step
             wavsim.backend.forward_onestep_CPML!(wavsim,
-                                                 srccoeij_bk,
-                                                 srccoeval_bk,
-                                                 reccoeij_bk,
-                                                 reccoeval_bk,
-                                                 srctf_bk,
-                                                 traces_bk,
-                                                 it,
-                                                 Mxx_bk,Mzz_bk,Mxz_bk,
-                                                 save_trace=true)
+                srccoeij_bk,
+                srccoeval_bk,
+                reccoeij_bk,
+                reccoeval_bk,
+                srctf_bk,
+                traces_bk,
+                it,
+                Mxx_bk, Mzz_bk, Mxz_bk;
+                save_trace=true)
             # # Compute one forward step
             # wavsim.backend.forward_onestep_CPML!(wavsim,
             #                                      possrcs_bk,
@@ -90,9 +88,9 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
             #                                      Mxx_bk,Mzz_bk,Mxz_bk,
             #                                      save_trace=true)
         else
-          error("swforward_1shot!(): Elastic 3D not yet implemented!")
+            error("swforward_1shot!(): Elastic 3D not yet implemented!")
         end
-        
+
         # Print timestep info
         if it % wavsim.infoevery == 0
             # Move the cursor to the beginning to overwrite last line
@@ -101,7 +99,7 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
             # REPL.Terminals.cmove_line_up(ter)
             @info @sprintf(
                 "Iteration: %d/%d, simulation time: %g s",
-                it,nt,
+                it, nt,
                 wavsim.dt * (it - 1)
             )
         end
@@ -123,44 +121,41 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     return
 end
 
-
-
-function spreadsrcrecinterp2D(gridspacing::NTuple{N,Real},gridsize::NTuple{N,Integer},
-                              positions::Matrix{<:Real};
-                              nptssinc::Int=4,xstart::Real=0.0,zstart::Real=0.0) where N
-
-    nloc = size(positions,1)
-    Ndim = size(positions,2)
-    @assert Ndim==2
-    @assert N==Ndim
+function spreadsrcrecinterp2D(gridspacing::NTuple{N, Real}, gridsize::NTuple{N, Integer},
+    positions::Matrix{<:Real};
+    nptssinc::Int=4, xstart::Real=0.0, zstart::Real=0.0) where {N}
+    nloc = size(positions, 1)
+    Ndim = size(positions, 2)
+    @assert Ndim == 2
+    @assert N == Ndim
 
     Δx = gridspacing[1]
     Δz = gridspacing[2]
-    nx,nz = gridsize[1:2]
+    nx, nz = gridsize[1:2]
 
-    maxnumcoeff = nloc * (2*nptssinc+1)^Ndim
-    coeij_tmp  = zeros(Int,maxnumcoeff,Ndim+1)
+    maxnumcoeff = nloc * (2 * nptssinc + 1)^Ndim
+    coeij_tmp = zeros(Int, maxnumcoeff, Ndim + 1)
     coeval_tmp = zeros(maxnumcoeff)
-    l=0
-    for p=1:nloc
+    l = 0
+    for p in 1:nloc
         # extract x and z position for source or receiver p
-        xpos,zpos = positions[p,:]
+        xpos, zpos = positions[p, :]
         # compute grid indices and values of sinc coefficients
-        xidx,zidx,xzcoeff = coeffsinc2D(xstart,zstart,Δx,Δz,xpos,zpos,
-                                        nx,nz,[:monopole,:monopole],npts=nptssinc)
-        for j=1:length(zidx)
-            for i=1:length(xidx)
-                l+=1
+        xidx, zidx, xzcoeff = coeffsinc2D(xstart, zstart, Δx, Δz, xpos, zpos,
+            nx, nz, [:monopole, :monopole]; npts=nptssinc)
+        for j in 1:length(zidx)
+            for i in 1:length(xidx)
+                l += 1
                 # id, i, j indices
-                coeij_tmp[l,:] .= (p,xidx[i],zidx[j])
+                coeij_tmp[l, :] .= (p, xidx[i], zidx[j])
                 # coefficients value
-                coeval_tmp[l] = xzcoeff[i,j]
+                coeval_tmp[l] = xzcoeff[i, j]
             end
-        end            
+        end
     end
     # keep only the valid part of the arrays
-    coeij = coeij_tmp[1:l,:]
+    coeij = coeij_tmp[1:l, :]
     coeval = coeval_tmp[1:l]
 
-    return coeij,coeval
+    return coeij, coeval
 end

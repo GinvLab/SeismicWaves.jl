@@ -2,10 +2,9 @@
 # Generic function
 swforward_1shot!(wavsim::AcousticWaveSimul, args...) = swforward_1shot!(BoundaryConditionTrait(wavsim), wavsim, args...)
 
-
 # Scaling for AcousticCDWaveSimul
 @views function possrcrec_scaletf(wavsim::AcousticCDCPMLWaveSimul{N},
-                                  shot::Shot) where {N}
+    shot::Shot) where {N}
     # find nearest grid points indexes for both sources and receivers
     possrcs = find_nearest_grid_points(wavsim, shot.srcs.positions)
     posrecs = find_nearest_grid_points(wavsim, shot.recs.positions)
@@ -18,9 +17,8 @@ swforward_1shot!(wavsim::AcousticWaveSimul, args...) = swforward_1shot!(Boundary
         scal_srctf[:, s] .*= wavsim.matprop.vp[possrcs[s, :]...] .^ 2
     end
 
-    return possrcs,posrecs,scal_srctf
+    return possrcs, posrecs, scal_srctf
 end
-
 
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
@@ -30,11 +28,11 @@ end
     # posrecs,
     # srctf,
     # recs
-    ) where {N}
+) where {N}
 
     # scale source time function, etc.
-    possrcs,posrecs,scal_srctf = possrcrec_scaletf(wavsim,shot)
-                                                       
+    possrcs, posrecs, scal_srctf = possrcrec_scaletf(wavsim, shot)
+
     # Pressure arrays
     pold = wavsim.pold
     pcur = wavsim.pcur
@@ -44,7 +42,7 @@ end
     # Wrap sources and receivers arrays
     possrcs_bk = wavsim.backend.Data.Array(possrcs)
     posrecs_bk = wavsim.backend.Data.Array(posrecs)
-    srctf_bk  = wavsim.backend.Data.Array(scal_srctf)
+    srctf_bk = wavsim.backend.Data.Array(scal_srctf)
     traces_bk = wavsim.backend.Data.Array(shot.recs.seismograms)
     # Reset wavesim
     reset!(wavsim)
@@ -79,27 +77,25 @@ end
     copyto!(shot.recs.seismograms, traces_bk)
 end
 
-
 #####################################################
 
 # Scaling for AcousticVDStaggeredCPMLWaveSimul
 @views function possrcrec_scaletf(wavsim::AcousticVDStaggeredCPMLWaveSimul{N},
-                                  shot::Shot) where {N}
+    shot::Shot) where {N}
     # find nearest grid points indexes for both sources and receivers
     possrcs = find_nearest_grid_points(wavsim, shot.srcs.positions)
     posrecs = find_nearest_grid_points(wavsim, shot.recs.positions)
 
     # source time function 
     # scale with boxcar and timestep size
-    scal_srctf = shot.srcs.tf ./ prod(wavsim.gridspacing) .* (wavsim.dt)  
+    scal_srctf = shot.srcs.tf ./ prod(wavsim.gridspacing) .* (wavsim.dt)
     # scale with velocity squared times density at each source position (its like dividing by m0)
     for s in axes(scal_srctf, 2)
         scal_srctf[:, s] .*= wavsim.matprop.vp[possrcs[s, :]...] .^ 2 .* wavsim.matprop.rho[possrcs[s, :]...]
     end
 
-    return possrcs,posrecs,scal_srctf
+    return possrcs, posrecs, scal_srctf
 end
-
 
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
@@ -109,10 +105,10 @@ end
     # posrecs,
     # srctf,
     # recs
-    ) where {N}
+) where {N}
 
     # scale source time function, etc.
-    possrcs,posrecs,scal_srctf = possrcrec_scaletf(wavsim,shot)
+    possrcs, posrecs, scal_srctf = possrcrec_scaletf(wavsim, shot)
 
     # Pressure and velocity arrays
     pcur = wavsim.pcur

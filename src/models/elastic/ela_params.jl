@@ -33,4 +33,3 @@ function InputParametersElastic(
 
     return InputParametersElastic{N}(ntimesteps, dt, tuple(gridsize...), tuple(gridspacing...), boundcond)
 end
-

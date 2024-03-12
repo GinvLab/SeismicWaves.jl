@@ -175,7 +175,7 @@ rho0 = 1500
 rho0max = 3000
 r = 35
 dh = dx = dy = 5.0
-dt = dh / sqrt(2) / c0max * 6/7
+dt = dh / sqrt(2) / c0max * 6 / 7
 halo = 20
 rcoef = 0.0001
 nx = 201

@@ -14,7 +14,7 @@ init_bdc!(::ReflectiveBoundaryCondition, model::ElasticWaveSimul, srcs::Sources)
         #@show n,typeof(model.cpmlcoeffs[n])
         compute_CPML_coefficientsAxis!(
             model.cpmlcoeffs[n],
-            get_maximum_func(model)( sqrt.((model.matprop.λ+2.0*model.matprop.μ)./model.matprop.ρ) ),
+            get_maximum_func(model)(sqrt.((model.matprop.λ + 2.0 * model.matprop.μ) ./ model.matprop.ρ)),
             model.dt,
             model.halo,
             model.rcoef,
@@ -26,9 +26,9 @@ init_bdc!(::ReflectiveBoundaryCondition, model::ElasticWaveSimul, srcs::Sources)
     if model.freetop && N >= 1
         lastcoe = model.cpmlcoeffs[N]
 
-        lastcoe.a[1:length(lastcoe.a)÷2]     .= 0.0
+        lastcoe.a[1:length(lastcoe.a)÷2] .= 0.0
         lastcoe.a_h[1:length(lastcoe.a_h)÷2] .= 0.0
-        lastcoe.b[1:length(lastcoe.b)÷2]     .= 1.0
+        lastcoe.b[1:length(lastcoe.b)÷2] .= 1.0
         lastcoe.b_h[1:length(lastcoe.b_h)÷2] .= 1.0
         # model.cpmlcoeffs[N].a_l .= 0.0
         # model.cpmlcoeffs[N].a_hl .= 0.0

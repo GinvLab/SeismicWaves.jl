@@ -161,7 +161,7 @@ end
 
 function analytical_solution_constant_vel_constant_density_1D(c0, rho, dt, nt, t0, f0, srcs, recs)
     # analytical solution
-    times = collect(range(dt/2; step=dt, length=nt))
+    times = collect(range(dt / 2; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
     src = (c0^2 * rho) .* rickerstf.(times, t0, f0)
     # Calculate Green's function
@@ -201,7 +201,7 @@ end
 
 function analytical_solution_constant_vel_constant_density_2D(c0, rho, dt, nt, t0, f0, srcs, recs)
     # analytical solution
-    times = collect(range(dt/2; step=dt, length=nt))
+    times = collect(range(dt / 2; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
     src = (c0^2 * rho) .* rickerstf.(times, t0, f0)
     # Calculate Green's function

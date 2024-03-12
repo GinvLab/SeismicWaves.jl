@@ -10,10 +10,10 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     # srctf,
     # recs,
     misfit
-    )::Array{<:Real} where {N}
+)::Array{<:Real} where {N}
 
     # scale source time function, etc.
-    possrcs,posrecs,scal_srctf = possrcrec_scaletf(model,shot)
+    possrcs, posrecs, scal_srctf = possrcrec_scaletf(model, shot)
 
     # Numerics
     nt = model.nt
@@ -159,10 +159,10 @@ end
     # srctf,
     # recs,
     misfit
-    )::Array{<:Real} where {N}
+)::Array{<:Real} where {N}
 
     # scale source time function, etc.
-    possrcs,posrecs,scal_srctf = possrcrec_scaletf(model,shot)
+    possrcs, posrecs, scal_srctf = possrcrec_scaletf(model, shot)
 
     # Numerics
     nt = model.nt
@@ -211,7 +211,7 @@ end
         end
         # Start populating save buffer at last checkpoint
         if it >= model.last_checkpoint
-            copyto!(model.save_buffer[fill(Colon(), N)..., it - model.last_checkpoint + 1], pcur)
+            copyto!(model.save_buffer[fill(Colon(), N)..., it-model.last_checkpoint+1], pcur)
         end
     end
 
@@ -271,15 +271,20 @@ end
                     save_trace=false
                 )
                 if recit % model.infoevery == 0
-                    @debug @sprintf("Recover forward iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", recit, model.dt * recit, maximum(abs.(Array(pcur))))
+                    @debug @sprintf(
+                        "Recover forward iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]",
+                        recit,
+                        model.dt * recit,
+                        maximum(abs.(Array(pcur)))
+                    )
                 end
                 # Save recovered pressure in save buffer
-                copyto!(model.save_buffer[fill(Colon(), N)..., recit - (curr_checkpoint+1) + 2], pcur)
+                copyto!(model.save_buffer[fill(Colon(), N)..., recit-(curr_checkpoint+1)+2], pcur)
             end
         end
         # Get pressure fields from saved buffer
-        pcur_corr = model.save_buffer[fill(Colon(), N)..., (it - curr_checkpoint)+1]
-        pcur_old = model.save_buffer[fill(Colon(), N)..., (it - curr_checkpoint)]
+        pcur_corr = model.save_buffer[fill(Colon(), N)..., (it-curr_checkpoint)+1]
+        pcur_old = model.save_buffer[fill(Colon(), N)..., (it-curr_checkpoint)]
         # Correlate for gradient computation
         model.backend.correlate_gradient_m0!(model.curgrad_m0, adjpcur, pcur_corr, pcur_old, model.dt)
         model.backend.correlate_gradient_m1!(model.curgrad_m1_stag, adjvcur, pcur_corr, model.gridspacing)
@@ -299,10 +304,11 @@ end
     # compute regularization if needed
     dχ_dvp, dχ_drho = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
     # Rescale gradients with respect to material properties (chain rule)
-    return reshape(hcat(
-                .-2.0 .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp
-                .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho .+ dχ_drho   # grad wrt rho
-            ),
-            model.totgrad_size...
-        )
+    return reshape(
+        hcat(
+            .-2.0 .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp
+            .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho .+ dχ_drho   # grad wrt rho
+        ),
+        model.totgrad_size...
+    )
 end

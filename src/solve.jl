@@ -9,13 +9,12 @@ end
 
 ### FORWARDS ###
 
-
 ## single WaveSimul object
 @views function run_swforward!(
     wavsim::WaveSimul{N},
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};
-    )::Union{Vector{Array}, Nothing} where {N}
+)::Union{Vector{Array}, Nothing} where {N}
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
@@ -60,15 +59,14 @@ end
     wavsim::Vector{<:WaveSimul{N}},
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};
-    )::Union{Vector{Array}, Nothing} where {N}
-
+)::Union{Vector{Array}, Nothing} where {N}
     nwsim = length(wavsim)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
     @assert nthr == nwsim
 
     takesnapshots = false
-    for w=1:nwsim
+    for w in 1:nwsim
         # Check wavesim consistency
         @debug "Checking consistency across simulation type, material parameters and source-receiver types"
         check_sim_consistency(wavsim[w], matprop, shots)
@@ -77,21 +75,21 @@ end
         @info "Setting wavesim material properties"
         set_wavesim_matprop!(wavsim[w], matprop)
         # Now onwards matprop from outside should not be used anymore!!!
-  
+
         # Snapshots setup
         takesnapshots = snapenabled(wavsim[w])
         if takesnapshots
-            snapshots_per_shot = [[] for j=1:nwsim]
+            snapshots_per_shot = [[] for j in 1:nwsim]
         end
     end
 
     # Shots loop
     nshots = length(shots)
-    grpshots = distribsrcs(nshots,nthr) # a vector of UnitRange 
+    grpshots = distribsrcs(nshots, nthr) # a vector of UnitRange 
     # loop on the set of WaveSimul
-    Threads.@threads for w=1:nwsim
+    Threads.@threads for w in 1:nwsim
         # loop on the subset of shots per each WaveSimul 
-        for s in grpshots[w]  
+        for s in grpshots[w]
             singleshot = shots[s]
             # Initialize shot
             @info "Initializing shot"
@@ -115,24 +113,23 @@ end
     return nothing
 end
 
-
 ### MISFITS ###
 
 ## single or multiple WaveSimul objects
 @views function run_swmisfit!(
-    wavsim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}},
+    wavsim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}},
     matprop::MaterialProperties{N},
     shots::Vector{<:Shot};
     misfit::AbstractMisfit=L2Misfit(nothing)
-    )::Real where {N}
-    
+)::Real where {N}
+
     # Solve forward model for all shots
     run_swforward!(wavsim, matprop, shots)
     # Compute total misfit for all shots
     totmisfitval = 0
     for singleshot in shots
         @info "Checking invcov matrix"
-        if typeof(wavsim)<:Vector{<:WaveSimul} 
+        if typeof(wavsim) <: Vector{<:WaveSimul}
             check_invcov_matrix(wavsim[1], singleshot.recs.invcov)
         else
             check_invcov_matrix(wavsim, singleshot.recs.invcov)
@@ -144,7 +141,6 @@ end
     return totmisfitval
 end
 
-
 ### GRADIENTS ###
 
 ## single WaveSimul object
@@ -154,7 +150,7 @@ end
     shots::Vector{<:Shot};
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing)
-    )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
+)::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
@@ -168,7 +164,7 @@ end
     totgrad = zeros(wavsim.totgrad_size...)
     totmisfitval = 0
     # Shots loop
-    for (s,singleshot) in enumerate(shots)
+    for (s, singleshot) in enumerate(shots)
         @info "Shot #$s"
         # Initialize shot
         @info "Initializing shot"
@@ -198,7 +194,6 @@ end
     return compute_misfit ? (totgrad, totmisfitval) : totgrad
 end
 
-
 ## :threadpersrc, multiple WaveSimul objects
 @views function run_swgradient!(
     wavsim::Vector{<:WaveSimul{N}},
@@ -206,14 +201,13 @@ end
     shots::Vector{<:Shot};
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing)
-    )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
-
+)::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
     nwsim = length(wavsim)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
     @assert Threads.nthreads() == nwsim
 
-    for w=1:nwsim
+    for w in 1:nwsim
         # Check wavesim consistency
         @debug "Checking consistency across simulation type, material parameters and source-receiver types"
         check_sim_consistency(wavsim[w], matprop, shots)
@@ -225,7 +219,7 @@ end
 
     # Initialize total gradient and total misfit
     nshots = length(shots)
-    allgrad = [zeros(wavsim[1].totgrad_size...) for i=1:nshots]
+    allgrad = [zeros(wavsim[1].totgrad_size...) for i in 1:nshots]
 
     if compute_misfit
         allmisfitval = zeros(nshots)
@@ -234,11 +228,11 @@ end
 
     # Shots loop
     nshots = length(shots)
-    grpshots = distribsrcs(nshots,nthr) # a vector of UnitRange 
+    grpshots = distribsrcs(nshots, nthr) # a vector of UnitRange 
     # loop on the set of WaveSimul
-    Threads.@threads for w=1:nwsim
+    Threads.@threads for w in 1:nwsim
         # loop on the subset of shots per each WaveSimul 
-        for s in grpshots[w]  
+        for s in grpshots[w]
             singleshot = shots[s]
             @info "Shot #$s"
             # Initialize shot
@@ -266,11 +260,11 @@ end
             end
         end
     end
-    
+
     totgrad = sum(allgrad)
     if compute_misfit
         totmisfitval = sum(allmisfitval)
     end
-    
+
     return compute_misfit ? (totgrad, totmisfitval) : totgrad
 end

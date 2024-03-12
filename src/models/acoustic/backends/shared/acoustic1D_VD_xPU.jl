@@ -13,7 +13,7 @@ end
 end
 
 @parallel_indices (i) function update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
-                                              ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
+    ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
     # Compute velocity derivatives
     dv_dx = @d_dx_4th(vx_cur, i) * _dx
     # Update CPML memory arrays if on the boundary
@@ -34,9 +34,9 @@ end
 end
 
 @parallel_indices (i) function update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
-                                               ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
+    ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
     # Compute pressure derivative in x direction
-    dp_dx = @d_dx_4th(pcur, i+1) * _dx
+    dp_dx = @d_dx_4th(pcur, i + 1) * _dx
     # Update CPML memory arrays if on the boundary
     if i <= halo + 1
         # left boundary
@@ -79,14 +79,13 @@ end
     _dx = 1 / (dx * 24)
 
     @parallel (3:(nx-2)) update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
-                                        ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
+        ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
     @parallel (2:(nx-2)) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
-                                         ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
+        ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
     if save_trace
         @parallel (1:size(posrecs, 1)) record_receivers!(pcur, traces, posrecs, it)
     end
-
 end
 
 @views function backward_onestep_CPML!(
@@ -100,9 +99,9 @@ end
     _dx = 1 / (dx * 24)
 
     @parallel (2:(nx-2)) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
-                                         ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
+        ψ_l, ψ_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
     @parallel (3:(nx-2)) update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
-                                        ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
+        ξ_l, ξ_r, a_x_l, a_x_r, b_x_l, b_x_r)
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
 end
 
@@ -113,7 +112,7 @@ end
 end
 
 @parallel_indices (i) function correlate_gradient_m1_kernel_x!(curgrad_m1_stag_x, adjvcur_x, pold, _dx)
-    curgrad_m1_stag_x[i] = curgrad_m1_stag_x[i] + adjvcur_x[i] * @d_dx_4th(pold, i+1) * _dx
+    curgrad_m1_stag_x[i] = curgrad_m1_stag_x[i] + adjvcur_x[i] * @d_dx_4th(pold, i + 1) * _dx
 
     return nothing
 end

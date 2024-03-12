@@ -24,7 +24,7 @@ with_logger(error_logger) do
             nt = 1000
             nx = 101
             dx = 10.0
-            dt = dx / c0 * 6/7
+            dt = dx / c0 * 6 / 7
             halo = 20
             rcoef = 0.0001
             params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
@@ -60,7 +60,7 @@ with_logger(error_logger) do
             nt = 1000
             nx = ny = 101
             dx = dy = 10.0
-            dt = dx / c0 / sqrt(2) * 6/7
+            dt = dx / c0 / sqrt(2) * 6 / 7
             halo = 20
             rcoef = 0.0001
             params, shots, matprop = setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0, halo, rcoef)
@@ -96,7 +96,7 @@ with_logger(error_logger) do
             nt = 1000
             nx = 101
             dx = 10.0
-            dt = dx / c0 * 6/7
+            dt = dx / c0 * 6 / 7
             halo = 20
             rcoef = 0.0001
             params, shots, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
@@ -134,7 +134,7 @@ with_logger(error_logger) do
             nt = 1000
             nx = ny = 101
             dx = dy = 10.0
-            dt = dx / c0 / sqrt(2) * 6/7
+            dt = dx / c0 / sqrt(2) * 6 / 7
             halo = 20
             rcoef = 0.0001
             params, shots, matprop = setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0, halo, rcoef)

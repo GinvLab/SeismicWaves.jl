@@ -10,7 +10,7 @@
     @assert all(matprop.λ .> 0) "Lamè coefficient λ must be positive!"
     @assert all(matprop.μ .> 0) "Lamè coefficient μ must be positive!"
     @assert all(matprop.ρ .> 0) "Density must be positive!"
-    
+
     # Check courant condition
     vel_max = get_maximum_func(wavsim)(vp)
     tmp = sqrt.(sum(1 ./ wavsim.gridspacing .^ 2))
@@ -23,7 +23,6 @@
     return
 end
 
-
 function check_numerics(
     wavsim::ElasticIsoWaveSimul,
     shot::Shot;
@@ -31,17 +30,16 @@ function check_numerics(
 )
     # Check points per wavelengh
     # min Vs
-    vel_min = get_minimum_func(wavsim)(sqrt.(wavsim.matprop.μ ./ wavsim.matprop.ρ)) 
+    vel_min = get_minimum_func(wavsim)(sqrt.(wavsim.matprop.μ ./ wavsim.matprop.ρ))
     h_max = maximum(wavsim.gridspacing)
     fmax = shot.srcs.domfreq * 2.0
-    ppw = vel_min / (fmax * h_max) 
+    ppw = vel_min / (fmax * h_max)
     @debug "Points per wavelength: $(ppw)"
 
-    dh0 = round((vel_min/(min_ppw*fmax)),digits=2)
+    dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
     @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
     return
 end
-
 
 @views function update_matprop!(wavsim::ElasticIsoWaveSimul{N}, matprop::ElasticIsoMaterialProperties{N}) where {N}
 
@@ -56,67 +54,59 @@ end
     return
 end
 
-
 ###########################################################
 
+struct Elasticψdomain2D{T <: AbstractFloat}
+    ψ_∂σxx∂x::Array{T, 2}
+    ψ_∂σxz∂z::Array{T, 2}
+    ψ_∂σxz∂x::Array{T, 2}
+    ψ_∂σzz∂z::Array{T, 2}
+    ψ_∂vx∂x::Array{T, 2}
+    ψ_∂vz∂z::Array{T, 2}
+    ψ_∂vz∂x::Array{T, 2}
+    ψ_∂vx∂z::Array{T, 2}
 
-struct Elasticψdomain2D{T<:AbstractFloat}
-    ψ_∂σxx∂x::Array{T,2}
-    ψ_∂σxz∂z::Array{T,2}
-    ψ_∂σxz∂x::Array{T,2}
-    ψ_∂σzz∂z::Array{T,2}
-    ψ_∂vx∂x::Array{T,2}
-    ψ_∂vz∂z::Array{T,2}
-    ψ_∂vz∂x::Array{T,2}
-    ψ_∂vx∂z::Array{T,2}
-
-    function Elasticψdomain2D(backend,gridsize,halo)
-
-        @assert length(gridsize)==2
+    function Elasticψdomain2D(backend, gridsize, halo)
+        @assert length(gridsize) == 2
         ψ_gridsize = [gridsize...]
 
-        gs1,gs2 = copy(ψ_gridsize),copy(ψ_gridsize)
-        gs1[1] = 2*halo
-        gs2[2] = 2*halo
+        gs1, gs2 = copy(ψ_gridsize), copy(ψ_gridsize)
+        gs1[1] = 2 * halo
+        gs2[2] = 2 * halo
 
-        ψ_∂σxx∂x = backend.zeros( gs1...)
-        ψ_∂σxz∂z = backend.zeros( gs2...)
-        ψ_∂σxz∂x = backend.zeros( gs1...) 
-        ψ_∂σzz∂z = backend.zeros( gs2...)
-        ψ_∂vx∂x  = backend.zeros( gs1...)
-        ψ_∂vz∂z  = backend.zeros( gs2...)
-        ψ_∂vz∂x  = backend.zeros( gs1...)
-        ψ_∂vx∂z  = backend.zeros( gs2...)
- 
+        ψ_∂σxx∂x = backend.zeros(gs1...)
+        ψ_∂σxz∂z = backend.zeros(gs2...)
+        ψ_∂σxz∂x = backend.zeros(gs1...)
+        ψ_∂σzz∂z = backend.zeros(gs2...)
+        ψ_∂vx∂x = backend.zeros(gs1...)
+        ψ_∂vz∂z = backend.zeros(gs2...)
+        ψ_∂vz∂x = backend.zeros(gs1...)
+        ψ_∂vx∂z = backend.zeros(gs2...)
+
         T = eltype(ψ_∂σxx∂x)
         return new{T}(ψ_∂σxx∂x,
-                   ψ_∂σxz∂z,
-                   ψ_∂σxz∂x,
-                   ψ_∂σzz∂z,
-                   ψ_∂vx∂x,
-                   ψ_∂vz∂z,
-                   ψ_∂vz∂x,
-                   ψ_∂vx∂z)
+            ψ_∂σxz∂z,
+            ψ_∂σxz∂x,
+            ψ_∂σzz∂z,
+            ψ_∂vx∂x,
+            ψ_∂vz∂z,
+            ψ_∂vz∂x,
+            ψ_∂vx∂z)
     end
 end
 
-
-struct Velpartic2D{T<:AbstractFloat}
-    vx::Array{T,2}
-    vz::Array{T,2}
+struct Velpartic2D{T <: AbstractFloat}
+    vx::Array{T, 2}
+    vz::Array{T, 2}
 end
 
-
-struct Stress2D{T<:AbstractFloat}
-    σxx::Array{T,2}
-    σzz::Array{T,2}
-    σxz::Array{T,2}
+struct Stress2D{T <: AbstractFloat}
+    σxx::Array{T, 2}
+    σzz::Array{T, 2}
+    σxz::Array{T, 2}
 end
- 
-
 
 ##############################################################
-
 
 struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     # Physics
@@ -158,7 +148,7 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
     # Backend
     backend::Module
     parall::Symbol
-    
+
     function ElasticIsoCPMLWaveSimul{N}(
         gridsize::NTuple{N, <:Integer},
         gridspacing::NTuple{N, <:Real},
@@ -186,38 +176,38 @@ struct ElasticIsoCPMLWaveSimul{N} <: ElasticIsoWaveSimul{N}
 
         # Compute wavsim sizes
         domainextent = gridspacing .* (gridsize .- 1)
-       
+
         # Select backend
         backend = select_backend(ElasticIsoCPMLWaveSimul{N}, parall)
 
         # Initialize material properties
-        if N==2
-            matprop = ElasticIsoMaterialProperties2D(λ=backend.zeros(gridsize...),
-                                                     μ=backend.zeros(gridsize...),
-                                                     ρ=backend.zeros(gridsize...),
-                                                     λ_ihalf=backend.zeros((gridsize.-[1,0])...),
-                                                     μ_ihalf=backend.zeros((gridsize.-[1,0])...),
-                                                     μ_jhalf=backend.zeros((gridsize.-[0,1])...),
-                                                     ρ_ihalf_jhalf=backend.zeros((gridsize.-1)...)
-                                                     )
+        if N == 2
+            matprop = ElasticIsoMaterialProperties2D(; λ=backend.zeros(gridsize...),
+                μ=backend.zeros(gridsize...),
+                ρ=backend.zeros(gridsize...),
+                λ_ihalf=backend.zeros((gridsize .- [1, 0])...),
+                μ_ihalf=backend.zeros((gridsize .- [1, 0])...),
+                μ_jhalf=backend.zeros((gridsize .- [0, 1])...),
+                ρ_ihalf_jhalf=backend.zeros((gridsize .- 1)...)
+            )
 
         else
             error("Only elastic 2D is currently implemented.")
         end
 
         # Initialize computational arrays
-        if N==2
+        if N == 2
             velpartic = Velpartic2D([backend.zeros(gridsize...) for _ in 1:N]...)  # vx, vy[, vz]
             stress = Stress2D([backend.zeros(gridsize...) for _ in 1:(N-1)*3]...)  # vx, vy[, vz]
         end
-      
+
         ##
-        if N==2 # 2D
-            ψ = Elasticψdomain2D(backend,gridsize,halo)
-        else 
+        if N == 2 # 2D
+            ψ = Elasticψdomain2D(backend, gridsize, halo)
+        else
             error("Only elastic 2D is currently implemented.")
         end
-        
+
         # Initialize CPML coefficients
         cpmlcoeffs = [CPMLCoefficientsAxis(halo, backend) for _ in 1:N]
 
@@ -326,10 +316,10 @@ end
 
     # Reset computational arrays
     for p in propertynames(wavsim.velpartic)
-        getfield(wavsim.velpartic,p) .= 0.0
+        getfield(wavsim.velpartic, p) .= 0.0
     end
     for p in propertynames(wavsim.stress)
-        getfield(wavsim.stress,p) .= 0.0
+        getfield(wavsim.stress, p) .= 0.0
     end
     for p in propertynames(wavsim.ψ)
         getfield(wavsim.ψ, p) .= 0.0
