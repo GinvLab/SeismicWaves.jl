@@ -38,14 +38,12 @@ function swforward!(
     if logger === nothing
         logger = current_logger()
     end
-    out = nothing
-    with_logger(logger) do
+    return with_logger(logger) do
         # Build wavesim
         wavesim = build_wavesim(params, matprop; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
         # Solve simulation
-        out = run_swforward!(wavesim, matprop, shots)
+        run_swforward!(wavesim, matprop, shots)
     end
-    return out
 end
 
 @doc """
@@ -116,14 +114,12 @@ function swmisfit!(
     if logger === nothing
         logger = current_logger()
     end
-    out = nothing
-    with_logger(logger) do
+    return with_logger(logger) do
         # Build wavesim
         wavesim = build_wavesim(params, matprop; parall=parall, gradient=false)
         # Compute misfit
-        out = run_swmisfit!(wavesim, matprop, shots; misfit=misfit)
+        run_swmisfit!(wavesim, matprop, shots; misfit=misfit)
     end
-    return out
 end
 
 @doc """
@@ -151,11 +147,9 @@ function swmisfit!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop
     if logger === nothing
         logger = current_logger()
     end
-    out = nothing
-    with_logger(logger) do
-        out = run_swmisfit!(wavesim, matprop, shots; kwargs...)
+    return with_logger(logger) do
+        run_swmisfit!(wavesim, matprop, shots; kwargs...)
     end
-    return out
 end
 
 #######################################################
@@ -206,14 +200,12 @@ function swgradient!(
     if logger === nothing
         logger = current_logger()
     end
-    out = nothing
-    with_logger(logger) do
+    return with_logger(logger) do
         # Build wavesim
         wavesim = build_wavesim(params, matprop; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
         # Solve simulation
-        out = run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit, misfit=misfit)
+        run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit, misfit=misfit)
     end
-    return out
 end
 
 @doc """
@@ -250,11 +242,9 @@ function swgradient!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matpr
     if logger === nothing
         logger = current_logger()
     end
-    out = nothing
-    with_logger(logger) do
-        out = run_swgradient!(wavesim, matprop, shots; kwargs...)
+    return with_logger(logger) do
+        run_swgradient!(wavesim, matprop, shots; kwargs...)
     end
-    return out
 end
 
 #######################################################

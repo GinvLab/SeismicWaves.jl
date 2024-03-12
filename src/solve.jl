@@ -36,11 +36,10 @@ end
     for singleshot in shots
         # Initialize shot
         @info "Initializing shot"
-        #possrcs, posrecs, srctf = init_shot!(wavsim, singleshot)
         init_shot!(wavsim, singleshot)
         # Compute forward solver
         @info "Forward modelling for one shot"
-        swforward_1shot!(wavsim, singleshot) #possrcs, posrecs, srctf, recs)
+        swforward_1shot!(wavsim, singleshot)
         # Save shot's snapshots
         if takesnapshots
             @info "Saving snapshots"
@@ -65,7 +64,7 @@ end
     # make sure the number of threads has not changed!
     @assert nthr == nwsim
 
-    takesnapshots = false
+    snapshots_per_shot = Dict{Int, Vector}()
     for w in 1:nwsim
         # Check wavesim consistency
         @debug "Checking consistency across simulation type, material parameters and source-receiver types"
@@ -77,9 +76,8 @@ end
         # Now onwards matprop from outside should not be used anymore!!!
 
         # Snapshots setup
-        takesnapshots = snapenabled(wavsim[w])
-        if takesnapshots
-            snapshots_per_shot = [[] for j in 1:nwsim]
+        if snapenabled(wavsim[w])
+            snapshots_per_shot[w] = []
         end
     end
 
@@ -100,7 +98,7 @@ end
             #swforward_1shot!(wavsim[w], possrcs, posrecs, srctf, recs)
             swforward_1shot!(wavsim[w], singleshot)
             # Save shot's snapshots
-            if takesnapshots
+            if snapenabled(wavsim[w])
                 @info "Saving snapshots"
                 push!(snapshots_per_shot[w], copy(wavsim[w].snapshots))
             end
@@ -108,7 +106,7 @@ end
     end
 
     if takesnapshots
-        return collect(snapshots_per_shot)
+        return collect(values(snapshots_per_shot))
     end
     return nothing
 end
@@ -130,7 +128,9 @@ end
     for singleshot in shots
         @info "Checking invcov matrix"
         if typeof(wavsim) <: Vector{<:WaveSimul}
-            check_invcov_matrix(wavsim[1], singleshot.recs.invcov)
+            for i in eachindex(wavsim)
+                check_invcov_matrix(wavsim[i], singleshot.recs.invcov)
+            end
         else
             check_invcov_matrix(wavsim, singleshot.recs.invcov)
         end
@@ -168,20 +168,12 @@ end
         @info "Shot #$s"
         # Initialize shot
         @info "Initializing shot"
-        #possrcs, posrecs, srctf = init_shot!(wavsim, singleshot)
         init_shot!(wavsim, singleshot)
         @info "Checking invcov matrix"
         check_invcov_matrix(wavsim, singleshot.recs.invcov)
         # Compute forward solver
         @info "Computing gradient solver"
-        # curgrad = swgradient_1shot!(
-        #     wavsim, possrcs,
-        #     posrecs, srctf,
-        #     recs, misfit
-        # )
-        curgrad = swgradient_1shot!(
-            wavsim, singleshot, misfit
-        )
+        curgrad = swgradient_1shot!(wavsim, singleshot, misfit)
         # Accumulate gradient
         totgrad .+= curgrad
         # Compute misfit if needed
@@ -219,7 +211,7 @@ end
 
     # Initialize total gradient and total misfit
     nshots = length(shots)
-    allgrad = [zeros(wavsim[1].totgrad_size...) for i in 1:nshots]
+    allgrad = [zeros(wavsim[i].totgrad_size...) for i in nshots]
 
     if compute_misfit
         allmisfitval = zeros(nshots)
@@ -227,7 +219,6 @@ end
     end
 
     # Shots loop
-    nshots = length(shots)
     grpshots = distribsrcs(nshots, nthr) # a vector of UnitRange 
     # loop on the set of WaveSimul
     Threads.@threads for w in 1:nwsim
@@ -237,22 +228,16 @@ end
             @info "Shot #$s"
             # Initialize shot
             @info "Initializing shot"
-            #possrcs, posrecs, srctf = init_shot!(wavsim[w], singleshot)
             init_shot!(wavsim[w], singleshot)
             @info "Checking invcov matrix"
             check_invcov_matrix(wavsim[w], singleshot.recs.invcov)
             # Compute forward solver
             @info "Computing gradient solver"
-            # curgrad = swgradient_1shot!(
-            #     wavsim[w], possrcs,
-            #     posrecs, srctf,
-            #     recs, misfit
-            # )
             curgrad = swgradient_1shot!(
                 wavsim[w], singleshot, misfit
             )
-            # Accumulate gradient
-            allgrad[s] = curgrad
+            # Save gradient
+            allgrad[s] .= curgrad
             # Compute misfit if needed
             if compute_misfit
                 @info "Computing misfit"
@@ -261,6 +246,7 @@ end
         end
     end
 
+    # Accumulate gradient and misfit
     totgrad = sum(allgrad)
     if compute_misfit
         totmisfitval = sum(allmisfitval)

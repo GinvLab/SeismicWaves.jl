@@ -111,7 +111,6 @@ struct VectorReceivers{N, T <: Real} <: Receivers
             invcov = zeros(0, 0)
         end
         return new{ndim, T}(positions, seismograms, observed, invcov)
-        #return new(positions, seismograms, observed, invcov)
     end
 end
 

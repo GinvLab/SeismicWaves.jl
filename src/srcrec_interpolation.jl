@@ -68,7 +68,7 @@ function coeffsinc1D(xstart::Real, Δx::Real, xcenter::Real, kind::Symbol, nx::I
     end
 
     radius = npts * Δx
-    ## Assuming x from grid starts at xstart
+    # Assuming x from grid starts at xstart
     xh = (xcenter - xstart) / Δx
     ix = floor(Int64, xh + 1)
     if mod((xcenter - xstart), Δx) == 0.0
@@ -99,17 +99,6 @@ function coeffsinc1D(xstart::Real, Δx::Real, xcenter::Real, kind::Symbol, nx::I
     # return also indices of window (as a range)
     return itpfun, indexes
 end
-# ## test:
-# begin
-#     xstart = 12.0
-#     x0 = 15.75
-#     Δx = 0.5
-#     x = [(i-1)*Δx+xstart for i=1:15]
-#     coe,idxs = coeffsinc1d(xstart,Δx,x0,:monopole)
-#     scatterlines(idxs,coe)
-#     @show idxs
-#     Any[1:length(x) x]
-# end
 
 #####################################################################
 
@@ -184,21 +173,6 @@ function coeffsinc2D(xstart::Real, zstart::Real, Δx::Real, Δz::Real, xcenter::
     return xidx, zidx, xzcoeff
 end
 
-## test
-# begin
-#     include("../src/srcrec_interpolation.jl")
-#     xstart = 12.0
-#     x0 = 15.75
-#     Δx = 0.5
-#     zstart = 3.0
-#     z0 = 6.12
-#     Δz = 0.35
-#     xidx,zidx,xzcoeff = coeffsinc2D(xstart,zstart,Δx,Δz,x0,z0,nx,nz,[:monopole,:monopole])
-#     @show xidx
-#     @show zidx
-#     @show xzcoeff
-#     fig,ax,hm=heatmap(xzcoeff); Colorbar(fig[1,2],hm); fig
-# end
 #####################################################################
 
 #####################################################################
