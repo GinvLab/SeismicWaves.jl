@@ -59,7 +59,7 @@ function coeffsinc1D(xstart::Real, Δx::Real, xcenter::Real, kind::Symbol, nx::I
     @assert xcenter >= xstart
     @assert xcenter <= (nx - 1) * Δx + xstart
 
-    if beta == nothing
+    if beta === nothing
         if kind == :monopole
             beta = 4.14
         elseif kind == :dipole

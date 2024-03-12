@@ -35,7 +35,7 @@ function swforward!(
     infoevery::Union{Int, Nothing}=nothing,
     logger::Union{Nothing, AbstractLogger}=nothing
 )::Union{Vector{AbstractArray}, Nothing} where {N}
-    if logger == nothing
+    if logger === nothing
         logger = current_logger()
     end
     out = nothing
@@ -71,7 +71,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
     """
 function swforward!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {N}
-    if logger == nothing
+    if logger === nothing
         logger = current_logger()
     end
     out = nothing
@@ -113,7 +113,7 @@ function swmisfit!(
     misfit::AbstractMisfit=L2Misfit(nothing),
     logger::Union{Nothing, AbstractLogger}=nothing
 )::Real where {N}
-    if logger == nothing
+    if logger === nothing
         logger = current_logger()
     end
     out = nothing
@@ -148,7 +148,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 """
 function swmisfit!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {N}
-    if logger == nothing
+    if logger === nothing
         logger = current_logger()
     end
     out = nothing
@@ -203,7 +203,7 @@ function swgradient!(
     smooth_radius::Integer=5,
     logger::Union{Nothing, AbstractLogger}=nothing
 )::Union{AbstractArray, Tuple{AbstractArray, Real}} where {N}
-    if logger == nothing
+    if logger === nothing
         logger = current_logger()
     end
     out = nothing
@@ -247,7 +247,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 """
 function swgradient!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{N}, shots::Vector{<:Shot};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {N}
-    if logger == nothing
+    if logger === nothing
         logger = current_logger()
     end
     out = nothing

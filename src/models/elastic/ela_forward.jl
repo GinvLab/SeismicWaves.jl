@@ -143,8 +143,8 @@ function spreadsrcrecinterp2D(gridspacing::NTuple{N, Real}, gridsize::NTuple{N, 
         # compute grid indices and values of sinc coefficients
         xidx, zidx, xzcoeff = coeffsinc2D(xstart, zstart, Δx, Δz, xpos, zpos,
             nx, nz, [:monopole, :monopole]; npts=nptssinc)
-        for j in 1:length(zidx)
-            for i in 1:length(xidx)
+        for j in eachindex(zidx)
+            for i in eachindex(xidx)
                 l += 1
                 # id, i, j indices
                 coeij_tmp[l, :] .= (p, xidx[i], zidx[j])
