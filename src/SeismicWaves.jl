@@ -83,15 +83,10 @@ include("models/elastic/backends/Elastic2D_Iso_CPML_Serial.jl")
 
 # Acoustic parallel backends
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Threads.jl")
-include("models/acoustic/backends/Acoustic1D_CD_CPML_GPU.jl")
 include("models/acoustic/backends/Acoustic2D_CD_CPML_Threads.jl")
-include("models/acoustic/backends/Acoustic2D_CD_CPML_GPU.jl")
 include("models/acoustic/backends/Acoustic3D_CD_CPML_Threads.jl")
-include("models/acoustic/backends/Acoustic3D_CD_CPML_GPU.jl")
 include("models/acoustic/backends/Acoustic1D_VD_CPML_Threads.jl")
-include("models/acoustic/backends/Acoustic1D_VD_CPML_GPU.jl")
 include("models/acoustic/backends/Acoustic2D_VD_CPML_Threads.jl")
-include("models/acoustic/backends/Acoustic2D_VD_CPML_GPU.jl")
 
 # Elastic parallel backends
 
