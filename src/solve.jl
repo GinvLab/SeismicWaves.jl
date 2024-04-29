@@ -43,7 +43,7 @@ end
         # Save shot's snapshots
         if takesnapshots
             @info "Saving snapshots"
-            push!(snapshots_per_shot, copy(wavsim.snapshots))
+            push!(snapshots_per_shot, Array(wavsim.snapshots))
         end
     end
 

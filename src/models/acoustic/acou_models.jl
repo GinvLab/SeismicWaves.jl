@@ -67,7 +67,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
     check_freq::Union{<:Integer, Nothing}
     # Snapshots
     snapevery::Union{<:Integer, Nothing}
-    snapshots::Union{<:Array{<:Real}, Nothing}
+    snapshots::Union{Any, Nothing}
     # Logging parameters
     infoevery::Integer
     # Gradient smoothing parameters
@@ -219,7 +219,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         end
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? zeros(ns..., div(nt, snapevery)) : nothing)
+        snapshots = (snapevery !== nothing ? backend.zeros(ns..., div(nt, snapevery)) : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
@@ -370,7 +370,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
     check_freq::Union{<:Integer, Nothing}
     # Snapshots
     snapevery::Union{<:Integer, Nothing}
-    snapshots::Union{<:Array{<:Real}, Nothing}
+    snapshots::Union{Any, Nothing}
     # Logging parameters
     infoevery::Integer
     # Gradient smoothing parameters
@@ -535,7 +535,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
         end
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? zeros(ns..., div(nt, snapevery)) : nothing)
+        snapshots = (snapevery !== nothing ? backend.zeros(ns..., div(nt, snapevery)) : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
