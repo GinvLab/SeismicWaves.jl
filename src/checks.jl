@@ -1,7 +1,5 @@
 
 function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, shots::Vector{<:Shot})
-    tysim = typeof(wavsim)
-    tymatprop = typeof(matprop)
     tysource = typeof(shots[1].srcs)
     tyreceiver = typeof(shots[1].recs)
 
@@ -14,20 +12,20 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
 
     # Check that the subtypes of WaveSimul, MaterialProperties and Shot are consistent
     N = typeof(wavsim).parameters[1]
-    if tysim == AcousticCDCPMLWaveSimul{N} &&
-       tymatprop == VpAcousticCDMaterialProperties{N} &&
+    if wavsim isa AcousticCDCPMLWaveSimul{N} &&
+       matprop isa VpAcousticCDMaterialProperties{N} &&
        tysource <: ScalarSources &&
        tyreceiver <: ScalarReceivers
         return
 
-    elseif tysim == AcousticVDStaggeredCPMLWaveSimul{N} &&
-           tymatprop == VpRhoAcousticVDMaterialProperties{N} &&
+    elseif wavsim isa AcousticVDStaggeredCPMLWaveSimul{N} &&
+           matprop isa VpRhoAcousticVDMaterialProperties{N} &&
            tysource <: ScalarSources &&
            tyreceiver <: ScalarReceivers
         return
 
-    elseif tysim == ElasticIsoCPMLWaveSimul{2} &&   # <<<<<---------<<<<
-           tymatprop == ElasticIsoMaterialProperties{2} &&
+    elseif wavsim isa ElasticIsoCPMLWaveSimul{2} &&   # <<<<<---------<<<<
+           matprop isa ElasticIsoMaterialProperties{2} &&
            tysource <: MomentTensorSources &&
            tyreceiver <: VectorReceivers
         return

@@ -5,7 +5,7 @@ include("shared/smooth_gradient_2D.jl")
 
 # Dummy data module
 module Data
-Array = Base.Array
+Array = Base.Array{Float64}
 end
 
 # the backend needs these

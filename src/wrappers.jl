@@ -286,7 +286,7 @@ build_concrete_wavesim(
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
     kwargs...
-) where {N} = AcousticCDCPMLWaveSimul{N}(
+) where {N} = AcousticCDCPMLWaveSimul(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,
@@ -294,7 +294,7 @@ build_concrete_wavesim(
     cpmlparams.halo,
     cpmlparams.rcoef;
     freetop=cpmlparams.freeboundtop,
-    parall,
+    parall=parall,
     kwargs...
 )
 

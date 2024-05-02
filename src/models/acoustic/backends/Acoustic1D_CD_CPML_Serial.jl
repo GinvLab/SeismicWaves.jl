@@ -4,7 +4,7 @@ include("shared/smooth_gradient_1D.jl")
 
 # Dummy data module
 module Data
-Array = Base.Array
+Array = Base.Array{Float64}
 end
 
 #####
@@ -14,7 +14,7 @@ zeros = Base.zeros
 @views function inject_sources!(pnew, dt2srctf, possrcs, it)
     _, nsrcs = size(dt2srctf)
     for i in 1:nsrcs
-        isrc = possrcs[i, 1]
+        isrc = floor(Int, possrcs[i, 1])
         pnew[isrc] += dt2srctf[it, i]
     end
 end
@@ -22,7 +22,7 @@ end
 @views function record_receivers!(pnew, traces, posrecs, it)
     _, nrecs = size(traces)
     for s in 1:nrecs
-        irec = posrecs[s, 1]
+        irec = floor(Int, posrecs[s, 1])
         traces[it, s] = pnew[irec]
     end
 end

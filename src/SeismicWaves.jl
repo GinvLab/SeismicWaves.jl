@@ -48,6 +48,7 @@ include("models/cpmlcoeffs.jl")
 
 # Acoustic
 include("models/acoustic/acou_abstract_types.jl")
+include("models/acoustic/acou_grid.jl")
 include("models/acoustic/acou_material_properties.jl")
 include("models/acoustic/acou_models.jl")
 include("models/acoustic/acou_params.jl")

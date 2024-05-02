@@ -29,27 +29,30 @@ end
     # scale source time function, etc.
     possrcs, posrecs, scal_srctf = possrcrec_scaletf(wavsim, shot)
 
+    forward_grid = wavsim.forward_grid
+    backend = select_backend(typeof(wavsim), wavsim.parall)
+
     # Pressure arrays
-    pold = wavsim.pold
-    pcur = wavsim.pcur
-    pnew = wavsim.pnew
+    pold = forward_grid.pold
+    pcur = forward_grid.pcur
+    pnew = forward_grid.pnew
     # Numerics
     nt = wavsim.nt
     # Wrap sources and receivers arrays
-    possrcs_bk = wavsim.backend.Data.Array(possrcs)
-    posrecs_bk = wavsim.backend.Data.Array(posrecs)
-    srctf_bk = wavsim.backend.Data.Array(scal_srctf)
-    traces_bk = wavsim.backend.Data.Array(shot.recs.seismograms)
+    possrcs_bk = backend.Data.Array(possrcs)
+    posrecs_bk = backend.Data.Array(posrecs)
+    srctf_bk = backend.Data.Array(scal_srctf)
+    traces_bk = backend.Data.Array(shot.recs.seismograms)
     # Reset wavesim
     reset!(wavsim)
 
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        pold, pcur, pnew = wavsim.backend.forward_onestep_CPML!(
-            pold, pcur, pnew, wavsim.fact,
+        pold, pcur, pnew = backend.forward_onestep_CPML!(
+            pold, pcur, pnew, forward_grid.fact,
             wavsim.gridspacing..., wavsim.halo,
-            wavsim.ψ..., wavsim.ξ..., wavsim.a_coeffs..., wavsim.b_coeffs...,
+            forward_grid.ψ..., forward_grid.ξ..., forward_grid.a_coeffs..., forward_grid.b_coeffs...,
             possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it
         )
         # Print timestep info

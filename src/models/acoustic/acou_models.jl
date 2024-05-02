@@ -45,78 +45,58 @@ end
     precompute_fact!(model)
 end
 
-@views precompute_fact!(model::AcousticCDWaveSimul) = copyto!(model.fact, (model.dt^2) .* (model.matprop.vp .^ 2))
+@views precompute_fact!(model::AcousticCDWaveSimul) = copyto!(model.forward_grid.fact, (model.dt^2) .* (model.matprop.vp .^ 2))
 
 ###########################################################
 
-struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
+struct AcousticCDCPMLWaveSimul{N, T, A <: AbstractArray{T,N}, V <: AbstractVector{T}} <: AcousticCDWaveSimul{N}
     # Physics
-    domainextent::NTuple{N, <:Real}
+    domainextent::NTuple{N, T}
     # Numerics
-    ns::NTuple{N, <:Integer}
-    gridspacing::NTuple{N, <:Real}
-    nt::Integer
-    dt::Real
+    ns::NTuple{N, Int}
+    gridspacing::NTuple{N, T}
+    nt::Int
+    dt::T
     # BDC and CPML parameters
-    halo::Integer
-    rcoef::Real
+    halo::Int
+    rcoef::T
     freetop::Bool
     # Gradient computation setup
     gradient::Bool
-    totgrad_size::Union{Vector{<:Integer}, Nothing}
-    check_freq::Union{<:Integer, Nothing}
+    totgrad_size::Union{Vector{Int}, Nothing}
     # Snapshots
-    snapevery::Union{<:Integer, Nothing}
-    snapshots::Union{Any, Nothing}
+    snapevery::Union{Int, Nothing}
+    snapshots::Union{Vector{A}, Nothing}
     # Logging parameters
-    infoevery::Integer
-    # Gradient smoothing parameters
-    smooth_radius::Integer
+    infoevery::Int
     # Material properties
     matprop::VpAcousticCDMaterialProperties
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
-    # Forward computation arrays
-    fact::Any
-    pold::Any
-    pcur::Any
-    pnew::Any
-    ψ::Any
-    ξ::Any
-    a_coeffs::Any
-    b_coeffs::Any
-    # Gradient computation arrays
-    curgrad::Any
-    adjold::Any
-    adjcur::Any
-    adjnew::Any
-    ψ_adj::Any
-    ξ_adj::Any
+    # Forward computation grid
+    forward_grid::AcousticCDForwardGrid{N, T, A, V}
+    # Adjoint computation grid
+    adjoint_grid::Union{AcousticCDAdjointGrid{N, T, A}, Nothing}
     # Checkpointing setup
-    last_checkpoint::Union{<:Integer, Nothing}
-    save_buffer::Any
-    checkpoints::Any
-    checkpoints_ψ::Any
-    checkpoints_ξ::Any
-    # Backend
-    backend::Module
+    checkpointing::Union{AcousticCDCheckpointing{N, T, A}, Nothing}
+    # Parallelization type
     parall::Symbol
 
-    function AcousticCDCPMLWaveSimul{N}(
-        ns::NTuple{N, <:Integer},
-        gridspacing::NTuple{N, <:Real},
-        nt::Integer,
-        dt::Real,
-        halo::Integer,
-        rcoef::Real;
+    function AcousticCDCPMLWaveSimul(
+        ns::NTuple{N, Int},
+        gridspacing::NTuple{N, T},
+        nt::Int,
+        dt::T,
+        halo::Int,
+        rcoef::T;
         parall::Symbol=:threads,
         freetop::Bool=true,
         gradient::Bool=false,
-        check_freq::Union{<:Integer, Nothing}=nothing,
-        snapevery::Union{<:Integer, Nothing}=nothing,
-        infoevery::Union{<:Integer, Nothing}=nothing,
-        smooth_radius::Integer=5
-    ) where {N}
+        check_freq::Union{Int, Nothing}=nothing,
+        snapevery::Union{Int, Nothing}=nothing,
+        infoevery::Union{Int, Nothing}=nothing,
+        smooth_radius::Int=5
+    ) where {N,T}
         # Check numerics
         @assert all(ns .> 0) "All numbers of grid points must be positive!"
         @assert all(gridspacing .> 0) "All cell sizes must be positive!"
@@ -134,92 +114,24 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
         matprop = VpAcousticCDMaterialProperties(zeros(ns...))
 
         # Select backend
-        backend = select_backend(AcousticCDCPMLWaveSimul{N}, parall)
+        backend = select_backend(AcousticCDCPMLWaveSimul{N,T}, parall)
+        A = backend.Data.Array{N}
+        V = backend.Data.Array{1}
 
-        # Initialize computational arrays
-        fact = backend.zeros(ns...)
-        pold = backend.zeros(ns...)
-        pcur = backend.zeros(ns...)
-        pnew = backend.zeros(ns...)
-        # Initialize CPML arrays
-        ψ = []
-        ξ = []
-        for i in 1:N
-            ψ_ns = [ns...]
-            ξ_ns = [ns...]
-            ψ_ns[i] = halo + 1
-            ξ_ns[i] = halo
-            append!(ψ, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
-            append!(ξ, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
-        end
         # Initialize CPML coefficients
         cpmlcoeffs = tuple([CPMLCoefficients(halo, backend, true) for _ in 1:N]...)
-        # Build CPML coefficient arrays for computations (they are just references to cpmlcoeffs)
-        a_coeffs = []
-        b_coeffs = []
-        for i in 1:N
-            append!(a_coeffs, [cpmlcoeffs[i].a_l, cpmlcoeffs[i].a_r, cpmlcoeffs[i].a_hl, cpmlcoeffs[i].a_hr])
-            append!(b_coeffs, [cpmlcoeffs[i].b_l, cpmlcoeffs[i].b_r, cpmlcoeffs[i].b_hl, cpmlcoeffs[i].b_hr])
-        end
-        # Initialize gradient arrays if needed
+        # Initialize forward grid
+        forward_grid = AcousticCDForwardGrid(ns, halo, cpmlcoeffs, backend, T)
+
+        # Initialize gradient grid if needed
         if gradient
-            totgrad_size = [ns...]
-            # Current gradient array
-            curgrad = backend.zeros(ns...)
-            # Adjoint arrays
-            adjold = backend.zeros(ns...)
-            adjcur = backend.zeros(ns...)
-            adjnew = backend.zeros(ns...)
-            # Initialize CPML arrays
-            ψ_adj = []
-            ξ_adj = []
-            for i in 1:N
-                ψ_ns = [ns...]
-                ξ_ns = [ns...]
-                ψ_ns[i] = halo + 1
-                ξ_ns[i] = halo
-                append!(ψ_adj, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
-                append!(ξ_adj, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
-            end
+            adjoint_grid = AcousticCDAdjointGrid(ns, halo, backend, smooth_radius, T)
             # Checkpointing setup
-            if check_freq !== nothing
-                @assert check_freq > 2 "Checkpointing frequency must be bigger than 2!"
-                @assert check_freq < nt "Checkpointing frequency must be smaller than the number of timesteps!"
-                # Time step of last checkpoint
-                last_checkpoint = floor(Int, nt / check_freq) * check_freq
-                # Checkpointing arrays
-                save_buffer = backend.zeros(ns..., check_freq + 2)      # pressure window buffer
-                checkpoints = Dict{Int, backend.Data.Array}()           # pressure checkpoints
-                checkpoints_ψ = Dict{Int, Any}()                        # ψ arrays checkpoints
-                checkpoints_ξ = Dict{Int, Any}()                        # ξ arrays checkpoints
-                # Save initial conditions as first checkpoint
-                checkpoints[-1] = copy(pold)
-                checkpoints[0] = copy(pcur)
-                checkpoints_ψ[0] = copy.(ψ)
-                checkpoints_ξ[0] = copy.(ξ)
-                # Preallocate future checkpoints
-                for it in 1:(nt+1)
-                    if it % check_freq == 0
-                        checkpoints[it] = backend.zeros(ns...)
-                        checkpoints[it-1] = backend.zeros(ns...)
-                        checkpoints_ψ[it] = copy.(ψ)
-                        checkpoints_ξ[it] = copy.(ξ)
-                    end
-                end
-            else    # no checkpointing
-                last_checkpoint = 0                                 # simulate a checkpoint at time step 0 (so buffer will start from -1)
-                save_buffer = backend.zeros(ns..., nt + 2)          # save all timesteps (from -1 to nt+1 so nt+2)
-                checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints (will remain empty)
-                checkpoints_ψ = Dict{Int, Any}()                    # ψ arrays checkpoints (will remain empty)
-                checkpoints_ξ = Dict{Int, Any}()                    # ξ arrays checkpoints (will remain empty)
-            end
-            # Save first 2 timesteps in save buffer
-            copyto!(save_buffer[fill(Colon(), N)..., 1], pold)
-            copyto!(save_buffer[fill(Colon(), N)..., 2], pcur)
+            checkpointing = AcousticCDCheckpointing(check_freq, nt, ns, forward_grid, backend, T)
         end
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? backend.zeros(ns..., div(nt, snapevery)) : nothing)
+        snapshots = (snapevery !== nothing ? [backend.zeros(ns...) for _ in 1:div(nt, snapevery)] : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
@@ -227,7 +139,7 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
-        return new(
+        return new{N,T,A,V}(
             domainextent,
             ns,
             gridspacing,
@@ -237,34 +149,15 @@ struct AcousticCDCPMLWaveSimul{N} <: AcousticCDWaveSimul{N}
             rcoef,
             freetop,
             gradient,
-            gradient ? totgrad_size : nothing,
-            gradient ? check_freq : nothing,
+            gradient ? adjoint_grid.totgrad_size : nothing,
             snapevery,
             snapshots,
             infoevery,
-            smooth_radius,
             matprop,
             cpmlcoeffs,
-            fact,
-            pold,
-            pcur,
-            pnew,
-            ψ,
-            ξ,
-            a_coeffs,
-            b_coeffs,
-            gradient ? curgrad : nothing,
-            gradient ? adjold : nothing,
-            gradient ? adjcur : nothing,
-            gradient ? adjnew : nothing,
-            gradient ? ψ_adj : nothing,
-            gradient ? ξ_adj : nothing,
-            gradient ? last_checkpoint : nothing,
-            gradient ? save_buffer : nothing,
-            gradient ? checkpoints : nothing,
-            gradient ? checkpoints_ψ : nothing,
-            gradient ? checkpoints_ξ : nothing,
-            backend,
+            forward_grid,
+            gradient ? adjoint_grid : nothing,
+            gradient ? checkpointing : nothing,
             parall
         )
     end
@@ -275,27 +168,29 @@ end
 # Specific functions for AcousticCDCPMLWaveSimul
 
 @views function reset!(model::AcousticCDCPMLWaveSimul{N}) where {N}
+    forwad_grid = model.forward_grid
+    adjoint_grid = model.adjoint_grid
     # Reset computational arrays
-    model.pold .= 0.0
-    model.pcur .= 0.0
-    model.pnew .= 0.0
-    for i in eachindex(model.ψ)
-        model.ψ[i] .= 0.0
+    forwad_grid.pold .= 0.0
+    forwad_grid.pcur .= 0.0
+    forwad_grid.pnew .= 0.0
+    for i in eachindex(forwad_grid.ψ)
+        forwad_grid.ψ[i] .= 0.0
     end
-    for i in eachindex(model.ξ)
-        model.ξ[i] .= 0.0
+    for i in eachindex(forwad_grid.ξ)
+        forwad_grid.ξ[i] .= 0.0
     end
     # Reset gradient arrays
     if model.gradient
-        model.curgrad .= 0.0
-        model.adjold .= 0.0
-        model.adjcur .= 0.0
-        model.adjnew .= 0.0
-        for i in eachindex(model.ψ_adj)
-            model.ψ_adj[i] .= 0.0
+        adjoint_grid.curgrad .= 0.0
+        adjoint_grid.adjold .= 0.0
+        adjoint_grid.adjcur .= 0.0
+        adjoint_grid.adjnew .= 0.0
+        for i in eachindex(adjoint_grid.ψ_adj)
+            adjoint_grid.ψ_adj[i] .= 0.0
         end
-        for i in eachindex(model.ξ_adj)
-            model.ξ_adj[i] .= 0.0
+        for i in eachindex(adjoint_grid.ξ_adj)
+            adjoint_grid.ξ_adj[i] .= 0.0
         end
     end
 end
