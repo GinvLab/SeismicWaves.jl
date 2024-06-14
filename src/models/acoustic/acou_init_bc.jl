@@ -17,7 +17,7 @@ init_bdc!(::ReflectiveBoundaryCondition, model::AcousticWaveSimul, srcs::Sources
             model.dt,
             model.halo,
             model.rcoef,
-            model.gridspacing[n] * model.halo,
+            model.grid.gridspacing[n] * model.halo,
             srcs.domfreq
         )
     end

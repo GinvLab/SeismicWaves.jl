@@ -11,21 +11,20 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     # scale source time function, etc.
     possrcs, posrecs, scal_srctf = possrcrec_scaletf(model, shot)
 
-    forward_grid = model.forward_grid
-    adjoint_grid = model.adjoint_grid
-    checkpointing = model.checkpointing
+    grid = model.grid
+    checkpointer = model.checkpointer
     backend = select_backend(typeof(model), model.parall)
 
     # Numerics
     nt = model.nt
     # Initialize pressure and factors arrays
-    pold = forward_grid.pold
-    pcur = forward_grid.pcur
-    pnew = forward_grid.pnew
+    pold = grid.fields["pold"].value
+    pcur = grid.fields["pcur"].value
+    pnew = grid.fields["pnew"].value
     # Initialize adjoint arrays
-    adjold = adjoint_grid.adjold
-    adjcur = adjoint_grid.adjcur
-    adjnew = adjoint_grid.adjnew
+    adjold = grid.fields["adjold"].value
+    adjcur = grid.fields["adjcur"].value
+    adjnew = grid.fields["adjnew"].value
     # Wrap sources and receivers arrays
     possrcs_bk = backend.Data.Array(possrcs)
     posrecs_bk = backend.Data.Array(posrecs)
@@ -38,9 +37,9 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     for it in 1:nt
         # Compute one forward step
         pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, forward_grid.fact,
-            model.gridspacing..., model.halo,
-            forward_grid.ψ..., forward_grid.ξ..., forward_grid.a_coeffs..., forward_grid.b_coeffs...,
+            pold, pcur, pnew, grid.fields["fact"].value,
+            wavsim.grid.gridspacing..., wavsim.halo,
+            grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value, grid.fields["b_pml"].value...,
             possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it
         )
         # Print timestep info
@@ -48,23 +47,9 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
         end
         # Save checkpoint
-        if checkpointing.check_freq !== nothing && it % checkpointing.check_freq == 0
-            @debug @sprintf("Saving checkpoint at iteration: %d", it)
-            # Save current and last timestep pressure
-            copyto!(checkpointing.checkpoints[it], pcur)
-            copyto!(checkpointing.checkpoints[it-1], pold)
-            # Also save CPML arrays
-            for i in eachindex(forward_grid.ψ)
-                copyto!(checkpointing.checkpoints_ψ[it][i], forward_grid.ψ[i])
-            end
-            for i in eachindex(forward_grid.ξ)
-                copyto!(checkpointing.checkpoints_ξ[it][i], forward_grid.ξ[i])
-            end
-        end
-        # Start populating save buffer just before last checkpoint
-        if it >= checkpointing.last_checkpoint - 1
-            copyto!(checkpointing.save_buffer[it-(checkpointing.last_checkpoint-1)+1], pcur)
-        end
+        savecheckpoint!(checkpointer, "pcur" => pcur, it)
+        savecheckpoint!(checkpointer, "ψ" => grid.fields["ψ"], it)
+        savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], it)
     end
 
     @info "Saving seismograms"
@@ -74,18 +59,16 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     residuals_bk = backend.Data.Array(dχ_du(misfit, shot.recs))
 
     # Prescale residuals (fact = vel^2 * dt^2)
-    backend.prescale_residuals!(residuals_bk, posrecs_bk, forward_grid.fact)
+    backend.prescale_residuals!(residuals_bk, posrecs_bk, grid.fields["fact"])
 
     @debug "Computing gradients"
-    # Current checkpoint
-    curr_checkpoint = checkpointing.last_checkpoint
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
         adjold, adjcur, adjnew = backend.forward_onestep_CPML!(
-            adjold, adjcur, adjnew, forward_grid.fact,
-            model.gridspacing..., model.halo,
-            adjoint_grid.ψ_adj..., adjoint_grid.ξ_adj..., forward_grid.a_coeffs..., forward_grid.b_coeffs...,
+            adjold, adjcur, adjnew, grid.fields["fact"].value,
+            model.grid.gridspacing..., model.halo,
+            grid.fields["ψ_adj"].value..., grid.fields["ξ_adj"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
             posrecs_bk, residuals_bk, nothing, nothing, it;   # adjoint sources positions are receivers
             save_trace=false
         )
@@ -94,51 +77,35 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             @info @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
-        if (it - 1) < curr_checkpoint
+        if !issaved(checkpointer, "pcur", it-2)
             @debug @sprintf("Out of save buffer at iteration: %d", it)
-            # Shift last checkpoint
-            old_checkpoint = curr_checkpoint
-            curr_checkpoint -= checkpointing.check_freq
-            # Shift start of save buffer
-            copyto!(checkpointing.save_buffer[1], checkpointing.checkpoints[curr_checkpoint-1])
-            copyto!(checkpointing.save_buffer[2], checkpointing.checkpoints[curr_checkpoint])
-            # Shift end of save buffer
-            copyto!(checkpointing.save_buffer[end-1], checkpointing.checkpoints[old_checkpoint-1])
-            copyto!(checkpointing.save_buffer[end], checkpointing.checkpoints[old_checkpoint])
-            # Recover pressure and CPML arrays from current checkpoint
-            copyto!(pold, checkpointing.checkpoints[curr_checkpoint-1])
-            copyto!(pcur, checkpointing.checkpoints[curr_checkpoint])
-            pnew .= 0.0
-            for i in eachindex(checkpointing.checkpoints_ψ[curr_checkpoint])
-                copyto!(forward_grid.ψ[i], checkpointing.checkpoints_ψ[curr_checkpoint][i])
-            end
-            for i in eachindex(checkpointing.checkpoints_ξ[curr_checkpoint])
-                copyto!(forward_grid.ξ[i], checkpointing.checkpoints_ξ[curr_checkpoint][i])
-            end
-            # Forward recovery time loop
-            for recit in (curr_checkpoint+1):((old_checkpoint-1)-1)
-                pold, pcur, pnew = backend.forward_onestep_CPML!(
-                    pold, pcur, pnew, forward_grid.fact,
-                    model.gridspacing..., model.halo,
-                    forward_grid.ψ..., forward_grid.ξ..., forward_grid.a_coeffs..., forward_grid.b_coeffs...,
+            initrecover!(checkpointer)
+            copyto!(pold, getsaved(checkpointer, "pcur", checkpointer.curr_checkpoint - 1).value)
+            copyto!(pcur, getsaved(checkpointer, "pcur", checkpointer.curr_checkpoint).value)
+            copyto!(grid.fields["ψ"], getsaved(checkpointer, "ψ", checkpointer.curr_checkpoint))
+            copyto!(grid.fields["ξ"], getsaved(checkpointer, "ξ", checkpointer.curr_checkpoint))
+            recoverbuffer!(checkpointer, recit -> begin
+                _, recovered_pcur, _ = backend.forward_onestep_CPML!(
+                    pold, pcur, pnew, grid.fields["fact"].value,
+                    wavsim.grid.gridspacing..., wavsim.halo,
+                    grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value, grid.fields["b_pml"].value...,
                     possrcs_bk, srctf_bk, nothing, nothing, recit;
                     save_trace=false
                 )
-                # Save recovered pressure in save buffer
-                copyto!(checkpointing.save_buffer[recit-(curr_checkpoint+1)+3], pcur)
-            end
+                return recovered_pcur
+            end)
         end
         # Get pressure fields from saved buffer
-        pcur_corr = checkpointing.save_buffer[((it-1)-curr_checkpoint)+1]
-        pold_corr = checkpointing.save_buffer[((it-1)-curr_checkpoint)+2]
-        pveryold_corr = checkpointing.save_buffer[((it-1)-curr_checkpoint)+3]
+        pcur_corr = getsaved(checkpointer, "pcur", it-2).value
+        pold_corr = getsaved(checkpointer, "pcur", it-1).value
+        pveryold_corr = getsaved(checkpointer, "pcur", it).value
         # Correlate for gradient computation
-        backend.correlate_gradient!(adjoint_grid.curgrad, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
+        backend.correlate_gradient!(grid.fields["grad_vp"].value, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
     end
     # get gradient
-    gradient = Array(adjoint_grid.curgrad)
+    gradient = Array(grid.fields["grad_vp"].value)
     # smooth gradient
-    backend.smooth_gradient!(gradient, possrcs, adjoint_grid.smooth_radius)
+    backend.smooth_gradient!(gradient, possrcs, model.smooth_radius)
     # rescale gradient
     gradient .= (2.0 ./ (model.matprop.vp .^ 3)) .* gradient
     # add regularization if needed

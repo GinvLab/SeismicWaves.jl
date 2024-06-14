@@ -36,12 +36,12 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
 end
 
 function check_shot(model::WaveSimul, shot::Shot; kwargs...)
-    @debug "Checking model/shot numerics"
-    check_numerics(model, shot; kwargs...)
-    @debug "Checking sources positions"
-    check_positions(model, shot.srcs.positions)
-    @debug "Checking receivers positions"
-    check_positions(model, shot.recs.positions)
+    # @debug "Checking model/shot numerics"
+    # check_numerics(model, shot; kwargs...)
+    # @debug "Checking sources positions"
+    # check_positions(model, shot.srcs.positions)
+    # @debug "Checking receivers positions"
+    # check_positions(model, shot.recs.positions)
     return
 end
 

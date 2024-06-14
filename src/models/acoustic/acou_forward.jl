@@ -11,7 +11,7 @@ swforward_1shot!(wavsim::AcousticWaveSimul, args...) = swforward_1shot!(Boundary
 
     # source time function 
     # scale with boxcar and timestep size
-    scal_srctf = shot.srcs.tf ./ prod(wavsim.gridspacing) .* (wavsim.dt^2)
+    scal_srctf = shot.srcs.tf ./ prod(wavsim.grid.gridspacing) .* (wavsim.dt^2)
     # scale with velocity squared at each source position
     for s in axes(scal_srctf, 2)
         scal_srctf[:, s] .*= wavsim.matprop.vp[possrcs[s, :]...] .^ 2
@@ -29,13 +29,13 @@ end
     # scale source time function, etc.
     possrcs, posrecs, scal_srctf = possrcrec_scaletf(wavsim, shot)
 
-    forward_grid = wavsim.forward_grid
+    grid = wavsim.grid
     backend = select_backend(typeof(wavsim), wavsim.parall)
 
     # Pressure arrays
-    pold = forward_grid.pold
-    pcur = forward_grid.pcur
-    pnew = forward_grid.pnew
+    pold = grid.fields["pold"].value
+    pcur = grid.fields["pcur"].value
+    pnew = grid.fields["pnew"].value
     # Numerics
     nt = wavsim.nt
     # Wrap sources and receivers arrays
@@ -50,9 +50,9 @@ end
     for it in 1:nt
         # Compute one forward step
         pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, forward_grid.fact,
-            wavsim.gridspacing..., wavsim.halo,
-            forward_grid.ψ..., forward_grid.ξ..., forward_grid.a_coeffs..., forward_grid.b_coeffs...,
+            pold, pcur, pnew, grid.fields["fact"].value,
+            wavsim.grid.gridspacing..., wavsim.halo,
+            grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
             possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it
         )
         # Print timestep info

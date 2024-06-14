@@ -46,6 +46,11 @@ include("srcrec_interpolation.jl")
 
 include("models/cpmlcoeffs.jl")
 
+include("grids/abstract_types.jl")
+include("grids/fields.jl")
+include("grids/grids.jl")
+include("grids/checkpointers.jl")
+
 # Acoustic
 include("models/acoustic/acou_abstract_types.jl")
 include("models/acoustic/acou_grid.jl")
