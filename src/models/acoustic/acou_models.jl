@@ -6,7 +6,7 @@
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
     courant = vel_max * model.dt * tmp
-    @debug "Courant number: $(courant)"
+    @info "Courant number: $(courant)"
     if courant > 1.0
         @warn "Courant condition not satisfied! [$(courant)]"
     end
@@ -21,7 +21,7 @@ function check_numerics(
     vel_min = get_minimum_func(model)(model.matprop.vp)
     h_max = maximum(model.gridspacing)
     ppw = vel_min / shot.srcs.domfreq / h_max
-    @debug "Points per wavelength: $(ppw)"
+    @info "Points per wavelength: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
@@ -210,7 +210,7 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
     courant = vel_max * model.dt * tmp * 7 / 6    # 7/6 comes from the higher order stencil
-    @debug "Courant number: $(courant)"
+    @info "Courant number: $(courant)"
     if courant > 1
         @warn "Courant condition not satisfied! [$(courant)]"
     end

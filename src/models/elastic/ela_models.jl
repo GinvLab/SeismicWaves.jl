@@ -15,7 +15,7 @@
     vel_max = get_maximum_func(wavsim)(vp)
     tmp = sqrt.(sum(1 ./ wavsim.gridspacing .^ 2))
     courant = vel_max * wavsim.dt * tmp
-    @debug "Courant number: $(courant)"
+    @info "Courant number: $(courant)"
     if courant > 1.0
         @warn "Courant condition not satisfied! [$(courant)]"
     end
@@ -34,7 +34,7 @@ function check_numerics(
     h_max = maximum(wavsim.gridspacing)
     fmax = shot.srcs.domfreq * 2.0
     ppw = vel_min / (fmax * h_max)
-    @debug "Points per wavelength: $(ppw)"
+    @info "Points per wavelength: $(ppw)"
 
     dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
     @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"

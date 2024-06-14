@@ -45,7 +45,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         )
         # Print timestep info
         if it % model.infoevery == 0
-            @debug @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
+            @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
         end
         # Save checkpoint
         if checkpointing.check_freq !== nothing && it % checkpointing.check_freq == 0
@@ -91,7 +91,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         )
         # Print timestep info
         if it % model.infoevery == 0
-            @debug @sprintf("Backward iteration: %d", it)
+            @info @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
         if (it - 1) < curr_checkpoint
@@ -124,9 +124,6 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
                     possrcs_bk, srctf_bk, nothing, nothing, recit;
                     save_trace=false
                 )
-                if recit % model.infoevery == 0
-                    @debug @sprintf("Recovering iteration: %d", recit)
-                end
                 # Save recovered pressure in save buffer
                 copyto!(checkpointing.save_buffer[recit-(curr_checkpoint+1)+3], pcur)
             end
@@ -188,7 +185,7 @@ end
         )
         # Print timestep info
         if it % model.infoevery == 0
-            @debug @sprintf("Forward iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt * it, maximum(abs.(Array(pcur))))
+            @info @sprintf("Forward iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]", it, model.dt * it, maximum(abs.(Array(pcur))))
         end
         # Save checkpoint
         if model.check_freq !== nothing && it % model.check_freq == 0
@@ -235,7 +232,7 @@ end
         )
         # Print timestep info
         if it % model.infoevery == 0
-            @debug @sprintf("Backward iteration: %d", it)
+            @info @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
         if (it - 1) < curr_checkpoint
@@ -267,14 +264,6 @@ end
                     possrcs_bk, srctf_bk, nothing, nothing, recit;
                     save_trace=false
                 )
-                if recit % model.infoevery == 0
-                    @debug @sprintf(
-                        "Recover forward iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]",
-                        recit,
-                        model.dt * recit,
-                        maximum(abs.(Array(pcur)))
-                    )
-                end
                 # Save recovered pressure in save buffer
                 copyto!(model.save_buffer[fill(Colon(), N)..., recit-(curr_checkpoint+1)+2], pcur)
             end

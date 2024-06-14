@@ -22,7 +22,7 @@ end
 
     # Set wavesim material properties
     # Remark: matprop in wavesim are mutated
-    @info "Setting wavesim material properties"
+    @debug "Setting wavesim material properties"
     set_wavesim_matprop!(wavsim, matprop)
     # Now onwards matprop from "outside" should not be used anymore!!!
 
@@ -33,12 +33,13 @@ end
     end
 
     # Shots loop
-    for singleshot in shots
+    for (s, singleshot) in enumerate(shots)
+        @info "Shot #$s"
         # Initialize shot
-        @info "Initializing shot"
+        @debug "Initializing shot"
         init_shot!(wavsim, singleshot)
         # Compute forward solver
-        @info "Forward modelling for one shot"
+        @info "Computing forward solver"
         swforward_1shot!(wavsim, singleshot)
         # Save shot's snapshots
         if takesnapshots
@@ -71,7 +72,7 @@ end
         check_sim_consistency(wavsim[w], matprop, shots)
         # Set wavesim material properties
         # Remark: matprop in wavesim are mutated
-        @info "Setting wavesim material properties"
+        @debug "Setting wavesim material properties"
         set_wavesim_matprop!(wavsim[w], matprop)
         # Now onwards matprop from outside should not be used anymore!!!
 
@@ -88,14 +89,13 @@ end
     Threads.@threads for w in 1:nwsim
         # loop on the subset of shots per each WaveSimul 
         for s in grpshots[w]
+            @info "Shot #$s"
             singleshot = shots[s]
             # Initialize shot
-            @info "Initializing shot"
-            #possrcs, posrecs, srctf = init_shot!(wavsim[w], singleshot)
+            @debug "Initializing shot"
             init_shot!(wavsim[w], singleshot)
             # Compute forward solver
-            @info "Forward modelling for one shot"
-            #swforward_1shot!(wavsim[w], possrcs, posrecs, srctf, recs)
+            @info "Computing forward solver"
             swforward_1shot!(wavsim[w], singleshot)
             # Save shot's snapshots
             if snapenabled(wavsim[w])
@@ -124,9 +124,10 @@ end
     # Solve forward model for all shots
     run_swforward!(wavsim, matprop, shots)
     # Compute total misfit for all shots
+    @info "Computing misfit"
     totmisfitval = 0
     for singleshot in shots
-        @info "Checking invcov matrix"
+        @debug "Checking invcov matrix"
         if typeof(wavsim) <: Vector{<:WaveSimul}
             for i in eachindex(wavsim)
                 check_invcov_matrix(wavsim[i], singleshot.recs.invcov)
@@ -134,7 +135,6 @@ end
         else
             check_invcov_matrix(wavsim, singleshot.recs.invcov)
         end
-        @info "Computing misfit"
         totmisfitval += misfit(singleshot.recs, matprop)
     end
 
@@ -157,7 +157,7 @@ end
     check_sim_consistency(wavsim, matprop, shots)
 
     # Set wavesim material properties
-    @info "Setting wavesim material properties"
+    @debug "Setting wavesim material properties"
     set_wavesim_matprop!(wavsim, matprop)
 
     # Initialize total gradient and total misfit
@@ -167,9 +167,9 @@ end
     for (s, singleshot) in enumerate(shots)
         @info "Shot #$s"
         # Initialize shot
-        @info "Initializing shot"
+        @debug "Initializing shot"
         init_shot!(wavsim, singleshot)
-        @info "Checking invcov matrix"
+        @debug "Checking invcov matrix"
         check_invcov_matrix(wavsim, singleshot.recs.invcov)
         # Compute forward solver
         @info "Computing gradient solver"
@@ -205,7 +205,7 @@ end
         check_sim_consistency(wavsim[w], matprop, shots)
 
         # Set wavesim material properties
-        @info "Setting wavesim material properties"
+        @debug "Setting wavesim material properties"
         set_wavesim_matprop!(wavsim[w], matprop)
     end
 
@@ -227,9 +227,9 @@ end
             singleshot = shots[s]
             @info "Shot #$s"
             # Initialize shot
-            @info "Initializing shot"
+            @debug "Initializing shot"
             init_shot!(wavsim[w], singleshot)
-            @info "Checking invcov matrix"
+            @debug "Checking invcov matrix"
             check_invcov_matrix(wavsim[w], singleshot.recs.invcov)
             # Compute forward solver
             @info "Computing gradient solver"

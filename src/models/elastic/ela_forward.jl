@@ -107,7 +107,7 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
         # Save snapshot
         if snapenabled(wavsim) && it % wavsim.snapevery == 0
             #error("Snapshot for elastic not yet implemented...")
-            @debug @sprintf("Snapping iteration: %d", it)
+            @info @sprintf("Snapping iteration: %d", it)
             dummyidxs = fill(Colon(), N)
             # Vx
             wavsim.snapshots[1][dummyidxs..., div(it, wavsim.snapevery)] .= Array(wavsim.velpartic.vx)

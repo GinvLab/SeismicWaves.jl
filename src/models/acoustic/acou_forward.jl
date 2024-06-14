@@ -57,7 +57,7 @@ end
         )
         # Print timestep info
         if it % wavsim.infoevery == 0
-            @debug @sprintf(
+            @info @sprintf(
                 "Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]",
                 it,
                 wavsim.dt * (it - 1),
@@ -67,7 +67,7 @@ end
 
         # Save snapshot
         if snapenabled(wavsim) && it % wavsim.snapevery == 0
-            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
+            @info @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
             copyto!(wavsim.snapshots[fill(Colon(), N)..., div(it, wavsim.snapevery)], pcur)
         end
     end
@@ -129,7 +129,7 @@ end
         )
         # Print timestep info
         if it % wavsim.infoevery == 0
-            @debug @sprintf(
+            @info @sprintf(
                 "Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]",
                 it,
                 wavsim.dt * (it - 1),
@@ -139,7 +139,7 @@ end
 
         # Save snapshot
         if snapenabled(wavsim) && it % wavsim.snapevery == 0
-            @debug @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
+            @info @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
             copyto!(wavsim.snapshots[fill(Colon(), N)..., div(it, wavsim.snapevery)], pcur)
         end
     end
