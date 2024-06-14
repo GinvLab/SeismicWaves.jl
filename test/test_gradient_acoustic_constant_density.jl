@@ -1,15 +1,13 @@
-using Test, LinearAlgebra
-using SeismicWaves
+using Test
+using DSP, NumericalIntegration, LinearAlgebra
 using CUDA: CUDA
-
-include("utils/setup_models.jl")
-
 using Logging
-error_logger = ConsoleLogger(stderr, Logging.Error)
-with_logger(error_logger) do
+using SeismicWaves
+
+with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     test_backends = [:serial, :threads]
     # test GPU backend only if CUDA is functional
-    if CUDA.functional()
+    if @isdefined(CUDA) && CUDA.functional()
         push!(test_backends, :GPU)
     end
 
