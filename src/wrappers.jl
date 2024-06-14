@@ -72,11 +72,9 @@ function swforward!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matpro
     if logger === nothing
         logger = current_logger()
     end
-    out = nothing
-    with_logger(logger) do
-        out = run_swforward!(wavesim, matprop, shots; kwargs...)
+    return with_logger(logger) do
+        run_swforward!(wavesim, matprop, shots; kwargs...)
     end
-    return out
 end
 
 #######################################################
@@ -272,8 +270,7 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 function build_wavesim(params::InputParameters, matprop::MaterialProperties; parall::Symbol, kwargs...)
     if parall == :threadpersrc
         nthr = Threads.nthreads()
-        #println("  build_wavesim  :threadpersrc")
-        wsim = [build_concrete_wavesim(params, matprop, params.boundcond; parall, kwargs...) for s in 1:nthr]
+        wsim = [build_concrete_wavesim(params, matprop, params.boundcond; parall, kwargs...) for _ in 1:nthr]
     else
         wsim = build_concrete_wavesim(params, matprop, params.boundcond; parall, kwargs...)
     end
