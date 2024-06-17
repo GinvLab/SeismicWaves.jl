@@ -127,28 +127,28 @@ struct AcousticCDCPMLWaveSimul{N, T, A <: AbstractArray{T, N}} <: AcousticCDWave
         addfield!(
             grid,
             "a_pml" => MultiVariableField{N, T, V, Vector{V}}(
-                cat([[cpmlcoeffs[i].a_l, cpmlcoeffs[i].a_hl, cpmlcoeffs[i].a_r, cpmlcoeffs[i].a_hr] for i in 1:N]...; dims=1)
+                cat([[cpmlcoeffs[i].a_l, cpmlcoeffs[i].a_r, cpmlcoeffs[i].a_hl, cpmlcoeffs[i].a_hr] for i in 1:N]...; dims=1)
             )
         )
         addfield!(
             grid,
             "b_pml" => MultiVariableField{N, T, V, Vector{V}}(
-                cat([[cpmlcoeffs[i].b_l, cpmlcoeffs[i].b_hl, cpmlcoeffs[i].b_r, cpmlcoeffs[i].b_hr] for i in 1:N]...; dims=1)
+                cat([[cpmlcoeffs[i].b_l, cpmlcoeffs[i].b_r, cpmlcoeffs[i].b_hl, cpmlcoeffs[i].b_hr] for i in 1:N]...; dims=1)
             )
         )
         # CPML memory variables
         addfield!(grid, "ψ" => MultiVariableField{N, T, A, Vector{A}}(
-            cat([[backend.zeros([j == i ? halo + 1 : ns[i] for j in 1:N]...), backend.zeros([j == i ? halo + 1 : ns[i] for j in 1:N]...)] for i in 1:N]...; dims=1)
+            cat([[backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
         ))
         addfield!(grid, "ξ" => MultiVariableField{N, T, A, Vector{A}}(
-            cat([[backend.zeros([j == i ? halo : ns[i] for j in 1:N]...), backend.zeros([j == i ? halo : ns[i] for j in 1:N]...)] for i in 1:N]...; dims=1)
+            cat([[backend.zeros([j == i ? halo : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
         ))
         if gradient
             addfield!(grid, "ψ_adj" => MultiVariableField{N, T, A, Vector{A}}(
-                cat([[backend.zeros([j == i ? halo + 1 : ns[i] for j in 1:N]...), backend.zeros([j == i ? halo + 1 : ns[i] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat([[backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
             ))
             addfield!(grid, "ξ_adj" => MultiVariableField{N, T, A, Vector{A}}(
-                cat([[backend.zeros([j == i ? halo : ns[i] for j in 1:N]...), backend.zeros([j == i ? halo : ns[i] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat([[backend.zeros([j == i ? halo : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
             ))
         end
 
@@ -181,7 +181,7 @@ struct AcousticCDCPMLWaveSimul{N, T, A <: AbstractArray{T, N}} <: AcousticCDWave
             rcoef,
             freetop,
             gradient,
-            gradient ? adjoint_grid.totgrad_size : nothing,
+            gradient ? [ns...] : nothing,
             smooth_radius,
             snapevery,
             snapshots,
@@ -295,7 +295,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
     freetop::Bool
     # Gradient computation setup
     gradient::Bool
-    totgrad_size::Union{Vector{<:Integer}, Nothing}
+    totgrad_size::Union{Vector{Int}, Nothing}
     check_freq::Union{<:Integer, Nothing}
     # Snapshots
     snapevery::Union{<:Integer, Nothing}

@@ -36,10 +36,10 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
-        pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, grid.fields["fact"].value,
-            wavsim.grid.gridspacing..., wavsim.halo,
-            grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value, grid.fields["b_pml"].value...,
+        grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value = backend.forward_onestep_CPML!(
+            grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value, grid.fields["fact"].value,
+            model.grid.gridspacing..., model.halo,
+            grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
             possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it
         )
         # Print timestep info
@@ -47,7 +47,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
         end
         # Save checkpoint
-        savecheckpoint!(checkpointer, "pcur" => pcur, it)
+        savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], it)
         savecheckpoint!(checkpointer, "ψ" => grid.fields["ψ"], it)
         savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], it)
     end
@@ -59,7 +59,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     residuals_bk = backend.Data.Array(dχ_du(misfit, shot.recs))
 
     # Prescale residuals (fact = vel^2 * dt^2)
-    backend.prescale_residuals!(residuals_bk, posrecs_bk, grid.fields["fact"])
+    backend.prescale_residuals!(residuals_bk, posrecs_bk, grid.fields["fact"].value)
 
     @debug "Computing gradients"
     # Adjoint time loop (backward in time)
@@ -80,19 +80,19 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         if !issaved(checkpointer, "pcur", it-2)
             @debug @sprintf("Out of save buffer at iteration: %d", it)
             initrecover!(checkpointer)
-            copyto!(pold, getsaved(checkpointer, "pcur", checkpointer.curr_checkpoint - 1).value)
-            copyto!(pcur, getsaved(checkpointer, "pcur", checkpointer.curr_checkpoint).value)
+            copyto!(grid.fields["pold"], getsaved(checkpointer, "pcur", checkpointer.curr_checkpoint - 1))
+            copyto!(grid.fields["pcur"], getsaved(checkpointer, "pcur", checkpointer.curr_checkpoint))
             copyto!(grid.fields["ψ"], getsaved(checkpointer, "ψ", checkpointer.curr_checkpoint))
             copyto!(grid.fields["ξ"], getsaved(checkpointer, "ξ", checkpointer.curr_checkpoint))
-            recoverbuffer!(checkpointer, recit -> begin
-                _, recovered_pcur, _ = backend.forward_onestep_CPML!(
-                    pold, pcur, pnew, grid.fields["fact"].value,
-                    wavsim.grid.gridspacing..., wavsim.halo,
-                    grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value, grid.fields["b_pml"].value...,
+            recover!(checkpointer, recit -> begin
+            grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value = backend.forward_onestep_CPML!(
+                grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value, grid.fields["fact"].value,
+                    model.grid.gridspacing..., model.halo,
+                    grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
                     possrcs_bk, srctf_bk, nothing, nothing, recit;
                     save_trace=false
                 )
-                return recovered_pcur
+                return ["pcur" => grid.fields["pcur"]]
             end)
         end
         # Get pressure fields from saved buffer

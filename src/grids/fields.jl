@@ -2,7 +2,7 @@ struct ScalarConstantField{N, T} <: AbstractField{N, T}
     value::T
 end
 
-struct ScalarVariableField{N, T, A <: AbstractArray{T}} <: AbstractField{N, T}
+mutable struct ScalarVariableField{N, T, A <: AbstractArray{T}} <: AbstractField{N, T}
     value::A
 end
 
@@ -10,7 +10,7 @@ struct MultiConstantField{N, T, V <: AbstractArray{T}} <: AbstractField{N, T}
     value::V
 end
 
-struct MultiVariableField{N, T, A <: AbstractArray{T}, V <: AbstractArray{A}} <: AbstractField{N, T}
+mutable struct MultiVariableField{N, T, A <: AbstractArray{T}, V <: AbstractArray{A}} <: AbstractField{N, T}
     value::V
 end
 

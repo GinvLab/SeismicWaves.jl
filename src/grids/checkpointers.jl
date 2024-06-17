@@ -50,7 +50,7 @@ function savecheckpoint!(checkpointer::LinearCheckpointer{N,T}, field::Pair{Stri
         end
     end
     # Start populating buffer at last checkpoint
-    if it >= checkpointer.last_checkpoint
+    if haskey(checkpointer.buffers, field.first) && it >= checkpointer.last_checkpoint
         copyto!(checkpointer.buffers[field.first][it - checkpointer.last_checkpoint + 1], field.second)
     end
 end
@@ -92,11 +92,14 @@ function initrecover!(checkpointer::LinearCheckpointer{N,T}) where {N,T}
         copyto!(buffer[end], checkpointer.checkpoints[old_checkpoint][name])
     end
 end
+
 function recover!(checkpointer::LinearCheckpointer{N,T}, recoverfun) where {N,T}
-    for it in (checkpointer.curr_checkpoint+1):(old_checkpoint-1)
+    start_rec_it = checkpointer.curr_checkpoint + 1
+    end_rec_it = checkpointer.curr_checkpoint + checkpointer.check_freq - 1
+    for it in start_rec_it:end_rec_it
         recovered_fields = recoverfun(it)
         for (name, field) in recovered_fields
-            copyto!(buffer[name][it - (checkpointer.curr_checkpoint+1) + 2], field)
+            copyto!(checkpointer.buffers[name][it - start_rec_it + 2], field)
         end
     end
 end
