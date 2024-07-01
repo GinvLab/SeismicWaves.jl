@@ -6,7 +6,7 @@ Abstract type for wave simulations.
 """
 abstract type WaveSimul{N} end
 
-abstract type InputParameters{N} end
+abstract type InputParameters{T, N} end
 
 abstract type InputBoundaryConditionParameters end
 

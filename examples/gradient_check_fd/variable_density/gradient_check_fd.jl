@@ -72,7 +72,7 @@ function setup(nt, c0, c0max, rho0, rho0max, r, dx, dy, dt, halo, rcoef, nx, ny,
     ##============================================
     ## Input parameters for acoustic simulation
     boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false)
-    params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy], boundcond)
+    params = InputParametersAcoustic(nt, dt, (nx, ny), (dx, dy), boundcond)
 
     # Wave simulation builder
     wavesim = build_wavesim(params, matprop_const; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)), smooth_radius=0)

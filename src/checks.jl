@@ -1,5 +1,5 @@
 
-function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, shots::Vector{<:Shot})
+function check_sim_consistency(wavsim::WaveSimul{N}, matprop::MaterialProperties, shots::Vector{<:Shot}) where {N}
     tysource = typeof(shots[1].srcs)
     tyreceiver = typeof(shots[1].recs)
 
@@ -11,8 +11,7 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
     end
 
     # Check that the subtypes of WaveSimul, MaterialProperties and Shot are consistent
-    N = typeof(wavsim).parameters[1]
-    if wavsim isa AcousticCDCPMLWaveSimul{N} &&
+    if wavsim isa AcousticCDCPMLWaveSimul{<:Real, N, <:AbstractArray{<:Real}} &&
        matprop isa VpAcousticCDMaterialProperties{<:Real, N} &&
        tysource <: ScalarSources &&
        tyreceiver <: ScalarReceivers
@@ -31,7 +30,7 @@ function check_sim_consistency(wavsim::WaveSimul, matprop::MaterialProperties, s
         return
     end
 
-    return error("Types of WaveSimul, MaterialProperties and Sources/Receivers are incosistent \
+    return error("Types of WaveSimul, MaterialProperties and Sources/Receivers are inconsistent \
         \n $(typeof(wavsim)), \n $(typeof(matprop)), \n $(typeof(shots[1].srcs)), $(typeof(shots[1].recs))")
 end
 

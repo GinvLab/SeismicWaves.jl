@@ -49,7 +49,7 @@ end
 
 ###########################################################
 
-struct AcousticCDCPMLWaveSimul{N, T, A <: AbstractArray{T, N}} <: AcousticCDWaveSimul{N}
+struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWaveSimul{N}
     # Numerics
     nt::Int
     dt::T
@@ -91,7 +91,7 @@ struct AcousticCDCPMLWaveSimul{N, T, A <: AbstractArray{T, N}} <: AcousticCDWave
         snapevery::Union{Int, Nothing}=nothing,
         infoevery::Union{Int, Nothing}=nothing,
         smooth_radius::Int=5
-    ) where {N, T}
+    ) where {T, N}
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"
         @assert dt > 0 "Timestep size must be positive!"
@@ -102,7 +102,7 @@ struct AcousticCDCPMLWaveSimul{N, T, A <: AbstractArray{T, N}} <: AcousticCDWave
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
-        backend = select_backend(AcousticCDCPMLWaveSimul{N, T}, parall)
+        backend = select_backend(AcousticCDCPMLWaveSimul{T, N}, parall)
         A = backend.Data.Array{N}
         V = backend.Data.Array{1}
         # Initialize computational grid
@@ -185,7 +185,7 @@ struct AcousticCDCPMLWaveSimul{N, T, A <: AbstractArray{T, N}} <: AcousticCDWave
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
-        new{N, T, A}(
+        new{T, N, A}(
             nt,
             dt,
             grid,
@@ -223,7 +223,7 @@ end
 
 # Specific functions for AcousticCDCPMLWaveSimul
 
-@views function reset!(model::AcousticCDCPMLWaveSimul{N}) where {N}
+@views function reset!(model::AcousticCDCPMLWaveSimul)
     reset!(model.grid; except=["fact", "a_pml", "b_pml"])
     reset!(model.checkpointer)
 end

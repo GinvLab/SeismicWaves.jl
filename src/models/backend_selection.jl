@@ -19,17 +19,17 @@ end
 ## VD = variable density
 
 # Backend selections for AcousticCDCPMLWaveSimul
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:serial}}) = Acoustic1D_CD_CPML_Serial
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:serial}}) = Acoustic2D_CD_CPML_Serial
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:serial}}) = Acoustic3D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{Float64, 1}}, ::Type{Val{:serial}}) = Acoustic1D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{Float64, 2}}, ::Type{Val{:serial}}) = Acoustic2D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{Float64, 3}}, ::Type{Val{:serial}}) = Acoustic3D_CD_CPML_Serial
 
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:threads}}) = Acoustic1D_CD_CPML_Threads
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:threads}}) = Acoustic2D_CD_CPML_Threads
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:threads}}) = Acoustic3D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{Float64, 1}}, ::Type{Val{:threads}}) = Acoustic1D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{Float64, 2}}, ::Type{Val{:threads}}) = Acoustic2D_CD_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{Float64, 3}}, ::Type{Val{:threads}}) = Acoustic3D_CD_CPML_Threads
 
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{1}}, ::Type{Val{:threadpersrc}}) = Acoustic1D_CD_CPML_Serial
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{2}}, ::Type{Val{:threadpersrc}}) = Acoustic2D_CD_CPML_Serial
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{3}}, ::Type{Val{:threadpersrc}}) = Acoustic3D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{Float64, 1}}, ::Type{Val{:threadpersrc}}) = Acoustic1D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{Float64, 2}}, ::Type{Val{:threadpersrc}}) = Acoustic2D_CD_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimul{Float64, 3}}, ::Type{Val{:threadpersrc}}) = Acoustic3D_CD_CPML_Serial
 
 # Backend selections for AcousticVDStaggeredCPMLWaveSimul
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimul{1}}, ::Type{Val{:threads}}) = Acoustic1D_VD_CPML_Threads

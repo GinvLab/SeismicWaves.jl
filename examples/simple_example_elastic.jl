@@ -120,7 +120,7 @@ function exelaprob()
     @show halo
     @show rcoef
     boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=freetop)
-    params = InputParametersElastic(nt, dt, [nx, nz], [dh, dh], boundcond)
+    params = InputParametersElastic(nt, dt, (nx, nz), (dh, dh), boundcond)
 
     ##===============================================
     ## compute the seismograms

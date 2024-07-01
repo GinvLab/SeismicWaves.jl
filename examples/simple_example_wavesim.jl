@@ -88,7 +88,7 @@ function exacouprob_wavsim(parall=:serial)
     snapevery = 50
     infoevery = 500
     boundcond = CPMLBoundaryConditionParameters(; halo=20, rcoef=0.0001, freeboundtop=true)
-    params = InputParametersAcoustic(nt, dt, [nx, nz], [dh, dh], boundcond)
+    params = InputParametersAcoustic(nt, dt, (nx, nz), (dh, dh), boundcond)
 
     #@show (boundcond.halo-1)*dh
     ##===============================================

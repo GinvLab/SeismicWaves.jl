@@ -13,7 +13,7 @@ Return a vector of snapshots for every shot if snapshotting is enabled.
 See also [`Sources`](@ref), [`Receivers`](@ref).
 
 # Positional arguments
-- `params::InputParameters{N}`: input parameters for the simulation, where N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
+- `params::InputParameters{T, N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
 - `shots::Vector{<:Shot}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
@@ -27,7 +27,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
 function swforward!(
-    params::InputParameters{N},
+    params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
     parall::Symbol=:threads,
@@ -88,7 +88,7 @@ $(TYPEDSIGNATURES)
 Return the misfit w.r.t. observed data by running a forward simulation using the given input parameters `params` and material properties `matprop` on multiple shots.
 
 # Positional arguments
-- `params::InputParameters{N}`: input parameters for the simulation, where N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
+- `params::InputParameters{T, N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
 - `shots::Vector{<:Shot}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
@@ -104,7 +104,7 @@ Receivers traces are stored in the `Receivers` object for each shot.
 See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 """
 function swmisfit!(
-    params::InputParameters{N},
+    params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
     parall::Symbol=:threads,
@@ -171,7 +171,7 @@ Bigger values speed up computation at the cost of using more memory.
 See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfit!`](@ref).
 
 # Positional arguments
-- `params::InputParameters{N}`: input parameters for the simulation, where N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
+- `params::InputParameters{T, N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
 - `shots::Vector{<:Shot}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
@@ -188,7 +188,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used. 
 """
 function swgradient!(
-    params::InputParameters{N},
+    params::InputParameters{T,N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
     parall::Symbol=:threads,
@@ -260,7 +260,7 @@ $(TYPEDSIGNATURES)
 Builds a wave similation based on the input paramters `params` and keyword arguments `kwargs`.
 
 # Positional arguments
-- `params::InputParameters{N}`: input parameters for the simulation, where N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
+- `params::InputParameters{T,N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
 
 # Keyword arguments
 - `parall::Symbol = :threads`: controls which backend is used for computation:
@@ -273,7 +273,7 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 - `snapevery::Union{<:Integer, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays (only for forward simulations).
 - `infoevery::Union{<:Integer, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-function build_wavesim(params::InputParameters{N}, matprop::MaterialProperties{T, N}; parall::Symbol, kwargs...) where {T, N}
+function build_wavesim(params::InputParameters{T, N}, matprop::MaterialProperties{T, N}; parall::Symbol, kwargs...) where {T, N}
     if parall == :threadpersrc
         nthr = Threads.nthreads()
         wsim = [build_concrete_wavesim(params, matprop, params.boundcond; parall, kwargs...) for _ in 1:nthr]
@@ -284,12 +284,12 @@ function build_wavesim(params::InputParameters{N}, matprop::MaterialProperties{T
 end
 
 build_concrete_wavesim(
-    params::InputParametersAcoustic{N},
-    ::VpAcousticCDMaterialProperties,
+    params::InputParametersAcoustic{T,N},
+    ::VpAcousticCDMaterialProperties{T,N},
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
     kwargs...
-) where {N} = AcousticCDCPMLWaveSimul(
+) where {T,N} = AcousticCDCPMLWaveSimul(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,
@@ -302,12 +302,12 @@ build_concrete_wavesim(
 )
 
 build_concrete_wavesim(
-    params::InputParametersAcoustic{N},
+    params::InputParametersAcoustic{T,N},
     ::VpRhoAcousticVDMaterialProperties,
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
     kwargs...
-) where {N} = AcousticVDStaggeredCPMLWaveSimul{N}(
+) where {T,N} = AcousticVDStaggeredCPMLWaveSimul{N}(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,
@@ -320,12 +320,12 @@ build_concrete_wavesim(
 )
 
 build_concrete_wavesim(
-    params::InputParametersElastic{N},
+    params::InputParametersElastic{T,N},
     ::ElasticIsoMaterialProperties,
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
     kwargs...
-) where {N} = ElasticIsoCPMLWaveSimul{N}(
+) where {T,N} = ElasticIsoCPMLWaveSimul{N}(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,

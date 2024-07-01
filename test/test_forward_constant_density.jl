@@ -29,7 +29,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             rcoef = 0.0001
             f0 = 5.0
             # wave simulation
-            params = InputParametersAcoustic(nt, dt, [nx], [dx],
+            params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
             wavesim = build_wavesim(params, matprop; parall=parall)
 
@@ -82,7 +82,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             rcoef = 0.0001
             f0 = 5.0
             # wave simulation
-            params = InputParametersAcoustic(nt, dt, [nx], [dx],
+            params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
             wavesim = build_wavesim(params, matprop; parall=parall)
 
@@ -139,7 +139,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             rcoef = 0.0001
             f0 = 5.0
             # wave simulation
-            params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
+            params = InputParametersAcoustic(nt, dt, (nx, ny), (dx, dy),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
             wavesim = build_wavesim(params, matprop; parall=parall)
 
@@ -195,7 +195,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             rcoef = 0.0001
             f0 = 5.0
             # wave simulation
-            params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
+            params = InputParametersAcoustic(nt, dt, (nx, ny), (dx, dy),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
             wavesim = build_wavesim(params, matprop; parall=parall)
 
