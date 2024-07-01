@@ -15,14 +15,14 @@ struct InputParametersElastic{T,N} <: InputParameters{T,N}
     "Grid spacing in each direction"
     gridspacing::NTuple{N, T}
     "Kind of boundary conditions"
-    boundcond::InputBoundaryConditionParameters
+    boundcond::InputBoundaryConditionParameters{T}
 
     function InputParametersElastic(
         ntimesteps::Int,
         dt::T,
         gridsize::NTuple{N, Int},
         gridspacing::NTuple{N, T},
-        boundcond::InputBoundaryConditionParameters
+        boundcond::InputBoundaryConditionParameters{T}
     ) where {T,N}
         @assert N <= 3 "Dimensionality must be less than or equal to 3!"
         new{T,N}(ntimesteps, dt, tuple(gridsize...), tuple(gridspacing...), boundcond)
