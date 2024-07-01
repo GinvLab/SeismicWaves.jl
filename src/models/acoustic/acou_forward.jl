@@ -32,10 +32,6 @@ end
     grid = wavsim.grid
     backend = select_backend(typeof(wavsim), wavsim.parall)
 
-    # Pressure arrays
-    pold = grid.fields["pold"].value
-    pcur = grid.fields["pcur"].value
-    pnew = grid.fields["pnew"].value
     # Numerics
     nt = wavsim.nt
     # Wrap sources and receivers arrays
@@ -49,12 +45,7 @@ end
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        pold, pcur, pnew = backend.forward_onestep_CPML!(
-            pold, pcur, pnew, grid.fields["fact"].value,
-            wavsim.grid.gridspacing..., wavsim.halo,
-            grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
-            possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it
-        )
+        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
         if it % wavsim.infoevery == 0
             @info @sprintf(

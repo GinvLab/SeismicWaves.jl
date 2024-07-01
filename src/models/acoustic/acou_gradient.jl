@@ -17,14 +17,6 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
 
     # Numerics
     nt = model.nt
-    # Initialize pressure and factors arrays
-    pold = grid.fields["pold"].value
-    pcur = grid.fields["pcur"].value
-    pnew = grid.fields["pnew"].value
-    # Initialize adjoint arrays
-    adjold = grid.fields["adjold"].value
-    adjcur = grid.fields["adjcur"].value
-    adjnew = grid.fields["adjnew"].value
     # Wrap sources and receivers arrays
     possrcs_bk = backend.Data.Array(possrcs)
     posrecs_bk = backend.Data.Array(posrecs)
@@ -36,12 +28,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
-        grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value = backend.forward_onestep_CPML!(
-            grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value, grid.fields["fact"].value,
-            model.grid.gridspacing..., model.halo,
-            grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
-            possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it
-        )
+        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
@@ -65,11 +52,8 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        adjold, adjcur, adjnew = backend.forward_onestep_CPML!(
-            adjold, adjcur, adjnew, grid.fields["fact"].value,
-            model.grid.gridspacing..., model.halo,
-            grid.fields["ψ_adj"].value..., grid.fields["ξ_adj"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
-            posrecs_bk, residuals_bk, nothing, nothing, it;   # adjoint sources positions are receivers
+        backend.adjoint_onestep_CPML!(
+            grid, posrecs_bk, residuals_bk, nothing, nothing, it;   # adjoint sources positions are receivers
             save_trace=false
         )
         # Print timestep info
@@ -87,13 +71,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             recover!(
                 checkpointer,
                 recit -> begin
-                    grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value = backend.forward_onestep_CPML!(
-                        grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value, grid.fields["fact"].value,
-                        model.grid.gridspacing..., model.halo,
-                        grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
-                        possrcs_bk, srctf_bk, nothing, nothing, recit;
-                        save_trace=false
-                    )
+                    backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
                     return ["pcur" => grid.fields["pcur"]]
                 end
             )
@@ -103,7 +81,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
         pold_corr = getsaved(checkpointer, "pcur", it - 1).value
         pveryold_corr = getsaved(checkpointer, "pcur", it).value
         # Correlate for gradient computation
-        backend.correlate_gradient!(grid.fields["grad_vp"].value, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)
+        backend.correlate_gradient!(grid.fields["grad_vp"].value, grid.fields["adjcur"].value, pcur_corr, pold_corr, pveryold_corr, model.dt)
     end
     # get gradient
     gradient = Array(grid.fields["grad_vp"].value)
