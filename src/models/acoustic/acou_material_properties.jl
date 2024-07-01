@@ -7,9 +7,9 @@ Material properties for acoustic constant-density simulation.
 
 $(TYPEDFIELDS)
 """
-struct VpAcousticCDMaterialProperties{N} <: MaterialProperties{N}
+struct VpAcousticCDMaterialProperties{T, N} <: MaterialProperties{T, N}
     "P-wave velocity"
-    vp::Array{<:Float64, N}
+    vp::Array{T, N}
 end
 
 @doc """
@@ -19,38 +19,28 @@ Material properties for acoustic variable-density simulation.
 
 $(TYPEDFIELDS)
 """
-mutable struct VpRhoAcousticVDMaterialProperties{N} <: MaterialProperties{N}
+mutable struct VpRhoAcousticVDMaterialProperties{T, N} <: MaterialProperties{T, N}
     "P-wave velocity"
-    vp::Array{<:Float64, N}
+    vp::Array{T, N}
     "Density"
-    rho::Array{<:Float64, N}
+    rho::Array{T, N}
     "Interpolation method"
     interp_method::InterpolationMethod
 
     @doc """
-        VpRhoAcousticVDMaterialProperties{N}(
-          vp::Array{<:Float64, N},
-          rho::Array{<:Float64, N};
+        VpRhoAcousticVDMaterialProperties(
+          vp::Array{T, N},
+          rho::Array{T, N};
           interp_method::InterpolationMethod=ArithmeticAverageInterpolation(2)
-        ) where {N}
+        ) where {T, N}
 
     Constructor for material properties for acoustic variable-density simulation.
     """
-    function VpRhoAcousticVDMaterialProperties{N}(
-        vp::Array{<:Float64, N},
-        rho::Array{<:Float64, N};
+    function VpRhoAcousticVDMaterialProperties(
+        vp::Array{T, N},
+        rho::Array{T, N};
         interp_method::InterpolationMethod=ArithmeticAverageInterpolation(2)
-    ) where {N}
-        return new(vp, rho, interp_method)
+    ) where {T, N}
+        return new{T, N}(vp, rho, interp_method)
     end
 end
-
-@doc """
-$(SIGNATURES)
-
-Constructor to avoid specifying dimensions to create material properties for acoustic variable-density simulation.
-"""
-VpRhoAcousticVDMaterialProperties(vp, rho; kwargs...) = VpRhoAcousticVDMaterialProperties{length(size(vp))}(vp, rho; kwargs...)
-
-interpolate(a::Array{<:Float64, N}, interp_method) where {N} = collect(interp(interp_method, a, i) for i in 1:N)
-interpolate_jacobian(a::Array{<:Float64, N}, interp_method) where {N} = collect(jacobian(interp_method, a, i) for i in 1:N)

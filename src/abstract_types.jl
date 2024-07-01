@@ -10,7 +10,7 @@ abstract type InputParameters{N} end
 
 abstract type InputBoundaryConditionParameters end
 
-abstract type MaterialProperties{N} end
+abstract type MaterialProperties{T, N} end
 
 abstract type Sources end
 

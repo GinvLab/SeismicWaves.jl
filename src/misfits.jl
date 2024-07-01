@@ -44,14 +44,14 @@ Base.@kwdef struct ZerothOrderTikhonovRegularization{M <: MaterialProperties} <:
     alpha::Real
 end
 
-function (regularization::ZerothOrderTikhonovRegularization{VpAcousticCDMaterialProperties{N}})(matprop::VpAcousticCDMaterialProperties{N}) where {N}
+function (regularization::ZerothOrderTikhonovRegularization{VpAcousticCDMaterialProperties{T, N}})(matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
     vp = matprop.vp
     vp_prior = regularization.matprop_prior.vp
     vp_norm_sq = norm(vp - vp_prior)^2
     return regularization.alpha / 2 * vp_norm_sq
 end
 
-function (regularization::ZerothOrderTikhonovRegularization{VpRhoAcousticVDMaterialProperties{N}})(matprop::VpRhoAcousticVDMaterialProperties{N}) where {N}
+function (regularization::ZerothOrderTikhonovRegularization{VpRhoAcousticVDMaterialProperties{T, N}})(matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
     vp = matprop.vp
     rho = matprop.rho
     vp_prior = regularization.matprop_prior.vp
@@ -61,13 +61,13 @@ function (regularization::ZerothOrderTikhonovRegularization{VpRhoAcousticVDMater
     return regularization.alpha / 2 * (vp_norm_sq + rho_norm_sq)
 end
 
-function dχ_dm(regularization::ZerothOrderTikhonovRegularization{VpAcousticCDMaterialProperties{N}}, matprop::VpAcousticCDMaterialProperties{N}) where {N}
+function dχ_dm(regularization::ZerothOrderTikhonovRegularization{VpAcousticCDMaterialProperties{T, N}}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
     vp = matprop.vp
     vp_prior = regularization.matprop_prior.vp
     return regularization.alpha * (vp - vp_prior)
 end
 
-function dχ_dm(regularization::ZerothOrderTikhonovRegularization{VpRhoAcousticVDMaterialProperties{N}}, matprop::VpRhoAcousticVDMaterialProperties{N}) where {N}
+function dχ_dm(regularization::ZerothOrderTikhonovRegularization{VpRhoAcousticVDMaterialProperties{T, N}}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
     vp = matprop.vp
     rho = matprop.rho
     vp_prior = regularization.matprop_prior.vp

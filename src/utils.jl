@@ -23,6 +23,8 @@ struct ArithmeticAverageInterpolation <: InterpolationMethod
     width::Int
 end
 
+interpolate(a::Array{T, N}, interp_method) where {T, N} = collect(interp(interp_method, a, i) for i in 1:N)
+
 @views function interp(method::ArithmeticAverageInterpolation, a::Array{<:Real, N}, dim) where {N}
     return sum(
         a[CartesianIndices(Tuple(i == dim ? (j:size(a, i)+j-method.width) : (1:size(a, i)) for i in 1:N))] for j in 1:method.width

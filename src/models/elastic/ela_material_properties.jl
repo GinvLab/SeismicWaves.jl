@@ -1,23 +1,23 @@
 
-Base.@kwdef struct ElasticIsoMaterialProperties{N} <: AbstrElasticIsoMaterialProperties{N}
-    λ::Array{<:AbstractFloat, N}
-    μ::Array{<:AbstractFloat, N}
-    ρ::Array{<:AbstractFloat, N}
+Base.@kwdef struct ElasticIsoMaterialProperties{T, N} <: AbstrElasticIsoMaterialProperties{T, N}
+    λ::Array{T, N}
+    μ::Array{T, N}
+    ρ::Array{T, N}
 end
 
 # Material properties for 2D simulations
-Base.@kwdef struct ElasticIsoMaterialProperties2D <: AbstrElasticIsoMaterialProperties{2}
-    λ::Array{<:AbstractFloat, 2}
-    μ::Array{<:AbstractFloat, 2}
-    ρ::Array{<:AbstractFloat, 2}
-    λ_ihalf::Array{<:AbstractFloat, 2}
-    μ_ihalf::Array{<:AbstractFloat, 2}
-    μ_jhalf::Array{<:AbstractFloat, 2}
-    ρ_ihalf_jhalf::Array{<:AbstractFloat, 2}
+Base.@kwdef struct ElasticIsoMaterialProperties2D{T} <: AbstrElasticIsoMaterialProperties{T, 2}
+    λ::Array{T, 2}
+    μ::Array{T, 2}
+    ρ::Array{T, 2}
+    λ_ihalf::Array{T, 2}
+    μ_ihalf::Array{T, 2}
+    μ_jhalf::Array{T, 2}
+    ρ_ihalf_jhalf::Array{T, 2}
 
-    # function ElasticIsoMaterialProperties{N}(ρ::Array{<:AbstractFloat, N},
-    #                                        μ::Array{<:AbstractFloat, N},
-    #                                        λ::Array{<:AbstractFloat, N}) where {N}
+    # function ElasticIsoMaterialProperties{N}(ρ::Array{T, N},
+    #                                        μ::Array{T, N},
+    #                                        λ::Array{T, N}) where {N}
 
     #     @assert ndims(λ)==2
     #     nx,ny = size(λ)
