@@ -77,27 +77,30 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
             @info @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
-        if !issaved(checkpointer, "pcur", it-2)
+        if !issaved(checkpointer, "pcur", it - 2)
             @debug @sprintf("Out of save buffer at iteration: %d", it)
             initrecover!(checkpointer)
             copyto!(grid.fields["pold"], getsaved(checkpointer, "pcur", checkpointer.curr_checkpoint - 1))
             copyto!(grid.fields["pcur"], getsaved(checkpointer, "pcur", checkpointer.curr_checkpoint))
             copyto!(grid.fields["ψ"], getsaved(checkpointer, "ψ", checkpointer.curr_checkpoint))
             copyto!(grid.fields["ξ"], getsaved(checkpointer, "ξ", checkpointer.curr_checkpoint))
-            recover!(checkpointer, recit -> begin
-            grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value = backend.forward_onestep_CPML!(
-                grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value, grid.fields["fact"].value,
-                    model.grid.gridspacing..., model.halo,
-                    grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
-                    possrcs_bk, srctf_bk, nothing, nothing, recit;
-                    save_trace=false
-                )
-                return ["pcur" => grid.fields["pcur"]]
-            end)
+            recover!(
+                checkpointer,
+                recit -> begin
+                    grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value = backend.forward_onestep_CPML!(
+                        grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value, grid.fields["fact"].value,
+                        model.grid.gridspacing..., model.halo,
+                        grid.fields["ψ"].value..., grid.fields["ξ"].value..., grid.fields["a_pml"].value..., grid.fields["b_pml"].value...,
+                        possrcs_bk, srctf_bk, nothing, nothing, recit;
+                        save_trace=false
+                    )
+                    return ["pcur" => grid.fields["pcur"]]
+                end
+            )
         end
         # Get pressure fields from saved buffer
-        pcur_corr = getsaved(checkpointer, "pcur", it-2).value
-        pold_corr = getsaved(checkpointer, "pcur", it-1).value
+        pcur_corr = getsaved(checkpointer, "pcur", it - 2).value
+        pold_corr = getsaved(checkpointer, "pcur", it - 1).value
         pveryold_corr = getsaved(checkpointer, "pcur", it).value
         # Correlate for gradient computation
         backend.correlate_gradient!(grid.fields["grad_vp"].value, adjcur, pcur_corr, pold_corr, pveryold_corr, model.dt)

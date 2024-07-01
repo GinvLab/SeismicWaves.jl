@@ -2,7 +2,7 @@ struct UniformFiniteDifferenceGrid{N, T} <: AbstractGrid{N, T}
     domainextent::NTuple{N, T}
     ns::NTuple{N, Int}
     gridspacing::NTuple{N, T}
-    fields::Dict{String, AbstractField{N,T}}
+    fields::Dict{String, AbstractField{T}}
 
     function UniformFiniteDifferenceGrid(
         ns::NTuple{N, Int}, gridspacing::NTuple{N, T}
@@ -16,7 +16,7 @@ struct UniformFiniteDifferenceGrid{N, T} <: AbstractGrid{N, T}
     end
 end
 
-function addfield!(grid::UniformFiniteDifferenceGrid{N, T}, field::Pair{String, <:AbstractField{N,T}}) where {N, T}
+function addfield!(grid::UniformFiniteDifferenceGrid{N, T}, field::Pair{String, <:AbstractField{T}}) where {N, T}
     name = field.first
     if !haskey(grid.fields, name)
         grid.fields[name] = field.second
@@ -25,10 +25,9 @@ function addfield!(grid::UniformFiniteDifferenceGrid{N, T}, field::Pair{String, 
     end
 end
 
-function reset!(grid::UniformFiniteDifferenceGrid{N,T}; except::Vector{String}=[]) where {N,T}
+reset!(grid::UniformFiniteDifferenceGrid{N, T}; except::Vector{String}=[]) where {N, T} =
     for (name, field) in grid.fields
         if !(name in except)
-            copyto!(field, ScalarConstantField{N,T}(0.0))
+            setzero!(field)
         end
     end
-end

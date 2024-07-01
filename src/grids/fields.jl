@@ -1,35 +1,47 @@
-struct ScalarConstantField{N, T} <: AbstractField{N, T}
+mutable struct ScalarConstantField{T} <: AbstractField{T}
     value::T
 end
 
-mutable struct ScalarVariableField{N, T, A <: AbstractArray{T}} <: AbstractField{N, T}
+mutable struct ScalarVariableField{T, N, A <: AbstractArray{T, N}} <: AbstractField{T}
     value::A
 end
 
-struct MultiConstantField{N, T, V <: AbstractArray{T}} <: AbstractField{N, T}
+mutable struct MultiConstantField{T, N} <: AbstractField{T}
+    value::Vector{T}
+    MultiConstantField(value::NTuple{N, T}) where {T, N} = new{T, N}(collect(value))
+end
+
+mutable struct MultiVariableField{T, N, A <: AbstractArray{T, N}, V <: Vector{A}} <: AbstractField{T}
     value::V
 end
 
-mutable struct MultiVariableField{N, T, A <: AbstractArray{T}, V <: AbstractArray{A}} <: AbstractField{N, T}
-    value::V
-end
-
-function SeismicWaves.copyto!(dest::ScalarVariableField{N, T, A}, src::ScalarConstantField{N, T}) where {N, T, A <: AbstractArray{T}}
-    dest.value .= src.value
-end
-SeismicWaves.copyto!(dest::ScalarVariableField{N, T, A}, src::ScalarVariableField{N, T, A}) where {N, T, A <: AbstractArray{T}} = copyto!(dest.value, src.value)
-function SeismicWaves.copyto!(dest::MultiVariableField{N,T,A,V}, src::ScalarConstantField{N,T}) where {N, T, A <: AbstractArray{T}, V <: AbstractArray{A}}
+Base.copyto!(dest::ScalarConstantField, src::ScalarConstantField) = (dest.value = src.value)
+Base.copyto!(dest::ScalarVariableField, src::Union{ScalarConstantField, ScalarVariableField}) = (dest.value .= src.value)
+Base.copyto!(dest::MultiConstantField, src::Union{ScalarConstantField, MultiConstantField}) = (dest.value .= src.value)
+Base.copyto!(dest::MultiVariableField, src::ScalarConstantField) = begin
     for vdest in dest.value
         vdest .= src.value
     end
 end
-function SeismicWaves.copyto!(dest::MultiVariableField{N,T,A,V1}, src::MultiConstantField{N,T,V2}) where {N, T, A <: AbstractArray{T}, V1 <: AbstractArray{A}, V2 <: AbstractArray{T}}
+Base.copyto!(dest::MultiVariableField, src::Union{MultiConstantField, MultiVariableField}) = begin
     for (vdest, vsrc) in zip(dest.value, src.value)
         vdest .= vsrc
     end
 end
-function SeismicWaves.copyto!(dest::MultiVariableField{N,T,A,V}, src::MultiVariableField{N,T,A,V}) where {N, T, A <: AbstractArray{T}, V <: AbstractArray{A}}
-    for (vdest, vsrc) in zip(dest.value, src.value)
-        copyto!(vdest, vsrc)
+
+setzero!(field::ScalarConstantField{T}) where {T} = (field.value = zero(T); return field)
+setzero!(field::MultiConstantField{T}) where {T} = (field.value .= zero(T); return field)
+setzero!(field::ScalarVariableField{T}) where {T} = (field.value .= zero(T); return field)
+setzero!(field::MultiVariableField{T}) where {T} = begin
+    for vfield in field.value
+        vfield .= zero(T)
     end
+    return field
 end
+
+Base.zero(::Type{ScalarConstantField{T}}) where {T} = ScalarConstantField(zero(T))
+Base.zero(::Type{MultiConstantField{T, N}}) where {T, N} = MultiConstantField(ntuple(_ -> zero(T), N))
+Base.zero(::ScalarConstantField{T}) where {T} = zero(ScalarConstantField{T})
+Base.zero(::MultiConstantField{T, N}) where {T, N} = zero(MultiConstantField{T, N})
+Base.zero(field::ScalarVariableField{T, N, A}) where {T, N, A} = ScalarVariableField(zero(field.value))
+Base.zero(field::MultiVariableField{T, N, A, V}) where {T, N, A, V} = MultiVariableField([zero(f) for f in field.value])

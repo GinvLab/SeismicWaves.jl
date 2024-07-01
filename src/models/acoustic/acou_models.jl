@@ -73,7 +73,7 @@ struct AcousticCDCPMLWaveSimul{N, T, A <: AbstractArray{T, N}} <: AcousticCDWave
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Checkpointing setup
-    checkpointer::LinearCheckpointer{N, T}
+    checkpointer::LinearCheckpointer{T}
     # Parallelization type
     parall::Symbol
 
@@ -113,43 +113,55 @@ struct AcousticCDCPMLWaveSimul{N, T, A <: AbstractArray{T, N}} <: AcousticCDWave
         cpmlcoeffs = tuple([CPMLCoefficients(halo, backend, true) for _ in 1:N]...)
 
         # Populate computational grid
-        addfield!(grid, "fact" => ScalarVariableField{N, T, A}(backend.zeros(ns...)))
-        addfield!(grid, "pold" => ScalarVariableField{N, T, A}(backend.zeros(ns...)))
-        addfield!(grid, "pcur" => ScalarVariableField{N, T, A}(backend.zeros(ns...)))
-        addfield!(grid, "pnew" => ScalarVariableField{N, T, A}(backend.zeros(ns...)))
+        addfield!(grid, "fact" => ScalarVariableField(backend.zeros(ns...)))
+        addfield!(grid, "pold" => ScalarVariableField(backend.zeros(ns...)))
+        addfield!(grid, "pcur" => ScalarVariableField(backend.zeros(ns...)))
+        addfield!(grid, "pnew" => ScalarVariableField(backend.zeros(ns...)))
         if gradient
-            addfield!(grid, "grad_vp" => ScalarVariableField{N, T, A}(backend.zeros(ns...)))
-            addfield!(grid, "adjold" => ScalarVariableField{N, T, A}(backend.zeros(ns...)))
-            addfield!(grid, "adjcur" => ScalarVariableField{N, T, A}(backend.zeros(ns...)))
-            addfield!(grid, "adjnew" => ScalarVariableField{N, T, A}(backend.zeros(ns...)))
+            addfield!(grid, "grad_vp" => ScalarVariableField(backend.zeros(ns...)))
+            addfield!(grid, "adjold" => ScalarVariableField(backend.zeros(ns...)))
+            addfield!(grid, "adjcur" => ScalarVariableField(backend.zeros(ns...)))
+            addfield!(grid, "adjnew" => ScalarVariableField(backend.zeros(ns...)))
         end
         # CPML coefficients
         addfield!(
             grid,
-            "a_pml" => MultiVariableField{N, T, V, Vector{V}}(
+            "a_pml" => MultiVariableField(
                 cat([[cpmlcoeffs[i].a_l, cpmlcoeffs[i].a_r, cpmlcoeffs[i].a_hl, cpmlcoeffs[i].a_hr] for i in 1:N]...; dims=1)
             )
         )
         addfield!(
             grid,
-            "b_pml" => MultiVariableField{N, T, V, Vector{V}}(
+            "b_pml" => MultiVariableField(
                 cat([[cpmlcoeffs[i].b_l, cpmlcoeffs[i].b_r, cpmlcoeffs[i].b_hl, cpmlcoeffs[i].b_hr] for i in 1:N]...; dims=1)
             )
         )
         # CPML memory variables
-        addfield!(grid, "ψ" => MultiVariableField{N, T, A, Vector{A}}(
-            cat([[backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
-        ))
-        addfield!(grid, "ξ" => MultiVariableField{N, T, A, Vector{A}}(
-            cat([[backend.zeros([j == i ? halo : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
-        ))
-        if gradient
-            addfield!(grid, "ψ_adj" => MultiVariableField{N, T, A, Vector{A}}(
+        addfield!(
+            grid,
+            "ψ" => MultiVariableField(
                 cat([[backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
-            ))
-            addfield!(grid, "ξ_adj" => MultiVariableField{N, T, A, Vector{A}}(
+            )
+        )
+        addfield!(
+            grid,
+            "ξ" => MultiVariableField(
                 cat([[backend.zeros([j == i ? halo : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
-            ))
+            )
+        )
+        if gradient
+            addfield!(
+                grid,
+                "ψ_adj" => MultiVariableField(
+                    cat([[backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                )
+            )
+            addfield!(
+                grid,
+                "ξ_adj" => MultiVariableField(
+                    cat([[backend.zeros([j == i ? halo : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                )
+            )
         end
 
         # Initialize checkpointer
