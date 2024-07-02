@@ -34,7 +34,7 @@ function swforward!(
     snapevery::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
     logger::Union{Nothing, AbstractLogger}=nothing
-)::Union{Vector{Array{T, N}}, Nothing} where {T, N}
+)::Union{Vector{Array{T}}, Nothing} where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -70,7 +70,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
     """
 function swforward!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
-    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::Union{Vector{Array{T, N}}, Nothing} where {T, N}
+    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::Union{Vector{Array{T}}, Nothing} where {T, N}
     if logger === nothing
         logger = current_logger()
     end
