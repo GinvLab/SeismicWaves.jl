@@ -4,7 +4,7 @@ include("shared/smooth_gradient_1D.jl")
 
 # Dummy data module
 module Data
-Array = Base.Array{Float64}
+Array = Base.Array
 end
 
 #####

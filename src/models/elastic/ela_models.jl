@@ -74,14 +74,14 @@ struct Elasticψdomain2D{T <: AbstractFloat}
         gs1[1] = 2 * halo
         gs2[2] = 2 * halo
 
-        ψ_∂σxx∂x = backend.zeros(gs1...)
-        ψ_∂σxz∂z = backend.zeros(gs2...)
-        ψ_∂σxz∂x = backend.zeros(gs1...)
-        ψ_∂σzz∂z = backend.zeros(gs2...)
-        ψ_∂vx∂x = backend.zeros(gs1...)
-        ψ_∂vz∂z = backend.zeros(gs2...)
-        ψ_∂vz∂x = backend.zeros(gs1...)
-        ψ_∂vx∂z = backend.zeros(gs2...)
+        ψ_∂σxx∂x = backend.zeros(T, gs1...)
+        ψ_∂σxz∂z = backend.zeros(T, gs2...)
+        ψ_∂σxz∂x = backend.zeros(T, gs1...)
+        ψ_∂σzz∂z = backend.zeros(T, gs2...)
+        ψ_∂vx∂x = backend.zeros(T, gs1...)
+        ψ_∂vz∂z = backend.zeros(T, gs2...)
+        ψ_∂vz∂x = backend.zeros(T, gs1...)
+        ψ_∂vx∂z = backend.zeros(T, gs2...)
 
         T = eltype(ψ_∂σxx∂x)
         return new{T}(ψ_∂σxx∂x,
@@ -154,6 +154,7 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
         gridspacing::NTuple{N, T},
         nt::Int,
         dt::T,
+        matprop::ElasticIsoMaterialProperties{T, N},
         halo::Int,
         rcoef::T;
         parall::Symbol=:serial,
@@ -179,26 +180,12 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
 
         # Select backend
         backend = select_backend(ElasticIsoCPMLWaveSimul{T,N}, parall)
-
-        # Initialize material properties
-        if N == 2
-            matprop = ElasticIsoMaterialProperties2D(; λ=backend.zeros(gridsize...),
-                μ=backend.zeros(gridsize...),
-                ρ=backend.zeros(gridsize...),
-                λ_ihalf=backend.zeros((gridsize .- [1, 0])...),
-                μ_ihalf=backend.zeros((gridsize .- [1, 0])...),
-                μ_jhalf=backend.zeros((gridsize .- [0, 1])...),
-                ρ_ihalf_jhalf=backend.zeros((gridsize .- 1)...)
-            )
-
-        else
-            error("Only elastic 2D is currently implemented.")
-        end
+        V = backend.Data.Array{T, 1}
 
         # Initialize computational arrays
         if N == 2
-            velpartic = Velpartic2D([backend.zeros(gridsize...) for _ in 1:N]...)  # vx, vy[, vz]
-            stress = Stress2D([backend.zeros(gridsize...) for _ in 1:(N-1)*3]...)  # vx, vy[, vz]
+            velpartic = Velpartic2D([backend.zeros(T, gridsize...) for _ in 1:N]...)  # vx, vy[, vz]
+            stress = Stress2D([backend.zeros(T, gridsize...) for _ in 1:(N-1)*3]...)  # vx, vy[, vz]
         end
 
         ##
@@ -209,16 +196,16 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
         end
 
         # Initialize CPML coefficients
-        cpmlcoeffs = [CPMLCoefficientsAxis(halo, backend) for _ in 1:N]
+        cpmlcoeffs = [CPMLCoefficientsAxis{T, V}(halo, backend) for _ in 1:N]
 
         # Initialize gradient arrays if needed
         if gradient
             error("Gradient for elastic calculations not yet implemented!")
 
             # # Current gradient array
-            # curgrad = backend.zeros(gridsize...)
+            # curgrad = backend.zeros(T, gridsize...)
             # # Adjoint arrays
-            # adj = backend.zeros(gridsize...)
+            # adj = backend.zeros(T, gridsize...)
             # # Initialize CPML arrays
             # ψ_adj = []
             # ξ_adj = []
@@ -227,8 +214,8 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
             #     ξ_gridsize = [gridsize...]
             #     ψ_gridsize[i] = halo + 1
             #     ξ_gridsize[i] = halo
-            #     append!(ψ_adj, [backend.zeros(ψ_gridsize...), backend.zeros(ψ_gridsize...)])
-            #     append!(ξ_adj, [backend.zeros(ξ_gridsize...), backend.zeros(ξ_gridsize...)])
+            #     append!(ψ_adj, [backend.zeros(T, ψ_gridsize...), backend.zeros(T, ψ_gridsize...)])
+            #     append!(ξ_adj, [backend.zeros(T, ξ_gridsize...), backend.zeros(T, ξ_gridsize...)])
             # end
             # # Checkpointing setup
             # if check_freq !== nothing
@@ -237,7 +224,7 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
             #     # Time step of last checkpoint
             #     last_checkpoint = floor(Int, nt / check_freq) * check_freq
             #     # Checkpointing arrays
-            #     save_buffer = backend.zeros(gridsize..., check_freq + 2)      # pressure window buffer
+            #     save_buffer = backend.zeros(T, gridsize..., check_freq + 2)      # pressure window buffer
             #     checkpoints = Dict{Int, backend.Data.Array}()           # pressure checkpoints
             #     checkpoints_ψ = Dict{Int, Any}()                        # ψ arrays checkpoints
             #     checkpoints_ξ = Dict{Int, Any}()                        # ξ arrays checkpoints
@@ -249,15 +236,15 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
             #     # Preallocate future checkpoints
             #     for it in 1:(nt+1)
             #         if it % check_freq == 0
-            #             checkpoints[it] = backend.zeros(gridsize...)
-            #             checkpoints[it-1] = backend.zeros(gridsize...)
+            #             checkpoints[it] = backend.zeros(T, gridsize...)
+            #             checkpoints[it-1] = backend.zeros(T, gridsize...)
             #             checkpoints_ψ[it] = copy.(ψ)
             #             checkpoints_ξ[it] = copy.(ξ)
             #         end
             #     end
             # else    # no checkpointing
             #     last_checkpoint = 0                                 # simulate a checkpoint at time step 0 (so buffer will start from -1)
-            #     save_buffer = backend.zeros(gridsize..., nt + 2)          # save all timesteps (from -1 to nt+1 so nt+2)
+            #     save_buffer = backend.zeros(T, gridsize..., nt + 2)          # save all timesteps (from -1 to nt+1 so nt+2)
             #     checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints (will remain empty)
             #     checkpoints_ψ = Dict{Int, Any}()                    # ψ arrays checkpoints (will remain empty)
             #     checkpoints_ξ = Dict{Int, Any}()                    # ξ arrays checkpoints (will remain empty)
@@ -268,7 +255,7 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
         end
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? [zeros(gridsize..., div(nt, snapevery)) for _ in 1:N] : nothing)
+        snapshots = (snapevery !== nothing ? [zeros(T, gridsize..., div(nt, snapevery)) for _ in 1:N] : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it

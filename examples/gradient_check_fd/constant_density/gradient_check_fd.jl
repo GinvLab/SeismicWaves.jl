@@ -94,7 +94,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss; compute
         swgradient!(wavesim, matprop_const, shots_obs; compute_misfit=true)
     end
     # save current gradient into file
-    serialize("adjgrad.dat", gradient)
+    serialize("adjgrad.dat", gradient["vp"])
 
     println("Initial misfit: $misfit")
 

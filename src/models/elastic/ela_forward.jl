@@ -138,7 +138,7 @@ function spreadsrcrecinterp2D(
 
     maxnumcoeff = nloc * (2 * nptssinc + 1)^Ndim
     coeij_tmp = zeros(Int, maxnumcoeff, Ndim + 1)
-    coeval_tmp = zeros(maxnumcoeff)
+    coeval_tmp = zeros(T, maxnumcoeff)
     l = 0
     for p in 1:nloc
         # extract x and z position for source or receiver p

@@ -109,7 +109,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
         swgradient!(wavesim, matprop_const, shots_obs; compute_misfit=true)
     end
     # save gradient
-    serialize("grad.dat", gradient)
+    serialize("grad.dat", reshape(hcat(gradient["vp"], gradient["rho"]), nx, ny, 2))
 
     println("Initial misfit: $misfit")
 

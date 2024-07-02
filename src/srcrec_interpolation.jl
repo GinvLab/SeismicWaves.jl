@@ -11,13 +11,13 @@ Kaiser windowing function.
   - `b`: 'b' coefficient
   - `r`: cut-off radius
 """
-function kaiser(x::Vector, x0::Real, b::Real, r::Real)
+function kaiser(x::Vector, x0::T, b::T, r::T) where {T}
     # Kaiser window function
     #  r is window half with
     # Rule of thumb for finite diff.:
     #   b=4.14  b=6.31
     #   r = 4.0*dx
-    w = zeros(length(x))
+    w = zeros(T, length(x))
     for i in 1:length(x)
         xcur = x[i] - x0
         if -r <= xcur <= r

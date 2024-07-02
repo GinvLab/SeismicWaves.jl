@@ -70,7 +70,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
     """
 function swforward!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
-    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {T, N}
+    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::Union{Vector{Array{T, N}}, Nothing} where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -145,7 +145,7 @@ Receivers traces are stored in the `Receivers` object for each shot.
 See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 """
 function swmisfit!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
-    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {T, N}
+    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::T where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -198,7 +198,8 @@ function swgradient!(
     misfit::AbstractMisfit=L2Misfit(nothing),
     smooth_radius::Int=5,
     logger::Union{Nothing, AbstractLogger}=nothing
-)::Union{AbstractArray, Tuple{AbstractArray, T}} where {T, N}
+)::Union{Dict{String, Array{T, N}},
+         Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -242,7 +243,8 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used. 
 """
 function swgradient!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
-    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {T, N}
+    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::Union{Dict{String, Array{T, N}},
+                                                                      Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -276,64 +278,56 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 function build_wavesim(params::InputParameters{T, N}, matprop::MaterialProperties{T, N}; parall::Symbol, kwargs...) where {T, N}
     if parall == :threadpersrc
         nthr = Threads.nthreads()
-        wsim = [build_concrete_wavesim(params, matprop, params.boundcond; parall, kwargs...) for _ in 1:nthr]
+        wsim = [build_concrete_wavesim(params, matprop, params.boundcond; parall=parall, kwargs...) for _ in 1:nthr]
     else
-        wsim = build_concrete_wavesim(params, matprop, params.boundcond; parall, kwargs...)
+        wsim = build_concrete_wavesim(params, matprop, params.boundcond; parall=parall, kwargs...)
     end
     return wsim
 end
 
 build_concrete_wavesim(
     params::InputParametersAcoustic{T,N},
-    ::VpAcousticCDMaterialProperties{T,N},
-    cpmlparams::CPMLBoundaryConditionParameters;
-    parall,
+    matprop::VpAcousticCDMaterialProperties{T,N},
+    cpmlparams::CPMLBoundaryConditionParameters{T};
     kwargs...
 ) where {T,N} = AcousticCDCPMLWaveSimul(
-    params.gridsize,
-    params.gridspacing,
-    params.ntimesteps,
-    params.dt,
-    cpmlparams.halo,
-    cpmlparams.rcoef;
-    freetop=cpmlparams.freeboundtop,
-    parall=parall,
+    params,
+    matprop,
+    cpmlparams;
     kwargs...
 )
 
 build_concrete_wavesim(
     params::InputParametersAcoustic{T,N},
-    ::VpRhoAcousticVDMaterialProperties,
+    matprop::VpRhoAcousticVDMaterialProperties{T,N},
     cpmlparams::CPMLBoundaryConditionParameters;
-    parall,
     kwargs...
 ) where {T,N} = AcousticVDStaggeredCPMLWaveSimul(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,
     params.dt,
+    matprop,
     cpmlparams.halo,
     cpmlparams.rcoef;
     freetop=cpmlparams.freeboundtop,
-    parall,
     kwargs...
 )
 
 build_concrete_wavesim(
     params::InputParametersElastic{T,N},
-    ::ElasticIsoMaterialProperties,
+    matprop::ElasticIsoMaterialProperties{T,N},
     cpmlparams::CPMLBoundaryConditionParameters;
-    parall,
     kwargs...
 ) where {T,N} = ElasticIsoCPMLWaveSimul(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,
     params.dt,
+    matprop,
     cpmlparams.halo,
     cpmlparams.rcoef;
     freetop=cpmlparams.freeboundtop,
-    parall,
     kwargs...
 )
 

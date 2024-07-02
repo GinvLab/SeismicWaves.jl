@@ -150,7 +150,8 @@ end
     shots::Vector{<:Shot};
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing)
-)::Union{Array{T}, Tuple{Array{T}, T}} where {T, N}
+)::Union{Dict{String, Array{T, N}},
+         Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
@@ -161,7 +162,7 @@ end
     set_wavesim_matprop!(wavsim, matprop)
 
     # Initialize total gradient and total misfit
-    totgrad = zeros(wavsim.totgrad_size...)
+    totgrad = init_gradient(wavsim)
     totmisfitval = 0
     # Shots loop
     for (s, singleshot) in enumerate(shots)
@@ -175,7 +176,7 @@ end
         @info "Computing gradient solver"
         curgrad = swgradient_1shot!(wavsim, singleshot, misfit)
         # Accumulate gradient
-        totgrad .+= curgrad
+        accumulate_gradient!(totgrad, curgrad, wavsim)
         # Compute misfit if needed
         if compute_misfit
             @info "Computing misfit"
@@ -193,7 +194,8 @@ end
     shots::Vector{<:Shot};
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing)
-)::Union{Array{T}, Tuple{Array{T}, T}} where {T, N}
+)::Union{Dict{String, Array{T, N}},
+         Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
     nwsim = length(wavsim)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
@@ -211,10 +213,10 @@ end
 
     # Initialize total gradient and total misfit
     nshots = length(shots)
-    allgrad = [zeros(wavsim[i].totgrad_size...) for i in nshots]
+    allgrad = Vector{Dict{String, Array{T, N}}}(undef, nshots)
 
     if compute_misfit
-        allmisfitval = zeros(nshots)
+        allmisfitval = zeros(T, nshots)
         totmisfitval = 0
     end
 
@@ -237,7 +239,7 @@ end
                 wavsim[w], singleshot, misfit
             )
             # Save gradient
-            allgrad[s] .= curgrad
+            allgrad[s] = curgrad
             # Compute misfit if needed
             if compute_misfit
                 @info "Computing misfit"
@@ -247,7 +249,10 @@ end
     end
 
     # Accumulate gradient and misfit
-    totgrad = sum(allgrad)
+    totgrad = init_gradient(wavsim)
+    for curgrad in allgrad
+        accumulate_gradient!(wavsim, totgrad, curgrad)
+    end
     if compute_misfit
         totmisfitval = sum(allmisfitval)
     end

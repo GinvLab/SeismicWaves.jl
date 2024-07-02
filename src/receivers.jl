@@ -40,12 +40,12 @@ struct ScalarReceivers{T} <: Receivers{T}
         if observed !== nothing
             @assert size(seismograms) == size(observed) "Size of observed data is not (# timesteps, # receivers)!"
         else
-            observed = zeros(0, 0)
+            observed = zeros(T, 0, 0)
         end
         if invcov !== nothing
             @assert size(invcov) == (nt, nt) "Size of invcov is not (# timesteps, # timesteps)!"
         else
-            invcov = zeros(0, 0)
+            invcov = zeros(T, 0, 0)
         end
         if windows !== nothing
             for wnd in windows
@@ -90,12 +90,12 @@ struct VectorReceivers{T,N} <: Receivers{T}
         if observed !== nothing
             @assert size(seismograms) == size(observed) "Size of observed data is not (# timesteps, # receivers)!"
         else
-            observed = zeros(0, 0, 0) # (nt,ndim,npos)
+            observed = zeros(T, 0, 0, 0) # (nt,ndim,npos)
         end
         if invcov !== nothing
             @assert size(invcov) == (nt, nt) "Size of invcov is not (# timesteps, # timesteps)!"
         else
-            invcov = zeros(0, 0)
+            invcov = zeros(T, 0, 0)
         end
         return new{T, ndim}(positions, seismograms, observed, invcov)
     end

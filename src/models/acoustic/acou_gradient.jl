@@ -6,7 +6,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     model::AcousticCDWaveSimul{T,N},
     shot::Shot,
     misfit
-)::Array{T} where {T,N}
+)::Dict{String, Array{T,N}} where {T,N}
 
     # scale source time function, etc.
     possrcs, posrecs, scal_srctf = possrcrec_scaletf(model, shot)
@@ -93,7 +93,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     if misfit.regularization !== nothing
         gradient .+= dχ_dm(misfit.regularization, model.matprop)
     end
-    return gradient
+    return Dict("vp" => gradient)
 end
 
 @views function swgradient_1shot!(
@@ -101,7 +101,7 @@ end
     model::AcousticVDStaggeredCPMLWaveSimul{T,N},
     shot::Shot,
     misfit
-)::Array{T} where {T,N}
+)::Dict{String, Array{T,N}} where {T,N}
 
     # scale source time function, etc.
     possrcs, posrecs, scal_srctf = possrcrec_scaletf(model, shot)
@@ -224,8 +224,8 @@ end
         model.backend.correlate_gradient_m1!(model.curgrad_m1_stag, adjvcur, pcur_corr, model.gridspacing)
     end
     # Allocate gradients
-    gradient_m0 = zeros(model.ns...)
-    gradient_m1 = zeros(model.ns...)
+    gradient_m0 = zeros(T, model.ns...)
+    gradient_m1 = zeros(T, model.ns...)
     # Get gradients
     copyto!(gradient_m0, model.curgrad_m0)
     for i in eachindex(model.curgrad_m1_stag)
@@ -238,11 +238,8 @@ end
     # compute regularization if needed
     dχ_dvp, dχ_drho = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
     # Rescale gradients with respect to material properties (chain rule)
-    return reshape(
-        hcat(
-            .-2.0 .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp
-            .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho .+ dχ_drho   # grad wrt rho
-        ),
-        model.totgrad_size...
+    return Dict(
+        "vp"  => .-2.0 .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp
+        "rho" => .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho .+ dχ_drho   # grad wrt rho
     )
 end

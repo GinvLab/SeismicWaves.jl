@@ -47,9 +47,20 @@ end
 
 @views precompute_fact!(model::AcousticCDWaveSimul) = copyto!(model.grid.fields["fact"].value, (model.dt^2) .* (model.matprop.vp .^ 2))
 
+@views function init_gradient(model::AcousticCDWaveSimul{T,N})::Dict{String, Array{T, N}} where {T, N}
+    return Dict("vp" => zero(model.matprop.vp))
+end
+
+@views function accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticCDWaveSimul{T,N}) where {T, N, D <: Dict{String, Array{T, N}}}
+    totgrad["vp"] .+= curgrad["vp"]
+end
+
 ###########################################################
 
-struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWaveSimul{T,N}
+struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}, V <: AbstractVector{T}} <: AcousticCDWaveSimul{T,N}
+    # Parameters
+    params::InputParametersAcoustic{T, N}
+    cpmlparams::CPMLBoundaryConditionParameters{T}
     # Numerics
     nt::Int
     dt::T
@@ -61,7 +72,6 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWave
     freetop::Bool
     # Gradient computation setup
     gradient::Bool
-    totgrad_size::Union{Vector{Int}, Nothing}
     smooth_radius::Int
     # Snapshots
     snapevery::Union{Int, Nothing}
@@ -71,27 +81,31 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWave
     # Material properties
     matprop::VpAcousticCDMaterialProperties{T,N}
     # CPML coefficients
-    cpmlcoeffs::NTuple{N, CPMLCoefficients}
+    cpmlcoeffs::NTuple{N, CPMLCoefficients{T, V}}
     # Checkpointing setup
     checkpointer::LinearCheckpointer{T}
     # Parallelization type
     parall::Symbol
 
     function AcousticCDCPMLWaveSimul(
-        ns::NTuple{N, Int},
-        gridspacing::NTuple{N, T},
-        nt::Int,
-        dt::T,
-        halo::Int,
-        rcoef::T;
+        params::InputParametersAcoustic{T, N},
+        matprop::VpAcousticCDMaterialProperties{T,N},
+        cpmlparams::CPMLBoundaryConditionParameters{T};
         parall::Symbol=:threads,
-        freetop::Bool=true,
         gradient::Bool=false,
         check_freq::Union{Int, Nothing}=nothing,
         snapevery::Union{Int, Nothing}=nothing,
         infoevery::Union{Int, Nothing}=nothing,
         smooth_radius::Int=5
     ) where {T, N}
+        # Extract params
+        nt = params.ntimesteps
+        dt = params.dt
+        gridspacing = params.gridspacing
+        ns = params.gridsize
+        halo = cpmlparams.halo
+        freetop = cpmlparams.freeboundtop
+        rcoef = cpmlparams.rcoef
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"
         @assert dt > 0 "Timestep size must be positive!"
@@ -103,25 +117,23 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWave
 
         # Select backend
         backend = select_backend(AcousticCDCPMLWaveSimul{T, N}, parall)
-        A = backend.Data.Array{N}
-        V = backend.Data.Array{1}
+        A = backend.Data.Array{T, N}
+        V = backend.Data.Array{T, 1}
         # Initialize computational grid
         grid = UniformFiniteDifferenceGrid(ns, gridspacing)
-        # Initialize material properties
-        matprop = VpAcousticCDMaterialProperties(zeros(ns...))
         # Initialize CPML coefficients
-        cpmlcoeffs = tuple([CPMLCoefficients(halo, backend, true) for _ in 1:N]...)
+        cpmlcoeffs = tuple([CPMLCoefficients{T, V}(halo, backend, true) for _ in 1:N]...)
 
         # Populate computational grid
-        addfield!(grid, "fact" => ScalarVariableField(backend.zeros(ns...)))
-        addfield!(grid, "pold" => ScalarVariableField(backend.zeros(ns...)))
-        addfield!(grid, "pcur" => ScalarVariableField(backend.zeros(ns...)))
-        addfield!(grid, "pnew" => ScalarVariableField(backend.zeros(ns...)))
+        addfield!(grid, "fact" => ScalarVariableField(backend.zeros(T, ns...)))
+        addfield!(grid, "pold" => ScalarVariableField(backend.zeros(T, ns...)))
+        addfield!(grid, "pcur" => ScalarVariableField(backend.zeros(T, ns...)))
+        addfield!(grid, "pnew" => ScalarVariableField(backend.zeros(T, ns...)))
         if gradient
-            addfield!(grid, "grad_vp" => ScalarVariableField(backend.zeros(ns...)))
-            addfield!(grid, "adjold" => ScalarVariableField(backend.zeros(ns...)))
-            addfield!(grid, "adjcur" => ScalarVariableField(backend.zeros(ns...)))
-            addfield!(grid, "adjnew" => ScalarVariableField(backend.zeros(ns...)))
+            addfield!(grid, "grad_vp" => ScalarVariableField(backend.zeros(T, ns...)))
+            addfield!(grid, "adjold" => ScalarVariableField(backend.zeros(T, ns...)))
+            addfield!(grid, "adjcur" => ScalarVariableField(backend.zeros(T, ns...)))
+            addfield!(grid, "adjnew" => ScalarVariableField(backend.zeros(T, ns...)))
         end
         # CPML coefficients
         addfield!(
@@ -140,26 +152,26 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWave
         addfield!(
             grid,
             "ψ" => MultiVariableField(
-                cat([[backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat([[backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
             )
         )
         addfield!(
             grid,
             "ξ" => MultiVariableField(
-                cat([[backend.zeros([j == i ? halo : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat([[backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
             )
         )
         if gradient
             addfield!(
                 grid,
                 "ψ_adj" => MultiVariableField(
-                    cat([[backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat([[backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
                 )
             )
             addfield!(
                 grid,
                 "ξ_adj" => MultiVariableField(
-                    cat([[backend.zeros([j == i ? halo : ns[j] for j in 1:N]...), backend.zeros([j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat([[backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
                 )
             )
         end
@@ -177,7 +189,7 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWave
         savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], 0)
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? [backend.zeros(ns...) for _ in 1:div(nt, snapevery)] : nothing)
+        snapshots = (snapevery !== nothing ? [backend.zeros(T, ns...) for _ in 1:div(nt, snapevery)] : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
@@ -185,7 +197,9 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWave
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
-        new{T, N, A}(
+        new{T, N, A, V}(
+            params,
+            cpmlparams,
             nt,
             dt,
             grid,
@@ -193,7 +207,6 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWave
             rcoef,
             freetop,
             gradient,
-            gradient ? [ns...] : nothing,
             smooth_radius,
             snapevery,
             snapshots,
@@ -227,6 +240,7 @@ end
     reset!(model.grid; except=["fact", "a_pml", "b_pml"])
     reset!(model.checkpointer)
 end
+
 ###########################################################
 
 # Traits for AcousticCDCPMLWaveSimul
@@ -291,6 +305,15 @@ end
     end
 end
 
+@views function init_gradient(model::AcousticVDStaggeredWaveSimul{T,N})::Dict{String, Array{T, N}} where {T, N}
+    return Dict("vp" => zero(model.matprop.vp), "rho" => zero(model.matprop.rho))
+end
+
+@views function accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticVDStaggeredWaveSimul{T,N}) where {T, N, D <: Dict{String, Array{T, N}}}
+    totgrad["vp"] .+= curgrad["vp"]
+    totgrad["rho"] .+= curgrad["rho"]
+end
+
 ###########################################################
 
 struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N}
@@ -307,7 +330,6 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
     freetop::Bool
     # Gradient computation setup
     gradient::Bool
-    totgrad_size::Union{Vector{Int}, Nothing}
     check_freq::Union{Int, Nothing}
     # Snapshots
     snapevery::Union{Int, Nothing}
@@ -319,7 +341,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
     # Material properties
     matprop::VpRhoAcousticVDMaterialProperties{T,N}
     # CPML coefficients
-    cpmlcoeffs::NTuple{N, CPMLCoefficients}
+    cpmlcoeffs::NTuple{N, CPMLCoefficients{T}}
     # Forward computation arrays
     fact_m0::Any
     fact_m1_stag::Any
@@ -351,6 +373,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
         gridspacing::NTuple{N, T},
         nt::Int,
         dt::T,
+        matprop::VpRhoAcousticVDMaterialProperties{T,N},
         halo::Int,
         rcoef::T;
         parall::Symbol=:threads,
@@ -374,22 +397,21 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
 
         # Compute model sizes
         domainextent = gridspacing .* (ns .- 1)
-        # Initialize material properties
-        matprop = VpRhoAcousticVDMaterialProperties(zeros(ns...), zeros(ns...))
 
         # Select backend
         backend = select_backend(AcousticVDStaggeredCPMLWaveSimul{T,N}, parall)
+        V = backend.Data.Array{T, 1}
 
         # Initialize computational arrays
-        fact_m0 = backend.zeros(ns...)
+        fact_m0 = backend.zeros(T, ns...)
         fact_m1_stag = []
-        pcur = backend.zeros(ns...)
+        pcur = backend.zeros(T, ns...)
         vcur = []
         for i in 1:N
             stag_ns = [ns...]
             stag_ns[i] -= 1
-            push!(fact_m1_stag, backend.zeros(stag_ns...))
-            push!(vcur, backend.zeros(stag_ns...))
+            push!(fact_m1_stag, backend.zeros(T, stag_ns...))
+            push!(vcur, backend.zeros(T, stag_ns...))
         end
         # Initialize CPML arrays
         ψ = []
@@ -399,11 +421,11 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
             ξ_ns = [ns...]
             ψ_ns[i] = halo + 1
             ξ_ns[i] = halo
-            append!(ψ, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
-            append!(ξ, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
+            append!(ψ, [backend.zeros(T, ψ_ns...), backend.zeros(T, ψ_ns...)])
+            append!(ξ, [backend.zeros(T, ξ_ns...), backend.zeros(T, ξ_ns...)])
         end
         # Initialize CPML coefficients
-        cpmlcoeffs = tuple([CPMLCoefficients(halo, backend, true) for _ in 1:N]...)
+        cpmlcoeffs = tuple([CPMLCoefficients{T, V}(halo, backend, true) for _ in 1:N]...)
         # Build CPML coefficient arrays for computations (they are just references to cpmlcoeffs)
         a_coeffs = []
         b_coeffs = []
@@ -413,18 +435,17 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
         end
         # Initialize gradient arrays if needed
         if gradient
-            totgrad_size = [ns..., 2]
             # Current gradient arrays
-            curgrad_m0 = backend.zeros(ns...)
+            curgrad_m0 = backend.zeros(T, ns...)
             curgrad_m1_stag = []
             # Adjoint arrays
-            adjpcur = backend.zeros(ns...)
+            adjpcur = backend.zeros(T, ns...)
             adjvcur = []
             for i in 1:N
                 stag_ns = [ns...]
                 stag_ns[i] -= 1
-                push!(adjvcur, backend.zeros(stag_ns...))
-                push!(curgrad_m1_stag, backend.zeros(stag_ns...))
+                push!(adjvcur, backend.zeros(T, stag_ns...))
+                push!(curgrad_m1_stag, backend.zeros(T, stag_ns...))
             end
             # Initialize CPML arrays
             ψ_adj = []
@@ -434,8 +455,8 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
                 ξ_ns = [ns...]
                 ψ_ns[i] = halo + 1
                 ξ_ns[i] = halo
-                append!(ψ_adj, [backend.zeros(ψ_ns...), backend.zeros(ψ_ns...)])
-                append!(ξ_adj, [backend.zeros(ξ_ns...), backend.zeros(ξ_ns...)])
+                append!(ψ_adj, [backend.zeros(T, ψ_ns...), backend.zeros(T, ψ_ns...)])
+                append!(ξ_adj, [backend.zeros(T, ξ_ns...), backend.zeros(T, ξ_ns...)])
             end
             # Checkpointing setup
             if check_freq !== nothing
@@ -444,7 +465,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
                 # Time step of last checkpoint
                 last_checkpoint = floor(Int, nt / check_freq) * check_freq
                 # Checkpointing arrays
-                save_buffer = backend.zeros(ns..., check_freq + 1)      # pressure window buffer
+                save_buffer = backend.zeros(T, ns..., check_freq + 1)      # pressure window buffer
                 checkpoints = Dict{Int, backend.Data.Array}()           # pressure checkpoints
                 checkpoints_v = Dict{Int, Vector{backend.Data.Array}}() # velocities checkpoints
                 checkpoints_ψ = Dict{Int, Any}()                        # ψ arrays checkpoints
@@ -457,7 +478,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
                 # Preallocate future checkpoints
                 for it in 1:(nt+1)
                     if it % check_freq == 0
-                        checkpoints[it] = backend.zeros(ns...)
+                        checkpoints[it] = backend.zeros(T, ns...)
                         checkpoints_v[it] = copy.(vcur)
                         checkpoints_ψ[it] = copy.(ψ)
                         checkpoints_ξ[it] = copy.(ξ)
@@ -465,7 +486,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
                 end
             else    # no checkpointing
                 last_checkpoint = 0                                 # simulate a checkpoint at time step 0
-                save_buffer = backend.zeros(ns..., nt + 1)          # save all timesteps (from 0 to nt so nt+1)
+                save_buffer = backend.zeros(T, ns..., nt + 1)          # save all timesteps (from 0 to nt so nt+1)
                 checkpoints = Dict{Int, backend.Data.Array}()       # pressure checkpoints (will remain empty)
                 checkpoints_v = Dict{Int, Vector{backend.Data.Array}}() # velocities checkpoints (will remain empty)
                 checkpoints_ψ = Dict{Int, Any}()                    # ψ arrays checkpoints (will remain empty)
@@ -476,7 +497,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
         end
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? backend.zeros(ns..., div(nt, snapevery)) : nothing)
+        snapshots = (snapevery !== nothing ? backend.zeros(T, ns..., div(nt, snapevery)) : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
@@ -494,7 +515,6 @@ struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N
             rcoef,
             freetop,
             gradient,
-            gradient ? totgrad_size : nothing,
             gradient ? check_freq : nothing,
             snapevery,
             snapshots,

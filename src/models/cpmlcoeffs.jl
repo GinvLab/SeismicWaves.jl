@@ -1,39 +1,38 @@
 
-struct CPMLCoefficientsAxis
-    a::Any
-    a_h::Any
-    b::Any
-    b_h::Any
+struct CPMLCoefficientsAxis{T, V <: AbstractVector{T}}
+    a::V
+    a_h::V
+    b::V
+    b_h::V
 
-    function CPMLCoefficientsAxis(halo::Int, backend::Module,
-        sizehalfgrdplusone::Bool=false)
+    function CPMLCoefficientsAxis{T, V}(halo::Int, backend::Module, sizehalfgrdplusone::Bool=false) where {T, V <: AbstractVector{T}}
         if sizehalfgrdplusone
-            return new(
-                backend.zeros(2 * halo),
-                backend.zeros(2 * (halo + 1) + 1),
-                backend.zeros(2 * halo),
-                backend.zeros(2 * (halo + 1) + 1)
+            return new{T, V}(
+                backend.zeros(T, 2 * halo),
+                backend.zeros(T, 2 * (halo + 1) + 1),
+                backend.zeros(T, 2 * halo),
+                backend.zeros(T, 2 * (halo + 1) + 1)
             )
         else
-            return new(
-                backend.zeros(2 * halo),
-                backend.zeros(2 * (halo + 1)),
-                backend.zeros(2 * halo),
-                backend.zeros(2 * (halo + 1))
+            return new{T, V}(
+                backend.zeros(T, 2 * halo),
+                backend.zeros(T, 2 * (halo + 1)),
+                backend.zeros(T, 2 * halo),
+                backend.zeros(T, 2 * (halo + 1))
             )
         end
     end
 end
 
 function compute_CPML_coefficientsAxis!(
-    cpmlcoeffs::CPMLCoefficientsAxis,
-    vel_max::Real,
-    dt::Real,
+    cpmlcoeffs::CPMLCoefficientsAxis{T, V},
+    vel_max::T,
+    dt::T,
     halo::Int,
-    rcoef::Real,
-    thickness::Real,
-    f0::Real
-)
+    rcoef::T,
+    thickness::T,
+    f0::T
+) where {T, V <: AbstractVector{T}}
     # CPML coefficients (l = left, r = right, h = staggered in betweeen grid points)
     alpha_max = π * f0  # CPML α multiplicative factor (half of dominating angular frequency)
     npower = 2.0  # CPML power coefficient
@@ -49,39 +48,38 @@ end
 
 #################################################################
 
-struct CPMLCoefficients
-    a_l::Any
-    a_r::Any
-    a_hl::Any
-    a_hr::Any
-    b_l::Any
-    b_r::Any
-    b_hl::Any
-    b_hr::Any
+struct CPMLCoefficients{T, V <: AbstractVector{T}}
+    a_l::V
+    a_r::V
+    a_hl::V
+    a_hr::V
+    b_l::V
+    b_r::V
+    b_hl::V
+    b_hr::V
 
-    function CPMLCoefficients(halo::Int, backend::Module,
-        sizehalfgrdplusone::Bool=false)
+    function CPMLCoefficients{T, V}(halo::Int, backend::Module, sizehalfgrdplusone::Bool=false) where {T, V <: AbstractVector{T}}
         if sizehalfgrdplusone
-            return new(
-                backend.zeros(halo),
-                backend.zeros(halo),
-                backend.zeros(halo + 1),
-                backend.zeros(halo + 1),
-                backend.zeros(halo),
-                backend.zeros(halo),
-                backend.zeros(halo + 1),
-                backend.zeros(halo + 1)
+            return new{T, V}(
+                backend.zeros(T, halo),
+                backend.zeros(T, halo),
+                backend.zeros(T, halo + 1),
+                backend.zeros(T, halo + 1),
+                backend.zeros(T, halo),
+                backend.zeros(T, halo),
+                backend.zeros(T, halo + 1),
+                backend.zeros(T, halo + 1)
             )
         else
-            return new(
-                backend.zeros(halo),
-                backend.zeros(halo),
-                backend.zeros(halo),
-                backend.zeros(halo),
-                backend.zeros(halo),
-                backend.zeros(halo),
-                backend.zeros(halo),
-                backend.zeros(halo)
+            return new{T, V}(
+                backend.zeros(T, halo),
+                backend.zeros(T, halo),
+                backend.zeros(T, halo),
+                backend.zeros(T, halo),
+                backend.zeros(T, halo),
+                backend.zeros(T, halo),
+                backend.zeros(T, halo),
+                backend.zeros(T, halo)
             )
         end
     end
@@ -89,13 +87,13 @@ end
 
 function calc_Kab_CPML_staggeredgrid(
     halo::Int,
-    dt::Float64,
-    npower::Float64,
-    d0::Float64,
-    alpha_max_pml::Float64,
+    dt::T,
+    npower::T,
+    d0::T,
+    alpha_max_pml::T,
     onwhere::Symbol;
-    K_max_pml::Union{Float64, Nothing}=nothing
-)::Tuple{Array{<:Real}, Array{<:Real}, Array{<:Real}, Array{<:Real}}
+    K_max_pml::Union{T, Nothing}=nothing
+)::Tuple{Array{T}, Array{T}, Array{T}, Array{T}} where {T}
     @assert halo >= 0.0
 
     Kab_size = halo
@@ -152,14 +150,14 @@ end
 #####################################
 
 function compute_CPML_coefficients!(
-    cpmlcoeffs::CPMLCoefficients,
-    vel_max::Real,
-    dt::Real,
+    cpmlcoeffs::CPMLCoefficients{T, V},
+    vel_max::T,
+    dt::T,
     halo::Int,
-    rcoef::Real,
-    thickness::Real,
-    f0::Real
-)
+    rcoef::T,
+    thickness::T,
+    f0::T
+) where {T, V <: AbstractVector{T}}
     # CPML coefficients (l = left, r = right, h = staggered in betweeen grid points)
     alpha_max = π * f0          # CPML α multiplicative factor (half of dominating angular frequency)
     npower = 2.0                # CPML power coefficient
@@ -184,13 +182,13 @@ end
 
 function calc_Kab_CPML(
     halo::Int,
-    dt::Float64,
-    npower::Float64,
-    d0::Float64,
-    alpha_max_pml::Float64,
+    dt::T,
+    npower::T,
+    d0::T,
+    alpha_max_pml::T,
     onwhere::String;
-    K_max_pml::Union{Float64, Nothing}=nothing
-)::Tuple{Array{<:Real}, Array{<:Real}, Array{<:Real}, Array{<:Real}}
+    K_max_pml::Union{T, Nothing}=nothing
+)::Tuple{Array{T}, Array{T}, Array{T}, Array{T}} where {T}
     @assert halo >= 0.0
 
     Kab_size = halo

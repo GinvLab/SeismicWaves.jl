@@ -38,7 +38,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             misfit_check = swmisfit!(params, vel, shots; parall=parall)
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that misfits are non zero
             @test !(misfit ≈ 0.0)
             @test !(misfit_check ≈ 0.0)
@@ -73,7 +73,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             misfit_check = swmisfit!(params, vel, shots; parall=parall)
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that misfits are non zero
             @test !(misfit ≈ 0.0)
             @test !(misfit_check ≈ 0.0)
@@ -107,7 +107,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             misfit_check = swmisfit!(params, vel, shots; parall=parall)
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that misfits are non zero
             @test !(misfit ≈ 0.0)
             @test !(misfit_check ≈ 0.0)
@@ -141,7 +141,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             misfit_check = swmisfit!(params, vel, shots; parall=parall)
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that misfits are non zero
             @test !(misfit ≈ 0.0)
             @test !(misfit_check ≈ 0.0)
@@ -180,9 +180,9 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             )
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that computations are equivalent
-            @test grad ≈ grad_check
+            @test grad["vp"] ≈ grad_check["vp"]
         end
 
         @testset "Test 2D $(parall) swgradient! checkpointing" begin
@@ -216,9 +216,9 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             )
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that computations are equivalent
-            @test grad ≈ grad_check
+            @test grad["vp"] ≈ grad_check["vp"]
         end
 
         @testset "Test 3D $(parall) swgradient! checkpointing" begin
@@ -252,9 +252,9 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             )
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that computations are equivalent
-            @test grad ≈ grad_check
+            @test grad["vp"] ≈ grad_check["vp"]
         end
     end
 end
