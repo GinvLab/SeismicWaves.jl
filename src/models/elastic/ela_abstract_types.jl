@@ -1,5 +1,5 @@
 
-abstract type ElasticWaveSimul{T,N} <: WaveSimul{T,N} end
+abstract type ElasticWaveSimul{T,N} <: WaveSimulation{T,N} end
 
 abstract type ElasticIsoWaveSimul{T,N} <: ElasticWaveSimul{T,N} end
 

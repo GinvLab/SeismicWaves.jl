@@ -1,11 +1,11 @@
 
-select_backend(wavesim_type::Type{<:WaveSimul}, parall::Symbol) =
+select_backend(wavesim_type::Type{<:WaveSimulation}, parall::Symbol) =
     select_backend(BoundaryConditionTrait(wavesim_type), GridTrait(wavesim_type), wavesim_type, Val{parall})
 
 function select_backend(
     ::BoundaryConditionTrait,
     ::GridTrait,
-    wavesim_type::Type{<:WaveSimul},
+    wavesim_type::Type{<:WaveSimulation},
     ::Type{Val{parall}}
 ) where {parall}
     parasym = [:serial, :threads, :GPU, :threadpersrc]

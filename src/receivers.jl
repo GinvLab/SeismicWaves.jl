@@ -5,7 +5,7 @@ Type representing a multi-receiver configuration for a wave propagation shot.
 
 $(TYPEDFIELDS)
 """
-struct ScalarReceivers{T} <: Receivers
+struct ScalarReceivers{T} <: Receivers{T}
     "Receiver positions"
     positions::Matrix{T}
     "Array holding seismograms (as columns)"
@@ -18,7 +18,7 @@ struct ScalarReceivers{T} <: Receivers
     windows::Vector{Pair{Int, Int}}
 
     @doc """
-         ScalarReceivers{T}(
+         ScalarReceivers(
            positions::Matrix{T},
            nt::Int;
            observed::Union{Matrix{T}, Nothing}=nothing,
@@ -58,15 +58,7 @@ struct ScalarReceivers{T} <: Receivers
     end
 end
 
-# Default type constructor
-@doc """
-$(SIGNATURES)
-
-Create a single shot wave propagation receivers configuration from receivers positions.
-Default constructor for Float64.
-"""
-ScalarReceivers(positions, nt; observed=nothing, invcov=nothing, windows=nothing) =
-    ScalarReceivers{Float64}(positions, nt; observed=observed, invcov=invcov, windows=windows)
+############################################################################
 
 @doc """
 $(TYPEDEF)
@@ -76,7 +68,7 @@ Type representing a multi-receiver configuration for a wave propagation shot.
 $(TYPEDFIELDS)
 """
 # What about using the package ComputedFieldTypes.jl? @computed ...
-struct VectorReceivers{T,N} <: Receivers
+struct VectorReceivers{T,N} <: Receivers{T}
     "Receiver positions"
     positions::Matrix{T}
     "Array holding seismograms (as columns)"
@@ -108,6 +100,3 @@ struct VectorReceivers{T,N} <: Receivers
         return new{T, ndim}(positions, seismograms, observed, invcov)
     end
 end
-
-# Default type constructor
-# VectorReceivers(positions, nt, ndim; observed=nothing, invcov=nothing) = VectorReceivers{ndim, Float64}(positions, nt, ndim; observed=observed, invcov=invcov)

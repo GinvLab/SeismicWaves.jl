@@ -24,7 +24,7 @@ export AcouWavCDProb
 
 ## create the problem type for traveltime tomography
 struct AcouWavCDProb
-    #wavesim::WaveSimul
+    #wavesim::WaveSimulation
     inpars::InputParametersAcoustic
     shots::Vector{<:Shot} #invCovds::Vector{<:AbstractMatrix{Float64}}
     parall::Symbol

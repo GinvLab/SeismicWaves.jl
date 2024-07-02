@@ -11,7 +11,7 @@ using Logging
 using DocStringExtensions
 
 # main struct for wave simulation
-export WaveSimul
+export WaveSimulation
 export build_wavesim
 # input parameters
 export InputParametersAcoustic, InputParametersElastic

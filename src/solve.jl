@@ -1,17 +1,17 @@
 ### UPDATE MATERIAL PROPERTIES ##
 
-@views function set_wavesim_matprop!(wavesim::WaveSimul{T,N}, matprop::MaterialProperties{T, N}) where {T, N}
+@views function set_wavesim_matprop!(wavesim::WaveSimulation{T,N}, matprop::MaterialProperties{T, N}) where {T, N}
     @debug "Checking new material properties"
     check_matprop(wavesim, matprop)
-    @debug "Updating WaveSimul material properties"
+    @debug "Updating WaveSimulation material properties"
     update_matprop!(wavesim, matprop)
 end
 
 ### FORWARDS ###
 
-## single WaveSimul object
+## single WaveSimulation object
 @views function run_swforward!(
-    wavsim::WaveSimul{T,N},
+    wavsim::WaveSimulation{T,N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
 )::Union{Vector{Array}, Nothing} where {T, N}
@@ -54,9 +54,9 @@ end
     return nothing
 end
 
-## :threadpersrc, multiple WaveSimul objects
+## :threadpersrc, multiple WaveSimulation objects
 @views function run_swforward!(
-    wavsim::Vector{<:WaveSimul{T,N}},
+    wavsim::Vector{<:WaveSimulation{T,N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
 )::Union{Vector{Array}, Nothing} where {T, N}
@@ -85,9 +85,9 @@ end
     # Shots loop
     nshots = length(shots)
     grpshots = distribsrcs(nshots, nthr) # a vector of UnitRange 
-    # loop on the set of WaveSimul
+    # loop on the set of WaveSimulation
     Threads.@threads for w in 1:nwsim
-        # loop on the subset of shots per each WaveSimul 
+        # loop on the subset of shots per each WaveSimulation 
         for s in grpshots[w]
             @info "Shot #$s"
             singleshot = shots[s]
@@ -113,9 +113,9 @@ end
 
 ### MISFITS ###
 
-## single or multiple WaveSimul objects
+## single or multiple WaveSimulation objects
 @views function run_swmisfit!(
-    wavsim::Union{WaveSimul{T,N}, Vector{<:WaveSimul{T,N}}},
+    wavsim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
     misfit::AbstractMisfit=L2Misfit(nothing)
@@ -128,7 +128,7 @@ end
     totmisfitval = 0
     for singleshot in shots
         @debug "Checking invcov matrix"
-        if typeof(wavsim) <: Vector{<:WaveSimul}
+        if typeof(wavsim) <: Vector{<:WaveSimulation}
             for i in eachindex(wavsim)
                 check_invcov_matrix(wavsim[i], singleshot.recs.invcov)
             end
@@ -143,9 +143,9 @@ end
 
 ### GRADIENTS ###
 
-## single WaveSimul object
+## single WaveSimulation object
 @views function run_swgradient!(
-    wavsim::WaveSimul{T,N},
+    wavsim::WaveSimulation{T,N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
     compute_misfit::Bool=false,
@@ -186,9 +186,9 @@ end
     return compute_misfit ? (totgrad, totmisfitval) : totgrad
 end
 
-## :threadpersrc, multiple WaveSimul objects
+## :threadpersrc, multiple WaveSimulation objects
 @views function run_swgradient!(
-    wavsim::Vector{<:WaveSimul{T,N}},
+    wavsim::Vector{<:WaveSimulation{T,N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
     compute_misfit::Bool=false,
@@ -220,9 +220,9 @@ end
 
     # Shots loop
     grpshots = distribsrcs(nshots, nthr) # a vector of UnitRange 
-    # loop on the set of WaveSimul
+    # loop on the set of WaveSimulation
     Threads.@threads for w in 1:nwsim
-        # loop on the subset of shots per each WaveSimul 
+        # loop on the subset of shots per each WaveSimulation 
         for s in grpshots[w]
             singleshot = shots[s]
             @info "Shot #$s"

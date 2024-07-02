@@ -15,14 +15,14 @@ end
 
 ##################################################
 
-function init_shot!(model::WaveSimul, shot::Shot; kwargs...)
+function init_shot!(model::WaveSimulation, shot::Shot; kwargs...)
     # Check shot configuration
     check_shot(model, shot; kwargs...)
     # Initialize boundary conditions based on current shot
     init_bdc!(model, shot.srcs)
 end
 
-@views function find_nearest_grid_points(model::WaveSimul{T}, positions::Matrix{T})::Matrix{Int} where {T}
+@views function find_nearest_grid_points(model::WaveSimulation{T}, positions::Matrix{T})::Matrix{Int} where {T}
     # source time functions
     nsrcs = size(positions, 1)                      # number of sources
     ncoos = size(positions, 2)                      # number of coordinates
