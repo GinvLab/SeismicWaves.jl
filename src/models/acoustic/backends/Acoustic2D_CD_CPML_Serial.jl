@@ -156,10 +156,7 @@ function forward_onestep_CPML!(
     return nothing
 end
 
-function adjoint_onestep_CPML!(
-    grid, possrcs, dt2srctf, posrecs, traces, it;
-    save_trace=true
-)
+function adjoint_onestep_CPML!(grid, possrcs, dt2srctf, it)
     # Extract info from grid
     nx, ny = grid.ns
     dx, dy = grid.gridspacing
@@ -191,10 +188,6 @@ function adjoint_onestep_CPML!(
 
     # inject sources
     inject_sources!(pnew, dt2srctf, possrcs, it)
-    # record receivers
-    if save_trace
-        record_receivers!(pnew, traces, posrecs, it)
-    end
 
     # Exchange pressures in grid
     grid.fields["adjold"] = grid.fields["adjcur"]

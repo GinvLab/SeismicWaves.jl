@@ -52,10 +52,7 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        backend.adjoint_onestep_CPML!(
-            grid, posrecs_bk, residuals_bk, nothing, nothing, it;   # adjoint sources positions are receivers
-            save_trace=false
-        )
+        backend.adjoint_onestep_CPML!(grid, posrecs_bk, residuals_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Backward iteration: %d", it)

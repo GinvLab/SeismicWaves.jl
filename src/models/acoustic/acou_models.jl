@@ -75,7 +75,7 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}, V <: AbstractVect
     smooth_radius::Int
     # Snapshots
     snapevery::Union{Int, Nothing}
-    snapshots::Union{Vector{A}, Nothing}
+    snapshots::Union{Array{T}, Nothing}
     # Logging parameters
     infoevery::Int
     # Material properties
@@ -187,6 +187,8 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}, V <: AbstractVect
         # Save first two timesteps
         savecheckpoint!(checkpointer, "pcur" => grid.fields["pold"], -1)
         savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], 0)
+        savecheckpoint!(checkpointer, "ψ" => grid.fields["ψ"], 0)
+        savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], 0)
 
         # Initialize snapshots array
         snapshots = (snapevery !== nothing ? [backend.zeros(T, ns...) for _ in 1:div(nt, snapevery)] : nothing)

@@ -14,7 +14,7 @@ end
     wavsim::WaveSimulation{T,N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
-)::Union{Vector{Array}, Nothing} where {T, N}
+)::Union{Vector{Array{T}}, Nothing} where {T, N}
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
@@ -59,7 +59,7 @@ end
     wavsim::Vector{<:WaveSimulation{T,N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
-)::Union{Vector{Array}, Nothing} where {T, N}
+)::Union{Vector{Array{T}}, Nothing} where {T, N}
     nwsim = length(wavsim)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
