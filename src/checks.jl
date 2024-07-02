@@ -1,5 +1,5 @@
 
-function check_sim_consistency(wavsim::WaveSimul{N}, matprop::MaterialProperties, shots::Vector{<:Shot}) where {N}
+function check_sim_consistency(wavsim::WaveSimul{T, N}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot}) where {T, N}
     tysource = typeof(shots[1].srcs)
     tyreceiver = typeof(shots[1].recs)
 
@@ -11,20 +11,20 @@ function check_sim_consistency(wavsim::WaveSimul{N}, matprop::MaterialProperties
     end
 
     # Check that the subtypes of WaveSimul, MaterialProperties and Shot are consistent
-    if wavsim isa AcousticCDCPMLWaveSimul{<:Real, N, <:AbstractArray{<:Real}} &&
-       matprop isa VpAcousticCDMaterialProperties{<:Real, N} &&
+    if wavsim isa AcousticCDCPMLWaveSimul{T, N, <:AbstractArray{T, N}} &&
+       matprop isa VpAcousticCDMaterialProperties{T, N} &&
        tysource <: ScalarSources &&
        tyreceiver <: ScalarReceivers
         return
 
-    elseif wavsim isa AcousticVDStaggeredCPMLWaveSimul{N} &&
-           matprop isa VpRhoAcousticVDMaterialProperties{<:Real, N} &&
+    elseif wavsim isa AcousticVDStaggeredCPMLWaveSimul{T, N} &&
+           matprop isa VpRhoAcousticVDMaterialProperties{T, N} &&
            tysource <: ScalarSources &&
            tyreceiver <: ScalarReceivers
         return
 
-    elseif wavsim isa ElasticIsoCPMLWaveSimul{2} &&   # <<<<<---------<<<<
-           matprop isa ElasticIsoMaterialProperties{<:Real, 2} &&
+    elseif wavsim isa ElasticIsoCPMLWaveSimul{T, 2} &&   # <<<<<---------<<<<
+           matprop isa ElasticIsoMaterialProperties{T, 2} &&
            tysource <: MomentTensorSources &&
            tyreceiver <: VectorReceivers
         return
@@ -44,13 +44,13 @@ function check_shot(model::WaveSimul, shot::Shot; kwargs...)
     return
 end
 
-check_positions(model::WaveSimul, positions::Matrix{<:Real}) = check_positions(BoundaryConditionTrait(model), model, positions)
+check_positions(model, positions) = check_positions(BoundaryConditionTrait(model), model, positions)
 
 function check_positions(
     ::ReflectiveBoundaryCondition,
-    model::WaveSimul,
-    positions::Matrix{<:Real}
-)
+    model::WaveSimul{T},
+    positions::Matrix{T}
+) where {T}
     ndimwavsim = length(model.gridspacing)
     @assert size(positions, 2) == ndimwavsim "Positions matrix do not match the dimension of the model!"
 
@@ -65,9 +65,9 @@ end
 
 function check_positions(
     ::CPMLBoundaryCondition,
-    model::WaveSimul,
-    positions::Matrix{<:Real}
-)
+    model::WaveSimul{T},
+    positions::Matrix{T}
+) where {T}
     check_positions(ReflectiveBoundaryCondition(), model, positions)
     Ndim = size(positions, 2)
     for s in axes(positions, 1)
@@ -85,4 +85,4 @@ function check_positions(
     return
 end
 
-check_invcov_matrix(model::WaveSimul, invcov) = @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"
+check_invcov_matrix(model::WaveSimul{T}, invcov::AbstractMatrix{T}) where {T} = @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"

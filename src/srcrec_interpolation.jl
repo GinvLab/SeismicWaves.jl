@@ -43,7 +43,7 @@ Compute 1-D coefficients for windowed (Kaiser) sync interpolation of source or r
   - `npts` (optional): half-number of grid points for the window
   - `beta` (optional): 'beta' parameter for the Kaiser windowing function
 """
-function coeffsinc1D(xstart::Real, Δx::Real, xcenter::Real, kind::Symbol, nx::Integer;
+function coeffsinc1D(xstart::Real, Δx::Real, xcenter::Real, kind::Symbol, nx::Int;
     npts::Int64=4, beta::Union{Nothing, Real}=nothing)
     ## Coefficients for sinc interpolation
     ##  in 1D
@@ -116,7 +116,7 @@ Compute 2-D coefficients for windowed (Kaiser) sync interpolation of source or r
   - `beta` (optional): 'beta' parameter for the Kaiser windowing function
 """
 function coeffsinc2D(xstart::Real, zstart::Real, Δx::Real, Δz::Real, xcenter::Real, zcenter::Real,
-    nx::Integer, nz::Integer, kind::Vector{Symbol};
+    nx::Int, nz::Int, kind::Vector{Symbol};
     npts::Int64=4, beta::Union{Nothing, Real}=nothing)
 
     ## Calculate the 2D array of coefficients

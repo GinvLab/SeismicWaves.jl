@@ -1,6 +1,6 @@
 ### UPDATE MATERIAL PROPERTIES ##
 
-@views function set_wavesim_matprop!(wavesim::WaveSimul{N}, matprop::MaterialProperties{T, N}) where {T, N}
+@views function set_wavesim_matprop!(wavesim::WaveSimul{T,N}, matprop::MaterialProperties{T, N}) where {T, N}
     @debug "Checking new material properties"
     check_matprop(wavesim, matprop)
     @debug "Updating WaveSimul material properties"
@@ -11,7 +11,7 @@ end
 
 ## single WaveSimul object
 @views function run_swforward!(
-    wavsim::WaveSimul{N},
+    wavsim::WaveSimul{T,N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
 )::Union{Vector{Array}, Nothing} where {T, N}
@@ -56,7 +56,7 @@ end
 
 ## :threadpersrc, multiple WaveSimul objects
 @views function run_swforward!(
-    wavsim::Vector{<:WaveSimul{N}},
+    wavsim::Vector{<:WaveSimul{T,N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
 )::Union{Vector{Array}, Nothing} where {T, N}
@@ -115,7 +115,7 @@ end
 
 ## single or multiple WaveSimul objects
 @views function run_swmisfit!(
-    wavsim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}},
+    wavsim::Union{WaveSimul{T,N}, Vector{<:WaveSimul{T,N}}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
     misfit::AbstractMisfit=L2Misfit(nothing)
@@ -145,7 +145,7 @@ end
 
 ## single WaveSimul object
 @views function run_swgradient!(
-    wavsim::WaveSimul{N},
+    wavsim::WaveSimul{T,N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
     compute_misfit::Bool=false,
@@ -188,7 +188,7 @@ end
 
 ## :threadpersrc, multiple WaveSimul objects
 @views function run_swgradient!(
-    wavsim::Vector{<:WaveSimul{N}},
+    wavsim::Vector{<:WaveSimul{T,N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot};
     compute_misfit::Bool=false,

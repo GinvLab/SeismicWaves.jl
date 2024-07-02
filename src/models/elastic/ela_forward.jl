@@ -3,13 +3,13 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
 
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
-    wavsim::ElasticIsoCPMLWaveSimul{N},
+    wavsim::ElasticIsoCPMLWaveSimul{T,N},
     shot::Shot
-    # possrcs::Matrix{<:Integer},
-    # posrecs::Matrix{<:Integer},
+    # possrcs::Matrix{<:Int},
+    # posrecs::Matrix{<:Int},
     # srctf,
     # recs
-) where {N}
+) where {T,N}
 
     # scale source time function, etc.
     # find nearest grid points indexes for both sources and receivers
@@ -121,9 +121,12 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     return
 end
 
-function spreadsrcrecinterp2D(gridspacing::NTuple{N, Real}, gridsize::NTuple{N, Integer},
-    positions::Matrix{<:Real};
-    nptssinc::Int=4, xstart::Real=0.0, zstart::Real=0.0) where {N}
+function spreadsrcrecinterp2D(
+    gridspacing::NTuple{N, T},
+    gridsize::NTuple{N, Int},
+    positions::Matrix{T};
+    nptssinc::Int=4, xstart::T=0.0, zstart::T=0.0
+) where {T,N}
     nloc = size(positions, 1)
     Ndim = size(positions, 2)
     @assert Ndim == 2

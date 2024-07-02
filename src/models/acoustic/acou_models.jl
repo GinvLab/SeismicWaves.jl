@@ -2,7 +2,7 @@
 
 # Functions for all AcousticWaveSimul subtypes
 
-@views function check_courant_condition(model::AcousticWaveSimul{N}, vp::Array{<:Real, N}) where {N}
+@views function check_courant_condition(model::AcousticWaveSimul{T,N}, vp::Array{T, N}) where {T, N}
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.grid.gridspacing .^ 2))
     courant = vel_max * model.dt * tmp
@@ -15,7 +15,7 @@ end
 function check_numerics(
     model::AcousticWaveSimul,
     shot::Shot;
-    min_ppw::Integer=10
+    min_ppw::Int=10
 )
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
@@ -29,7 +29,7 @@ end
 
 # Functions for all AcousticCDWaveSimul subtypes
 
-@views function check_matprop(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
+@views function check_matprop(model::AcousticCDWaveSimul{T,N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == model.grid.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.grid.ns)"
@@ -38,7 +38,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticCDWaveSimul{N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
+@views function update_matprop!(model::AcousticCDWaveSimul{T,N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     # Precompute factors
@@ -49,7 +49,7 @@ end
 
 ###########################################################
 
-struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWaveSimul{N}
+struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWaveSimul{T,N}
     # Numerics
     nt::Int
     dt::T
@@ -69,7 +69,7 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}} <: AcousticCDWave
     # Logging parameters
     infoevery::Int
     # Material properties
-    matprop::VpAcousticCDMaterialProperties
+    matprop::VpAcousticCDMaterialProperties{T,N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Checkpointing setup
@@ -208,7 +208,7 @@ end
 
 ###########################################################
 
-@views function find_nearest_grid_points(model::AcousticCDCPMLWaveSimul, positions::Matrix{<:Real})::Matrix{<:Int}
+@views function find_nearest_grid_points(model::AcousticCDCPMLWaveSimul{T}, positions::Matrix{T})::Matrix{Int} where {T}
     # source time functions
     nsrcs = size(positions, 1)                      # number of sources
     ncoos = size(positions, 2)                      # number of coordinates
@@ -239,7 +239,7 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
 
 # Functions for all AcousticVDStaggeredWaveSimul subtypes
 
-@views function check_courant_condition(model::AcousticVDStaggeredWaveSimul{N}, vp::Array{<:Real, N}) where {N}
+@views function check_courant_condition(model::AcousticVDStaggeredWaveSimul{T,N}, vp::Array{T, N}) where {T,N}
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.gridspacing .^ 2))
     courant = vel_max * model.dt * tmp * 7 / 6    # 7/6 comes from the higher order stencil
@@ -252,7 +252,7 @@ end
 function check_numerics(
     model::AcousticVDStaggeredWaveSimul,
     shot::Shot;
-    min_ppw::Integer=10
+    min_ppw::Int=10
 )
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
@@ -262,7 +262,7 @@ function check_numerics(
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
-@views function check_matprop(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
+@views function check_matprop(model::AcousticVDStaggeredWaveSimul{T,N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert ndims(matprop.vp) == ndims(matprop.rho) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == size(matprop.rho) == model.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.ns)"
@@ -272,7 +272,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
+@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{T,N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     copyto!(model.matprop.rho, matprop.rho)
@@ -281,7 +281,7 @@ end
     precompute_fact!(model)
 end
 
-@views function precompute_fact!(model::AcousticVDStaggeredWaveSimul{N}) where {N}
+@views function precompute_fact!(model::AcousticVDStaggeredWaveSimul{T,N}) where {T,N}
     # Precompute 1/m0 * dt factor
     copyto!(model.fact_m0, model.matprop.vp .^ 2 .* model.matprop.rho .* model.dt)
     # Precompute m1 * dt factor by interpolation
@@ -293,31 +293,31 @@ end
 
 ###########################################################
 
-struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
+struct AcousticVDStaggeredCPMLWaveSimul{T,N} <: AcousticVDStaggeredWaveSimul{T,N}
     # Physics
-    domainextent::NTuple{N, <:Real}
+    domainextent::NTuple{N, T}
     # Numerics
-    ns::NTuple{N, <:Integer}
-    gridspacing::NTuple{N, <:Real}
-    nt::Integer
-    dt::Real
+    ns::NTuple{N, Int}
+    gridspacing::NTuple{N, T}
+    nt::Int
+    dt::T
     # BDC and CPML parameters
-    halo::Integer
-    rcoef::Real
+    halo::Int
+    rcoef::T
     freetop::Bool
     # Gradient computation setup
     gradient::Bool
     totgrad_size::Union{Vector{Int}, Nothing}
-    check_freq::Union{<:Integer, Nothing}
+    check_freq::Union{Int, Nothing}
     # Snapshots
-    snapevery::Union{<:Integer, Nothing}
+    snapevery::Union{Int, Nothing}
     snapshots::Union{Any, Nothing}
     # Logging parameters
-    infoevery::Integer
+    infoevery::Int
     # Gradient smoothing parameters
-    smooth_radius::Integer
+    smooth_radius::Int
     # Material properties
-    matprop::VpRhoAcousticVDMaterialProperties
+    matprop::VpRhoAcousticVDMaterialProperties{T,N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients}
     # Forward computation arrays
@@ -337,7 +337,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
     ψ_adj::Any
     ξ_adj::Any
     # Checkpointing setup
-    last_checkpoint::Union{<:Integer, Nothing}
+    last_checkpoint::Union{Int, Nothing}
     save_buffer::Any
     checkpoints::Any
     checkpoints_v::Any
@@ -346,21 +346,21 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
     # Backend
     backend::Module
 
-    function AcousticVDStaggeredCPMLWaveSimul{N}(
-        ns::NTuple{N, <:Integer},
-        gridspacing::NTuple{N, <:Real},
-        nt::Integer,
-        dt::Real,
-        halo::Integer,
-        rcoef::Real;
+    function AcousticVDStaggeredCPMLWaveSimul(
+        ns::NTuple{N, Int},
+        gridspacing::NTuple{N, T},
+        nt::Int,
+        dt::T,
+        halo::Int,
+        rcoef::T;
         parall::Symbol=:threads,
         freetop::Bool=true,
         gradient::Bool=false,
-        check_freq::Union{<:Integer, Nothing}=nothing,
-        snapevery::Union{<:Integer, Nothing}=nothing,
-        infoevery::Union{<:Integer, Nothing}=nothing,
-        smooth_radius::Integer=5
-    ) where {N}
+        check_freq::Union{Int, Nothing}=nothing,
+        snapevery::Union{Int, Nothing}=nothing,
+        infoevery::Union{Int, Nothing}=nothing,
+        smooth_radius::Int=5
+    ) where {T,N}
         # Check numerics
         @assert all(ns .> 0) "All numbers of grid points must be positive!"
         @assert all(gridspacing .> 0) "All cell sizes must be positive!"
@@ -378,7 +378,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
         matprop = VpRhoAcousticVDMaterialProperties(zeros(ns...), zeros(ns...))
 
         # Select backend
-        backend = select_backend(AcousticVDStaggeredCPMLWaveSimul{N}, parall)
+        backend = select_backend(AcousticVDStaggeredCPMLWaveSimul{T,N}, parall)
 
         # Initialize computational arrays
         fact_m0 = backend.zeros(ns...)
@@ -484,7 +484,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{N} <: AcousticVDStaggeredWaveSimul{N}
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
-        return new(
+        return new{T,N}(
             domainextent,
             ns,
             gridspacing,

@@ -5,9 +5,9 @@ Type representing a multi-receiver configuration for a wave propagation shot.
 
 $(TYPEDFIELDS)
 """
-struct ScalarReceivers{T <: Real} <: Receivers
+struct ScalarReceivers{T} <: Receivers
     "Receiver positions"
-    positions::Matrix{<:Real}
+    positions::Matrix{T}
     "Array holding seismograms (as columns)"
     seismograms::Matrix{T}
     "Array holding observed seismograms (as columns)"
@@ -19,22 +19,22 @@ struct ScalarReceivers{T <: Real} <: Receivers
 
     @doc """
          ScalarReceivers{T}(
-           positions::Matrix{<:Real},
-           nt::Integer;
+           positions::Matrix{T},
+           nt::Int;
            observed::Union{Matrix{T}, Nothing}=nothing,
            invcov::Union{AbstractMatrix{T}, Nothing}=nothing,
            windows::Union{Vector{Pair{Int,Int}}, Nothing}=nothing
-         ) where {T <: Real}$(TYPEDSIGNATURES)
+         ) where {T}$(TYPEDSIGNATURES)
 
     Create a single shot wave propagation receivers configuration from receivers positions.
     """
-    function ScalarReceivers{T}(
-        positions::Matrix{<:Real},
-        nt::Integer;
+    function ScalarReceivers(
+        positions::Matrix{T},
+        nt::Int;
         observed::Union{Matrix{T}, Nothing}=nothing,
         invcov::Union{AbstractMatrix{T}, Nothing}=nothing,
         windows::Union{Vector{Pair{Int, Int}}, Nothing}=nothing
-    ) where {T <: Real}
+    ) where {T}
         @assert size(positions, 1) > 0 "There must be at least one receiver!"
         seismograms = zeros(T, nt, size(positions, 1))
         if observed !== nothing
@@ -54,7 +54,7 @@ struct ScalarReceivers{T <: Real} <: Receivers
         else
             windows = []
         end
-        return new(positions, seismograms, observed, invcov, windows)
+        return new{T}(positions, seismograms, observed, invcov, windows)
     end
 end
 
@@ -76,7 +76,7 @@ Type representing a multi-receiver configuration for a wave propagation shot.
 $(TYPEDFIELDS)
 """
 # What about using the package ComputedFieldTypes.jl? @computed ...
-struct VectorReceivers{N, T <: Real} <: Receivers
+struct VectorReceivers{T,N} <: Receivers
     "Receiver positions"
     positions::Matrix{T}
     "Array holding seismograms (as columns)"
@@ -86,18 +86,13 @@ struct VectorReceivers{N, T <: Real} <: Receivers
     "Inverse of the covariance matrix"
     invcov::AbstractMatrix{T}
 
-    @doc raw"""
-        Receivers[{T<:Real = Float64}](positions::Matrix{<:Real}, nt::Int, observed::Union{Matrix{T}, Nothing} = nothing)
-
-    Create a single shot wave propagation receivers configuration from receivers positions.
-    """
-    function VectorReceivers{N, T}(
+    function VectorReceivers(
         positions::Matrix{T},
-        nt::Integer,
-        ndim::Integer=2;
+        nt::Int,
+        ndim::Int=2;
         observed::Union{Array{T}, Nothing}=nothing,
         invcov::Union{AbstractMatrix{T}, Nothing}=nothing
-    ) where {N, T <: Real}
+    ) where {T}
         @assert size(positions, 1) > 0 "There must be at least one receiver!"
         seismograms = zeros(T, nt, ndim, size(positions, 1))  ## N+1 !!!  <<<<<<<<--------------<<<<
         if observed !== nothing
@@ -110,9 +105,9 @@ struct VectorReceivers{N, T <: Real} <: Receivers
         else
             invcov = zeros(0, 0)
         end
-        return new{ndim, T}(positions, seismograms, observed, invcov)
+        return new{T, ndim}(positions, seismograms, observed, invcov)
     end
 end
 
 # Default type constructor
-VectorReceivers(positions, nt, ndim; observed=nothing, invcov=nothing) = VectorReceivers{ndim, Float64}(positions, nt, ndim; observed=observed, invcov=invcov)
+# VectorReceivers(positions, nt, ndim; observed=nothing, invcov=nothing) = VectorReceivers{ndim, Float64}(positions, nt, ndim; observed=observed, invcov=invcov)

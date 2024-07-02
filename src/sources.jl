@@ -5,20 +5,20 @@ Type representing a multi-source configuration for a wave propagation shot.
 
 $(TYPEDFIELDS)
 """
-struct ScalarSources{T <: Real} <: Sources
+struct ScalarSources{T} <: Sources
     "Source positions"
-    positions::Matrix{<:Real}
+    positions::Matrix{T}
     "Source time function"
     tf::Matrix{T}
     "Dominant frequency"
     domfreq::T
 
     @doc """ 
-        ScalarSources{T}(positions::Matrix{<:Real}, tf::Matrix{T}, domfreq::T) where {T <: Real}
+        ScalarSources{T}(positions::Matrix{T}, tf::Matrix{T}, domfreq::T) where {T}
 
     Create a single shot wave propagation source configuration from source positions, time-functions and a dominant frequency.
     """
-    function ScalarSources{T}(positions::Matrix{<:Real}, tf::Matrix{T}, domfreq::T) where {T <: Real}
+    function ScalarSources{T}(positions::Matrix{T}, tf::Matrix{T}, domfreq::T) where {T}
         @assert size(positions, 1) > 0 "There must be at least one source!"
         @assert size(positions, 1) == size(tf, 2) "Number of sources do not match between positions and time-functions!"
         return new(positions, tf, domfreq)
@@ -39,7 +39,7 @@ ScalarSources(positions, tf, domfreq) = ScalarSources{Float64}(positions, tf, do
 """
 Type representing vector components of a 2D moment tensor.
 """
-Base.@kwdef struct MomentTensor2D{T <: Real} <: MomentTensor
+Base.@kwdef struct MomentTensor2D{T} <: MomentTensor{T}
     Mxx::Vector{T}
     Mzz::Vector{T}
     Mxz::Vector{T}
@@ -48,7 +48,7 @@ end
 """
 Type representing vector components of a 2D moment tensor.
 """
-Base.@kwdef struct MomentTensor3D{T <: Real} <: MomentTensor
+Base.@kwdef struct MomentTensor3D{T} <: MomentTensor{T}
     Mxx::Vector{T}
     Myy::Vector{T}
     Mzz::Vector{T}
@@ -60,23 +60,23 @@ end
 """
 Type representing a multi-source configuration for a wave propagation shot.
 """
-struct MomentTensorSources{N, T <: Real} <: Sources
+struct MomentTensorSources{N, T} <: Sources
     positions::Matrix{T}
     tf::Matrix{T}
-    momtens::MomentTensor
+    momtens::MomentTensor{T}
     domfreq::T
 
     @doc """
-        MomentTensorSources{T<:Real}( 
-            positions::Matrix{<:Real},
-            tf::Matrix{<:T},
-            momtens::MomentTensor2D
+        MomentTensorSources{T}( 
+            positions::Matrix{T},
+            tf::Matrix{T},
+            momtens::MomentTensor
             domfreq::T
         )
 
     Create a single shot wave propagation source configuration from source positions, time-functions and a dominant frequency.
     """
-    function MomentTensorSources{N, T}(positions::Matrix{T}, tf::Matrix{T}, momtens::MomentTensor, domfreq::T) where {N, T <: Real}
+    function MomentTensorSources{N, T}(positions::Matrix{T}, tf::Matrix{T}, momtens::MomentTensor{T}, domfreq::T) where {N, T}
         @assert size(positions, 1) > 0 "There must be at least one source!"
         @assert size(positions, 1) == size(tf, 2) "Number of sources do not match between positions and time-functions!"
         if N == 2

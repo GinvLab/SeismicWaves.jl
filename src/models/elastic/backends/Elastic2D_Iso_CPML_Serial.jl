@@ -405,27 +405,27 @@ function update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
     return
 end
 
-function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
-    srccoeij_bk::Array{<:Integer},
-    srccoeval_bk::Array{<:Real},
-    reccoeij_bk::Array{<:Integer},
-    reccoeval_bk::Array{<:Real},
-    srctf_bk::Matrix{<:Real},
-    traces_bk::Array{<:Real},
-    it::Integer,
-    Mxx_bk::Vector{<:Real},
-    Mzz_bk::Vector{<:Real},
-    Mxz_bk::Vector{<:Real};
-    save_trace::Bool=true) where {N}
-    # function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{N},
-    #                            possrcs_bk::Array{<:Integer,2},
-    #                            srctf_bk::Matrix{<:Real},
-    #                            posrecs_bk::Array{<:Integer,2},
-    #                            traces_bk::Array{<:Real},
-    #                            it::Integer,
-    #                            Mxx_bk::Vector{<:Real},
-    #                            Mzz_bk::Vector{<:Real},
-    #                            Mxz_bk::Vector{<:Real};
+function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T,N},
+    srccoeij_bk::Array{Int},
+    srccoeval_bk::Array{T},
+    reccoeij_bk::Array{Int},
+    reccoeval_bk::Array{T},
+    srctf_bk::Matrix{T},
+    traces_bk::Array{T},
+    it::Int,
+    Mxx_bk::Vector{T},
+    Mzz_bk::Vector{T},
+    Mxz_bk::Vector{T};
+    save_trace::Bool=true) where {T,N}
+    # function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T,N},
+    #                            possrcs_bk::Array{Int,2},
+    #                            srctf_bk::Matrix{T},
+    #                            posrecs_bk::Array{Int,2},
+    #                            traces_bk::Array{T},
+    #                            it::Int,
+    #                            Mxx_bk::Vector{T},
+    #                            Mzz_bk::Vector{T},
+    #                            Mxz_bk::Vector{T};
     #                            save_trace::Bool=true) where {N}
 
     @assert N == 2

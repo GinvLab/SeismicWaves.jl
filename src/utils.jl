@@ -37,7 +37,7 @@ $(TYPEDSIGNATURES)
 Compute an optimal distribution of tasks (nsrc) for a given number of workers (threads).
 Returns a vector of UnitRange object.
 """
-function distribsrcs(nsrc::Integer, nw::Integer)
+function distribsrcs(nsrc::Int, nw::Int)
     ## calculate how to subdivide the srcs among the workers
     if nsrc >= nw
         dis = div(nsrc, nw)

@@ -56,7 +56,7 @@ Return a vector of snapshots for every shot if snapshotting is enabled.
 See also [`Sources`](@ref), [`Receivers`](@ref).
 
 # Positional arguments
-- `wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}`: input `WaveSimul` object containing all required information to run the simulation.
+- `wavesim::Union{WaveSimul{T,N},Vector{<:WaveSimul{T,N}}}`: input `WaveSimul` object containing all required information to run the simulation.
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
 - `shots::Vector{<:Shot}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
@@ -69,7 +69,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 - `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays.  
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
     """
-function swforward!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
+function swforward!(wavesim::Union{WaveSimul{T,N}, Vector{<:WaveSimul{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {T, N}
     if logger === nothing
         logger = current_logger()
@@ -106,11 +106,11 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 function swmisfit!(
     params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot};  #<:Pair{<:Sources{<:Real}, <:Receivers{<:Real}}};
+    shots::Vector{<:Shot};
     parall::Symbol=:threads,
     misfit::AbstractMisfit=L2Misfit(nothing),
     logger::Union{Nothing, AbstractLogger}=nothing
-)::Real where {T, N}
+)::T where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -129,7 +129,7 @@ $(TYPEDSIGNATURES)
 Return the misfit w.r.t. observed data by running a forward simulation using the given `WaveSimul` object as an input.
 
 # Positional arguments
-- `wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}`: input `WaveSimul` object containing all required information to run the simulation.
+- `wavesim::Union{WaveSimul{T,N},Vector{<:WaveSimul{T,N}}}`: input `WaveSimul` object containing all required information to run the simulation.
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
 - `shots::Vector{<:Shot}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
@@ -144,7 +144,7 @@ Receivers traces are stored in the `Receivers` object for each shot.
     
 See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
 """
-function swmisfit!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
+function swmisfit!(wavesim::Union{WaveSimul{T,N}, Vector{<:WaveSimul{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {T, N}
     if logger === nothing
         logger = current_logger()
@@ -184,7 +184,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `check_freq::Union{Int, Nothing} = nothing`: if specified, enables checkpointing and specifies the checkpointing frequency.
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 - `compute_misfit::Bool = false`: if true, also computes and return misfit value.
-- `smooth_radius::Integer = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
+- `smooth_radius::Int = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
 - `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used. 
 """
 function swgradient!(
@@ -196,9 +196,9 @@ function swgradient!(
     infoevery::Union{Int, Nothing}=nothing,
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing),
-    smooth_radius::Integer=5,
+    smooth_radius::Int=5,
     logger::Union{Nothing, AbstractLogger}=nothing
-)::Union{AbstractArray, Tuple{AbstractArray, Real}} where {T, N}
+)::Union{AbstractArray, Tuple{AbstractArray, T}} where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -225,7 +225,7 @@ Bigger values speed up computation at the cost of using more memory.
 See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfit!`](@ref).
 
 # Positional arguments
-- `wavesim::Union{WaveSimul{N},Vector{<:WaveSimul{N}}}`: input `WaveSimul` object containing all required information to run the simulation.
+- `wavesim::Union{WaveSimul{T,N},Vector{<:WaveSimul{T,N}}}`: input `WaveSimul` object containing all required information to run the simulation.
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
 - `shots::Vector{<:Shot}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
@@ -238,10 +238,10 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `check_freq::Union{Int, Nothing} = nothing`: if specified, enables checkpointing and specifies the checkpointing frequency.
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 - `compute_misfit::Bool = false`: if true, also computes and return misfit value.
-- `smooth_radius::Integer = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
+- `smooth_radius::Int = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
 - `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used. 
 """
-function swgradient!(wavesim::Union{WaveSimul{N}, Vector{<:WaveSimul{N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
+function swgradient!(wavesim::Union{WaveSimul{T,N}, Vector{<:WaveSimul{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...) where {T, N}
     if logger === nothing
         logger = current_logger()
@@ -269,9 +269,9 @@ Builds a wave similation based on the input paramters `params` and keyword argum
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
 - `gradient::Bool = false`: whether the wave simulation is used for gradients computations.
-- `check_freq::Union{<:Integer, Nothing} = nothing`: if `gradient = true` and if specified, enables checkpointing and specifies the checkpointing frequency.
-- `snapevery::Union{<:Integer, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays (only for forward simulations).
-- `infoevery::Union{<:Integer, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
+- `check_freq::Union{<:Int, Nothing} = nothing`: if `gradient = true` and if specified, enables checkpointing and specifies the checkpointing frequency.
+- `snapevery::Union{<:Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays (only for forward simulations).
+- `infoevery::Union{<:Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
 function build_wavesim(params::InputParameters{T, N}, matprop::MaterialProperties{T, N}; parall::Symbol, kwargs...) where {T, N}
     if parall == :threadpersrc
@@ -307,7 +307,7 @@ build_concrete_wavesim(
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
     kwargs...
-) where {T,N} = AcousticVDStaggeredCPMLWaveSimul{N}(
+) where {T,N} = AcousticVDStaggeredCPMLWaveSimul(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,
@@ -325,7 +325,7 @@ build_concrete_wavesim(
     cpmlparams::CPMLBoundaryConditionParameters;
     parall,
     kwargs...
-) where {T,N} = ElasticIsoCPMLWaveSimul{N}(
+) where {T,N} = ElasticIsoCPMLWaveSimul(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,

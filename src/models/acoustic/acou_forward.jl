@@ -70,8 +70,7 @@ end
 #####################################################
 
 # Scaling for AcousticVDStaggeredCPMLWaveSimul
-@views function possrcrec_scaletf(wavsim::AcousticVDStaggeredCPMLWaveSimul{N},
-    shot::Shot) where {N}
+@views function possrcrec_scaletf(wavsim::AcousticVDStaggeredCPMLWaveSimul, shot::Shot)
     # find nearest grid points indexes for both sources and receivers
     possrcs = find_nearest_grid_points(wavsim, shot.srcs.positions)
     posrecs = find_nearest_grid_points(wavsim, shot.recs.positions)
@@ -89,9 +88,9 @@ end
 
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
-    wavsim::AcousticVDStaggeredCPMLWaveSimul{N},
+    wavsim::AcousticVDStaggeredCPMLWaveSimul{T,N},
     shot::Shot
-) where {N}
+) where {T,N}
 
     # scale source time function, etc.
     possrcs, posrecs, scal_srctf = possrcrec_scaletf(wavsim, shot)

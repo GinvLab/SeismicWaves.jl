@@ -5,7 +5,7 @@ struct CPMLCoefficientsAxis
     b::Any
     b_h::Any
 
-    function CPMLCoefficientsAxis(halo::Integer, backend::Module,
+    function CPMLCoefficientsAxis(halo::Int, backend::Module,
         sizehalfgrdplusone::Bool=false)
         if sizehalfgrdplusone
             return new(
@@ -29,7 +29,7 @@ function compute_CPML_coefficientsAxis!(
     cpmlcoeffs::CPMLCoefficientsAxis,
     vel_max::Real,
     dt::Real,
-    halo::Integer,
+    halo::Int,
     rcoef::Real,
     thickness::Real,
     f0::Real
@@ -59,7 +59,7 @@ struct CPMLCoefficients
     b_hl::Any
     b_hr::Any
 
-    function CPMLCoefficients(halo::Integer, backend::Module,
+    function CPMLCoefficients(halo::Int, backend::Module,
         sizehalfgrdplusone::Bool=false)
         if sizehalfgrdplusone
             return new(
@@ -88,7 +88,7 @@ struct CPMLCoefficients
 end
 
 function calc_Kab_CPML_staggeredgrid(
-    halo::Integer,
+    halo::Int,
     dt::Float64,
     npower::Float64,
     d0::Float64,
@@ -155,7 +155,7 @@ function compute_CPML_coefficients!(
     cpmlcoeffs::CPMLCoefficients,
     vel_max::Real,
     dt::Real,
-    halo::Integer,
+    halo::Int,
     rcoef::Real,
     thickness::Real,
     f0::Real
@@ -183,7 +183,7 @@ end
 #####################################
 
 function calc_Kab_CPML(
-    halo::Integer,
+    halo::Int,
     dt::Float64,
     npower::Float64,
     d0::Float64,

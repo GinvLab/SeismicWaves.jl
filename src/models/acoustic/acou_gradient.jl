@@ -3,10 +3,10 @@ swgradient_1shot!(model::AcousticWaveSimul, args...; kwargs...) =
 
 @views function swgradient_1shot!(
     ::CPMLBoundaryCondition,
-    model::AcousticCDWaveSimul{N},
+    model::AcousticCDWaveSimul{T,N},
     shot::Shot,
     misfit
-)::Array{<:Real} where {N}
+)::Array{T} where {T,N}
 
     # scale source time function, etc.
     possrcs, posrecs, scal_srctf = possrcrec_scaletf(model, shot)
@@ -98,10 +98,10 @@ end
 
 @views function swgradient_1shot!(
     ::CPMLBoundaryCondition,
-    model::AcousticVDStaggeredCPMLWaveSimul{N},
+    model::AcousticVDStaggeredCPMLWaveSimul{T,N},
     shot::Shot,
     misfit
-)::Array{<:Real} where {N}
+)::Array{T} where {T,N}
 
     # scale source time function, etc.
     possrcs, posrecs, scal_srctf = possrcrec_scaletf(model, shot)
