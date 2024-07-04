@@ -47,7 +47,7 @@ function exacouprob_wavsim(parall=:serial)
     # shots definition
     nshots = 6
     @show nshots
-    shots = Vector{Shot}()  #Pair{Sources, Receivers}}()
+    shots = Vector{Shot{Float64}}()  #Pair{Sources, Receivers}}()
     # sources x-position (in grid points) (different for every shot)
     ixsrc = round.(Int, LinRange(32, nx - 31, nshots))
     for i in 1:nshots
@@ -126,7 +126,7 @@ function exacouprob_wavsim(parall=:serial)
 
     ##===============================================
     ## compute the gradient
-    shots_grad = Vector{Shot}()
+    shots_grad = Vector{Shot{Float64}}()
     for i in 1:nshots
         seis = shots[i].recs.seismograms
         nt = size(seis, 1)

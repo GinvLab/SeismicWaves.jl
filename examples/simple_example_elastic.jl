@@ -52,7 +52,7 @@ function exelaprob()
     ##========================================
     # shots definition
     nshots = 1
-    shots = Vector{Shot}()  #Pair{Sources, Receivers}}()
+    shots = Vector{Shot{Float64}}()  #Pair{Sources, Receivers}}()
 
     for i in 1:nshots
         # sources definition
@@ -133,7 +133,7 @@ function exelaprob()
 
     # ##===============================================
     # ## compute the gradient
-    # shots_grad = Vector{Shot}()
+    # shots_grad = Vector{Shot{Float64}}()
     # for i in 1:nshots
     #     seis = shots[i].recs.seismograms
     #     nt = size(seis,1)

@@ -4,7 +4,7 @@ using CUDA
 using ParallelStencil
 using ParallelStencil.FiniteDifferences3D
 
-@init_parallel_stencil(package=CUDA, ndims=3, inbounds=true)
+@init_parallel_stencil(package = CUDA, ndims = 3, inbounds = true)
 
 include("shared/standard_xPU.jl")
 include("shared/correlate_gradient_xPU.jl")

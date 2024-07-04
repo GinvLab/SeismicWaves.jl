@@ -405,7 +405,7 @@ function update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
     return
 end
 
-function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T,N},
+function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T, N},
     srccoeij_bk::Array{Int},
     srccoeval_bk::Array{T},
     reccoeij_bk::Array{Int},
@@ -416,7 +416,7 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T,N},
     Mxx_bk::Vector{T},
     Mzz_bk::Vector{T},
     Mxz_bk::Vector{T};
-    save_trace::Bool=true) where {T,N}
+    save_trace::Bool=true) where {T, N}
     # function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T,N},
     #                            possrcs_bk::Array{Int,2},
     #                            srctf_bk::Matrix{T},

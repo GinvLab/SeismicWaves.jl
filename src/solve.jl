@@ -1,6 +1,6 @@
 ### UPDATE MATERIAL PROPERTIES ##
 
-@views function set_wavesim_matprop!(wavesim::WaveSimulation{T,N}, matprop::MaterialProperties{T, N}) where {T, N}
+@views function set_wavesim_matprop!(wavesim::WaveSimulation{T, N}, matprop::MaterialProperties{T, N}) where {T, N}
     @debug "Checking new material properties"
     check_matprop(wavesim, matprop)
     @debug "Updating WaveSimulation material properties"
@@ -11,9 +11,9 @@ end
 
 ## single WaveSimulation object
 @views function run_swforward!(
-    wavsim::WaveSimulation{T,N},
+    wavsim::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot};
+    shots::Vector{Shot{T}};
 )::Union{Vector{Array{T}}, Nothing} where {T, N}
 
     # Check wavesim consistency
@@ -56,9 +56,9 @@ end
 
 ## :threadpersrc, multiple WaveSimulation objects
 @views function run_swforward!(
-    wavsim::Vector{<:WaveSimulation{T,N}},
+    wavsim::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot};
+    shots::Vector{Shot{T}};
 )::Union{Vector{Array{T}}, Nothing} where {T, N}
     nwsim = length(wavsim)
     nthr = Threads.nthreads()
@@ -115,9 +115,9 @@ end
 
 ## single or multiple WaveSimulation objects
 @views function run_swmisfit!(
-    wavsim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}},
+    wavsim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot};
+    shots::Vector{Shot{T}};
     misfit::AbstractMisfit=L2Misfit(nothing)
 )::T where {T, N}
 
@@ -145,13 +145,13 @@ end
 
 ## single WaveSimulation object
 @views function run_swgradient!(
-    wavsim::WaveSimulation{T,N},
+    wavsim::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot};
+    shots::Vector{Shot{T}};
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing)
 )::Union{Dict{String, Array{T, N}},
-         Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
+    Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
@@ -189,13 +189,13 @@ end
 
 ## :threadpersrc, multiple WaveSimulation objects
 @views function run_swgradient!(
-    wavsim::Vector{<:WaveSimulation{T,N}},
+    wavsim::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot};
+    shots::Vector{Shot{T}};
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing)
 )::Union{Dict{String, Array{T, N}},
-         Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
+    Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
     nwsim = length(wavsim)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!

@@ -68,14 +68,21 @@ end
 end
 
 @views function forward_onestep_CPML!(
-    pcur, vx_cur, fact_m0, fact_m1_x, dx, halo,
-    ψ_l, ψ_r, ξ_l, ξ_r,
-    a_x_l, a_x_r, a_x_hl, a_x_hr,
-    b_x_l, b_x_r, b_x_hl, b_x_hr,
-    possrcs, srctf, posrecs, traces, it;
+    grid, possrcs, srctf, posrecs, traces, it;
     save_trace=true
 )
-    nx = length(pcur)
+    # Extract info from grid
+    nx = grid.ns[1]
+    dx = grid.gridspacing[1]
+    pcur, vx_cur = grid.fields["pcur"].value, grid.fields["vcur"].value[1]
+    fact_m0 = grid.fields["fact_m0"].value
+    fact_m1_x = grid.fields["fact_m1_stag"].value[1]
+    ψ_l, ψ_r = grid.fields["ψ"].value
+    ξ_l, ξ_r = grid.fields["ξ"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
+    # Precompute divisions
     _dx = 1 / (dx * 24)
 
     @parallel (3:(nx-2)) update_p_CPML!(pcur, vx_cur, halo, fact_m0, nx, _dx,
@@ -88,14 +95,21 @@ end
     end
 end
 
-@views function backward_onestep_CPML!(
-    pcur, vx_cur, fact_m0, fact_m1_x, dx, halo,
-    ψ_l, ψ_r, ξ_l, ξ_r,
-    a_x_l, a_x_r, a_x_hl, a_x_hr,
-    b_x_l, b_x_r, b_x_hl, b_x_hr,
-    possrcs, srctf, it
+@views function adjoint_onestep_CPML!(
+    grid, possrcs, srctf, it
 )
-    nx = length(pcur)
+    # Extract info from grid
+    nx = grid.ns[1]
+    dx = grid.gridspacing[1]
+    pcur, vx_cur = grid.fields["adjpcur"].value, grid.fields["adjvcur"].value[1]
+    fact_m0 = grid.fields["fact_m0"].value
+    fact_m1_x = grid.fields["fact_m1_stag"].value[1]
+    ψ_l, ψ_r = grid.fields["ψ_adj"].value
+    ξ_l, ξ_r = grid.fields["ξ_adj"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
+    # Precompute divisions
     _dx = 1 / (dx * 24)
 
     @parallel (2:(nx-2)) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,

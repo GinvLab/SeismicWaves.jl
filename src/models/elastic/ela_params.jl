@@ -5,7 +5,7 @@ Parameters for elastic wave simulations
 
 $(TYPEDFIELDS)
 """
-struct InputParametersElastic{T,N} <: InputParameters{T,N}
+struct InputParametersElastic{T, N} <: InputParameters{T, N}
     "Number of time steps"
     ntimesteps::Int
     "Time step"
@@ -23,9 +23,8 @@ struct InputParametersElastic{T,N} <: InputParameters{T,N}
         gridsize::NTuple{N, Int},
         gridspacing::NTuple{N, T},
         boundcond::InputBoundaryConditionParameters{T}
-    ) where {T,N}
+    ) where {T, N}
         @assert N <= 3 "Dimensionality must be less than or equal to 3!"
-        new{T,N}(ntimesteps, dt, tuple(gridsize...), tuple(gridspacing...), boundcond)
+        new{T, N}(ntimesteps, dt, tuple(gridsize...), tuple(gridspacing...), boundcond)
     end
-    
 end

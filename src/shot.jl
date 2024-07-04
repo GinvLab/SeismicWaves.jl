@@ -6,11 +6,11 @@ Type representing a source-receiver pair, i.e., a \"shot\".
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef struct Shot
+Base.@kwdef struct Shot{T}
     "Structure containing the appropriate Sources for a given simulation."
-    srcs::Sources
+    srcs::Sources{T}
     "Structure containing the appropriate Receivers for a given simulation."
-    recs::Receivers
+    recs::Receivers{T}
 end
 
 ##################################################
@@ -29,7 +29,7 @@ end
     # find nearest grid point for each source
     idx_positions = zeros(Int, size(positions))     # sources positions (in grid points)
     for s in 1:nsrcs
-        tmp = [positions[s, i] / model.gridspacing[i] + 1 for i in 1:ncoos]
+        tmp = [positions[s, i] / model.grid.gridspacing[i] + 1 for i in 1:ncoos]
         idx_positions[s, :] .= round.(Int, tmp, RoundNearestTiesUp)
     end
     return idx_positions

@@ -4,7 +4,7 @@ include("plotting_utils.jl")
 
 function linear_2D_geometry(nshots, model, f0, nt, srctf, dd, lx, ly, dx, dy, halo; plot_geometry=false, save_file=nothing)
     # shots definition
-    shots = Vector{Shot}()  #Pair{ScalarSources, ScalarReceivers}}()
+    shots = Vector{Shot{Float64}}()  #Pair{ScalarSources, ScalarReceivers}}()
     # straight line positions
     xs = (lx / 2) .- dd .* ((nshots + 1) / 2 .- collect(1:nshots))
     ysrc = (halo + 10) * dy

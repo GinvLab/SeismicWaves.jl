@@ -1,5 +1,5 @@
 
-function check_sim_consistency(wavsim::WaveSimulation{T, N}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot}) where {T, N}
+function check_sim_consistency(wavsim::WaveSimulation{T, N}, matprop::MaterialProperties{T, N}, shots::Vector{Shot{T}}) where {T, N}
     tysource = typeof(shots[1].srcs)
     tyreceiver = typeof(shots[1].recs)
 
@@ -85,4 +85,5 @@ function check_positions(
     return
 end
 
-check_invcov_matrix(model::WaveSimulation{T}, invcov::AbstractMatrix{T}) where {T} = @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"
+check_invcov_matrix(model::WaveSimulation{T}, invcov::AbstractMatrix{T}) where {T} =
+    @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"

@@ -3,7 +3,7 @@ module Acoustic1D_CD_CPML_GPU
 using CUDA
 using ParallelStencil
 using ParallelStencil.FiniteDifferences1D
-@init_parallel_stencil(package=CUDA, ndims=1, inbound=true)
+@init_parallel_stencil(package = CUDA, ndims = 1, inbound = true)
 
 include("shared/standard_xPU.jl")
 include("shared/correlate_gradient_xPU.jl")

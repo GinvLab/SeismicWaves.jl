@@ -6,7 +6,7 @@ Parameters for acoustic wave simulations.
 
 $(TYPEDFIELDS)
 """
-struct InputParametersAcoustic{T,N} <: InputParameters{T,N}
+struct InputParametersAcoustic{T, N} <: InputParameters{T, N}
     "Number of time steps"
     ntimesteps::Int
     "Time step"
@@ -26,6 +26,6 @@ struct InputParametersAcoustic{T,N} <: InputParameters{T,N}
         boundcond::InputBoundaryConditionParameters{T}
     ) where {T, N}
         @assert N <= 3 "Dimensionality must be less than or equal to 3!"
-        new{T,N}(ntimesteps, dt, gridsize, gridspacing, boundcond)
+        new{T, N}(ntimesteps, dt, gridsize, gridspacing, boundcond)
     end
 end

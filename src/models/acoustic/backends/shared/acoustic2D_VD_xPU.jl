@@ -104,17 +104,22 @@ end
 end
 
 @views function forward_onestep_CPML!(
-    pcur, vx_cur, vy_cur, fact_m0, fact_m1_x, fact_m1_y, dx, dy, halo,
-    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
-    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,
-    a_x_l, a_x_r, a_x_hl, a_x_hr,
-    a_y_l, a_y_r, a_y_hl, a_y_hr,
-    b_x_l, b_x_r, b_x_hl, b_x_hr,
-    b_y_l, b_y_r, b_y_hl, b_y_hr,
-    possrcs, srctf, posrecs, traces, it;
+    grid, possrcs, srctf, posrecs, traces, it;
     save_trace=true
 )
-    nx, ny = size(pcur)
+    # Extract info from grid
+    nx, ny = grid.ns
+    dx, dy = grid.gridspacing
+    pcur = grid.fields["pcur"].value
+    vx_cur, vy_cur = grid.fields["vcur"].value
+    fact_m0 = grid.fields["fact_m0"].value
+    fact_m1_x, fact_m1_y = grid.fields["fact_m1_stag"].value
+    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ"].value
+    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r = grid.fields["ξ"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr, a_y_l, a_y_r, a_y_hl, a_y_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr, b_y_l, b_y_r, b_y_hl, b_y_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
+    # Precompute divisions
     _dx = 1 / (dx * 24)
     _dy = 1 / (dy * 24)
 
@@ -134,17 +139,22 @@ end
     end
 end
 
-@views function backward_onestep_CPML!(
-    pcur, vx_cur, vy_cur, fact_m0, fact_m1_x, fact_m1_y, dx, dy, halo,
-    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
-    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,
-    a_x_l, a_x_r, a_x_hl, a_x_hr,
-    a_y_l, a_y_r, a_y_hl, a_y_hr,
-    b_x_l, b_x_r, b_x_hl, b_x_hr,
-    b_y_l, b_y_r, b_y_hl, b_y_hr,
-    possrcs, srctf, it
+@views function adjoint_onestep_CPML!(
+    grid, possrcs, srctf, it
 )
-    nx, ny = size(pcur)
+    # Extract info from grid
+    nx, ny = grid.ns
+    dx, dy = grid.gridspacing
+    pcur = grid.fields["adjpcur"].value
+    vx_cur, vy_cur = grid.fields["adjvcur"].value
+    fact_m0 = grid.fields["fact_m0"].value
+    fact_m1_x, fact_m1_y = grid.fields["fact_m1_stag"].value
+    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ_adj"].value
+    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r = grid.fields["ξ_adj"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr, a_y_l, a_y_r, a_y_hl, a_y_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr, b_y_l, b_y_r, b_y_hl, b_y_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
+    # Precompute divisions
     _dx = 1 / (dx * 24)
     _dy = 1 / (dy * 24)
 

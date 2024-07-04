@@ -2,7 +2,7 @@
 
 # Functions for all ElasticIsoWaveSimul subtypes
 
-@views function check_matprop(wavsim::ElasticIsoWaveSimul{T,N}, matprop::ElasticIsoMaterialProperties{T,N}) where {T,N}
+@views function check_matprop(wavsim::ElasticIsoWaveSimul{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
     # Checks
     vp = sqrt.((matprop.λ .+ 2.0 * matprop.μ) ./ matprop.ρ)
     @assert ndims(vp) == N "Material property dimensionality must be the same as the wavesim!"
@@ -41,7 +41,7 @@ function check_numerics(
     return
 end
 
-@views function update_matprop!(wavsim::ElasticIsoWaveSimul{T,N}, matprop::ElasticIsoMaterialProperties{T,N}) where {T,N}
+@views function update_matprop!(wavsim::ElasticIsoWaveSimul{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
 
     # Update material properties
     wavsim.matprop.λ .= matprop.λ
@@ -108,7 +108,7 @@ end
 
 ##############################################################
 
-struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
+struct ElasticIsoCPMLWaveSimul{T, N} <: ElasticIsoWaveSimul{T, N}
     # Physics
     domainextent::NTuple{N, T}
     # Numerics
@@ -129,7 +129,7 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
     # Logging parameters
     infoevery::Int
     # Material properties
-    matprop::AbstrElasticIsoMaterialProperties{T,N}
+    matprop::AbstrElasticIsoMaterialProperties{T, N}
     # Forward computation arrays
     velpartic::Any # 2D: 2 comp, 3D: 3 comp
     stress::Any # 2D: 3 arrays, 3D: 6 arrays
@@ -163,7 +163,7 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
         check_freq::Union{Int, Nothing}=nothing,
         snapevery::Union{Int, Nothing}=nothing,
         infoevery::Union{Int, Nothing}=nothing
-    ) where {T,N}
+    ) where {T, N}
         # Check numerics
         @assert all(gridsize .> 0) "All numbers of grid points must be positive!"
         @assert all(gridspacing .> 0) "All grid spacings must be positive!"
@@ -179,7 +179,7 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
         domainextent = gridspacing .* (gridsize .- 1)
 
         # Select backend
-        backend = select_backend(ElasticIsoCPMLWaveSimul{T,N}, parall)
+        backend = select_backend(ElasticIsoCPMLWaveSimul{T, N}, parall)
         V = backend.Data.Array{T, 1}
 
         # Initialize computational arrays
@@ -263,7 +263,7 @@ struct ElasticIsoCPMLWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N}
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
-        return new{T,N}(
+        return new{T, N}(
             domainextent,
             gridsize,
             gridspacing,
@@ -299,7 +299,7 @@ end
 
 # Specific functions for ElasticIsoCPMLWaveSimul
 
-@views function reset!(wavsim::ElasticIsoCPMLWaveSimul{T,N}) where {T,N}
+@views function reset!(wavsim::ElasticIsoCPMLWaveSimul{T, N}) where {T, N}
 
     # Reset computational arrays
     for p in propertynames(wavsim.velpartic)
@@ -335,7 +335,7 @@ GridTrait(::Type{<:ElasticIsoCPMLWaveSimul}) = LocalGrid()
 
 ###########################################################
 
-struct ElasticIsoReflWaveSimul{T,N} <: ElasticIsoWaveSimul{T,N} end    # TODO implementation
+struct ElasticIsoReflWaveSimul{T, N} <: ElasticIsoWaveSimul{T, N} end    # TODO implementation
 
 ###########################################################
 

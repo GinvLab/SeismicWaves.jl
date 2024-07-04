@@ -21,7 +21,7 @@ function forward_example()
     ##========================================
     # shots definition
     nshots = 6
-    shots = Vector{Shot}()  #Pair{Sources, Receivers}}()
+    shots = Vector{Shot{Float64}}()  #Pair{Sources, Receivers}}()
     # sources x-position (in grid points) (different for every shot)
     ixsrc = round.(Int, LinRange(32, nx - 31, nshots))
     for i in 1:nshots
