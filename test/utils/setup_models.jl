@@ -239,3 +239,26 @@ function analytical_solution_constant_vel_3D(c0, dt, nt, srcs, recs)
 
     return times, Gc
 end
+
+function setup_constant_vel_1D_CPML_Float32(nt, dt, nx, dx, c0, f0, halo, rcoef)
+    # constant velocity setup
+    lx = (nx - 1) * dx
+    vel = VpAcousticCDMaterialProperties(c0 .* ones(Float32, nx))
+    # input parameters
+    params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
+        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
+    # sources
+    t0 = 2f0 / f0
+    times = convert.(Float32, collect(range(0.0; step=dt, length=nt)))
+    possrcs = zeros(Float32, 1, 1)
+    srctf = zeros(Float32, nt, 1)
+    srctf[:, 1] .= rickerstf.(times, t0, f0)
+    possrcs[1, :] = [lx / 2f0]
+    # receivers
+    posrecs = zeros(Float32, 1, 1)
+    posrecs[1, :] = [lx / 3f0]
+    srcs = ScalarSources(possrcs, srctf, f0)
+    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(Float32, nt)))
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
+    return params, shots, vel
+end

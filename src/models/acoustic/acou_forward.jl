@@ -52,7 +52,7 @@ end
         end
 
         # Save snapshot
-        if snapenabled(model) && model.snapshotter !== nothing
+        if snapenabled(model)
             @info @sprintf("Snapping iteration: %d", it)
             savesnapshot!(model.snapshotter, "pcur" => grid.fields["pcur"], it)
         end
@@ -114,8 +114,7 @@ end
         end
 
         # Save snapshot
-        # Save snapshot
-        if snapenabled(model) && model.snapshotter !== nothing
+        if snapenabled(model)
             @info @sprintf("Snapping iteration: %d", it)
             savesnapshot!(model.snapshotter, "pcur" => grid.fields["pcur"], it)
             savesnapshot!(model.snapshotter, "vcur" => grid.fields["vcur"], it)

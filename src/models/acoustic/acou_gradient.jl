@@ -86,7 +86,7 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     # smooth gradient
     backend.smooth_gradient!(gradient, possrcs, model.smooth_radius)
     # rescale gradient
-    gradient .= (2.0 ./ (model.matprop.vp .^ 3)) .* gradient
+    gradient .= (convert(T, 2.0) ./ (model.matprop.vp .^ 3)) .* gradient
     # add regularization if needed
     if misfit.regularization !== nothing
         gradient .+= dχ_dm(misfit.regularization, model.matprop)
@@ -192,7 +192,7 @@ end
     dχ_dvp, dχ_drho = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
     # Rescale gradients with respect to material properties (chain rule)
     return Dict(
-        "vp" => .-2.0 .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp
+        "vp" => .-convert(T, 2.0) .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp
         "rho" => .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho .+ dχ_drho   # grad wrt rho
     )
 end

@@ -34,9 +34,9 @@ function compute_CPML_coefficientsAxis!(
     f0::T
 ) where {T, V <: AbstractVector{T}}
     # CPML coefficients (l = left, r = right, h = staggered in betweeen grid points)
-    alpha_max = π * f0  # CPML α multiplicative factor (half of dominating angular frequency)
-    npower = 2.0  # CPML power coefficient
-    d0 = -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness)  # damping profile
+    alpha_max = convert(T, π * f0)  # CPML α multiplicative factor (half of dominating angular frequency)
+    npower = convert(T, 2.0)  # CPML power coefficient
+    d0 = convert(T, -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness))  # damping profile
     a_l, a_r, b_l, b_r = calc_Kab_CPML_staggeredgrid(halo, dt, npower, d0, alpha_max, :startongrd)
     a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML_staggeredgrid(halo, dt, npower, d0, alpha_max, :starthalfgrd)
 
@@ -141,9 +141,9 @@ function calc_Kab_CPML_staggeredgrid(
     a_right = d_right .* (b_right .- 1.0) ./ (K_right .* (d_right .+ K_right .* alpha_right))
 
     if K_max_pml === nothing
-        return a_left, a_right, b_left, b_right
+        return convert.(T, a_left), convert.(T, a_right), convert.(T, b_left), convert.(T, b_right)
     else
-        return a_left, a_right, b_left, b_right, K_left, K_right
+        return convert.(T, a_left), convert.(T, a_right), convert.(T, b_left), convert.(T, b_right), convert.(T, K_left), convert.(T, K_right)
     end
 end
 
@@ -159,11 +159,11 @@ function compute_CPML_coefficients!(
     f0::T
 ) where {T, V <: AbstractVector{T}}
     # CPML coefficients (l = left, r = right, h = staggered in betweeen grid points)
-    alpha_max = π * f0          # CPML α multiplicative factor (half of dominating angular frequency)
-    npower = 2.0                # CPML power coefficient
-    d0 = -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness)     # damping profile
+    alpha_max = convert(T, π * f0)          # CPML α multiplicative factor (half of dominating angular frequency)
+    npower = convert(T, 2.0)                # CPML power coefficient
+    d0 = convert(T, -(npower + 1) * vel_max * log(rcoef) / (2.0 * thickness))     # damping profile
     if halo == 0 # fix for thickness == 0 generating NaNs
-        d0 = 0.0
+        d0 = convert(T, 0.0)
     end
     a_l, a_r, b_l, b_r = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "ongrd")
     a_hl, a_hr, b_hl, b_hr = calc_Kab_CPML(halo, dt, npower, d0, alpha_max, "halfgrd")
@@ -236,9 +236,9 @@ function calc_Kab_CPML(
     a_right = d_right .* (b_right .- 1.0) ./ (K_right .* (d_right .+ K_right .* alpha_right))
 
     if K_max_pml === nothing
-        return a_left, a_right, b_left, b_right
+        return convert.(T, a_left), convert.(T, a_right), convert.(T, b_left), convert.(T, b_right)
     else
-        return a_left, a_right, b_left, b_right, K_left, K_right
+        return convert.(T, a_left), convert.(T, a_right), convert.(T, b_left), convert.(T, b_right), convert.(T, K_left), convert.(T, K_right)
     end
 end
 

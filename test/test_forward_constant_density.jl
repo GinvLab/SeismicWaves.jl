@@ -12,6 +12,30 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     end
 
     for parall in test_backends
+        @testset "Test 1D $(parall) single precision" begin
+            # constant velocity setup
+            c0 = 1000.0f0
+            nt = 500
+            nx = 501
+            dx = 2.5f0
+            dt = dx / c0
+            halo = 0
+            rcoef = 1.0f0
+            f0 = 5.0f0
+            params, shots, vel = setup_constant_vel_1D_CPML_Float32(nt, dt, nx, dx, c0, f0, halo, rcoef)
+            times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, shots[1].srcs, shots[1].recs)
+
+            # numerical solution
+            swforward!(params, vel, shots; parall=parall)
+            numerical_trace = shots[1].recs.seismograms[:, 1]
+
+            @test numerical_trace isa Vector{Float32}
+
+            @test length(numerical_trace) == length(Gc) == nt
+            # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
+            @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
+        end
+        
         @testset "Test 1D $(parall) single-source multiple-receivers CPML" begin
             #  velocity setup
             c0 = 1000.0
