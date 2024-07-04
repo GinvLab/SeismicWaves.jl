@@ -44,6 +44,7 @@ include("utils/checks.jl")
 include("utils/fields.jl")
 include("utils/grids.jl")
 include("utils/checkpointers.jl")
+include("utils/snapshotter.jl")
 
 # Shots
 include("shots/sources.jl")

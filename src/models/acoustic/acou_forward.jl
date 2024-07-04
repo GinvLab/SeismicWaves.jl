@@ -48,18 +48,13 @@ end
         backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
-            @info @sprintf(
-                "Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]",
-                it,
-                model.dt * (it - 1),
-                maximum(abs.(Array(pcur)))
-            )
+            @info @sprintf("Iteration: %d, simulation time: %g [s]", it, model.dt * (it - 1))
         end
 
         # Save snapshot
-        if snapenabled(model) && it % model.snapevery == 0
-            @info @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(pcur))))
-            copyto!(model.snapshots[fill(Colon(), N)..., div(it, model.snapevery)], pcur)
+        if snapenabled(model) && model.snapshotter !== nothing
+            @info @sprintf("Snapping iteration: %d", it)
+            savesnapshot!(model.snapshotter, "pcur" => grid.fields["pcur"], it)
         end
     end
 
@@ -115,18 +110,15 @@ end
         backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
-            @info @sprintf(
-                "Iteration: %d, simulation time: %g [s], maximum absolute pressure: %g [Pa]",
-                it,
-                model.dt * (it - 1),
-                maximum(abs.(Array(grid.fields["pcur"].value)))
-            )
+            @info @sprintf("Iteration: %d, simulation time: %g [s]", it, model.dt * (it - 1))
         end
 
         # Save snapshot
-        if snapenabled(model) && it % model.snapevery == 0
-            @info @sprintf("Snapping iteration: %d, max absolute pressure: %g [Pa]", it, maximum(abs.(Array(grid.fields["pcur"].value))))
-            copyto!(model.snapshots[fill(Colon(), N)..., div(it, model.snapevery)], grid.fields["pcur"].value)
+        # Save snapshot
+        if snapenabled(model) && model.snapshotter !== nothing
+            @info @sprintf("Snapping iteration: %d", it)
+            savesnapshot!(model.snapshotter, "pcur" => grid.fields["pcur"], it)
+            savesnapshot!(model.snapshotter, "vcur" => grid.fields["vcur"], it)
         end
     end
 

@@ -62,16 +62,14 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
 # Keyword arguments
-- `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:GPU`
-    - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
-    - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
-    - otherwise the serial version if set to `:serial`
-- `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays.  
-- `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
     """
-function swforward!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}};
-    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::Union{Vector{Array{T}}, Nothing} where {T, N}
+function swforward!(
+    wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}},
+    matprop::MaterialProperties{T, N},
+    shots::Vector{<:Shot{T}};
+    logger::Union{Nothing, AbstractLogger}=nothing,
+    kwargs...
+)::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -87,7 +85,7 @@ end
     model::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
-)::Union{Vector{Array{T}}, Nothing} where {T, N}
+)::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
@@ -117,7 +115,7 @@ end
         # Save shot's snapshots
         if takesnapshots
             @info "Saving snapshots"
-            push!(snapshots_per_shot, Array(model.snapshots))
+            push!(snapshots_per_shot, deepcopy(model.snapshotter.snapshots))
         end
     end
 
@@ -132,7 +130,7 @@ end
     model::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
-)::Union{Vector{Array{T}}, Nothing} where {T, N}
+)::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}, Nothing}} where {T, N}
     nwsim = length(model)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
@@ -173,7 +171,7 @@ end
             # Save shot's snapshots
             if snapenabled(model[w])
                 @info "Saving snapshots"
-                push!(snapshots_per_shot[w], copy(model[w].snapshots))
+                push!(snapshots_per_shot[w], deepcopy(model.snapshotter.snapshots))
             end
         end
     end

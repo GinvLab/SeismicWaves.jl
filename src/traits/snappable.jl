@@ -24,4 +24,4 @@ IsSnappableTrait(::Type{<:WaveSimulation}) = UnSnappable()
 
 Check if a model has snapping enabled.
 """
-snapenabled(model::WaveSimulation) = isa(IsSnappableTrait(model), Snappable) && model.snapevery !== nothing
+snapenabled(model::WaveSimulation) = isa(IsSnappableTrait(model), Snappable) && model.snapshotter !== nothing

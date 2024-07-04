@@ -62,12 +62,6 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # Gradient computation setup
-    gradient::Bool
-    smooth_radius::Int
-    # Snapshots
-    snapevery::Union{Int, Nothing}
-    snapshots::Union{Array{T}, Nothing}
     # Logging parameters
     infoevery::Int
     # Material properties
@@ -75,7 +69,11 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients{T, V}}
     # Checkpointing setup
-    checkpointer::LinearCheckpointer{T}
+    checkpointer::Union{Nothing, LinearCheckpointer{T}}
+    # Smooth radius for gradient
+    smooth_radius::Int
+    # Snapshotter setup
+    snapshotter::Union{Nothing, LinearSnapshotter{T, N, Array{T, N}}}
     # Parallelization type
     parall::Symbol
 
@@ -97,7 +95,6 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         gridsize = params.gridsize
         halo = cpmlparams.halo
         freetop = cpmlparams.freeboundtop
-        rcoef = cpmlparams.rcoef
         # Check numerics
         @assert nt > 0 "Number of timesteps must be positive!"
         @assert dt > 0 "Timestep size must be positive!"
@@ -168,23 +165,27 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             )
         end
 
-        # Initialize checkpointer
-        checkpointer = LinearCheckpointer(
-            nt,
-            check_freq === nothing ? 1 : check_freq,
-            filter(p -> p.first in ["pcur", "ψ", "ξ"], grid.fields),
-            ["pcur"];
-            widths=Dict("pcur" => 2)
-        )
-        # Save first two timesteps
-        savecheckpoint!(checkpointer, "pcur" => grid.fields["pold"], -1)
-        savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], 0)
-        savecheckpoint!(checkpointer, "ψ" => grid.fields["ψ"], 0)
-        savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], 0)
+        if gradient
+            # Initialize checkpointer
+            checkpointer = LinearCheckpointer(
+                nt,
+                check_freq === nothing ? 1 : check_freq,
+                filter(p -> p.first in ["pcur", "ψ", "ξ"], grid.fields),
+                ["pcur"];
+                widths=Dict("pcur" => 2)
+            )
+            # Save first two timesteps
+            savecheckpoint!(checkpointer, "pcur" => grid.fields["pold"], -1)
+            savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], 0)
+            savecheckpoint!(checkpointer, "ψ" => grid.fields["ψ"], 0)
+            savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], 0)
+        end
 
-        # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? backend.zeros(T, gridsize..., div(nt, snapevery)) : nothing)
-        # Check infoevery
+        if snapevery !== nothing
+            # Initialize snapshotter
+            snapshotter = LinearSnapshotter{Array{T, N}}(nt, snapevery, filter(p -> p.first in ["pcur"], grid.fields))
+        end
+
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
         else
@@ -197,14 +198,12 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             nt,
             dt,
             grid,
-            gradient,
-            smooth_radius,
-            snapevery,
-            snapshots,
             infoevery,
             matprop,
             cpmlcoeffs,
-            checkpointer,
+            gradient ? checkpointer : nothing,
+            smooth_radius,
+            snapevery === nothing ? nothing : snapshotter,
             parall
         )
     end
@@ -229,7 +228,9 @@ end
 
 @views function reset!(model::AcousticCDCPMLWaveSimulation)
     reset!(model.grid; except=["fact", "a_pml", "b_pml"])
-    reset!(model.checkpointer)
+    if model.checkpointer !== nothing
+        reset!(model.checkpointer)
+    end
 end
 
 ###########################################################
@@ -314,12 +315,6 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # Gradient computation setup
-    gradient::Bool
-    smooth_radius::Int
-    # Snapshots
-    snapevery::Union{Int, Nothing}
-    snapshots::Union{Array{T}, Nothing}
     # Logging parameters
     infoevery::Int
     # Material properties
@@ -327,7 +322,11 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficients{T, V}}
     # Checkpointing setup
-    checkpointer::LinearCheckpointer{T}
+    checkpointer::Union{Nothing, LinearCheckpointer{T}}
+    # Smooth radius for gradient
+    smooth_radius::Int
+    # Snapshotter setup
+    snapshotter::Union{Nothing, LinearSnapshotter{T, N, Array{T, N}}}
     # Parallelization type
     parall::Symbol
 
@@ -428,22 +427,27 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             )
         end
 
-        # Initialize checkpointer
-        checkpointer = LinearCheckpointer(
-            nt,
-            check_freq === nothing ? 1 : check_freq,
-            filter(p -> p.first in ["pcur", "vcur", "ψ", "ξ"], grid.fields),
-            ["pcur"];
-            widths=Dict("pcur" => 1)
-        )
-        # Save first two timesteps
-        savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], 0)
-        savecheckpoint!(checkpointer, "vcur" => grid.fields["vcur"], 0)
-        savecheckpoint!(checkpointer, "ψ" => grid.fields["ψ"], 0)
-        savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], 0)
+        if gradient
+            # Initialize checkpointer
+            checkpointer = LinearCheckpointer(
+                nt,
+                check_freq === nothing ? 1 : check_freq,
+                filter(p -> p.first in ["pcur", "vcur", "ψ", "ξ"], grid.fields),
+                ["pcur"];
+                widths=Dict("pcur" => 1)
+            )
+            # Save first two timesteps
+            savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], 0)
+            savecheckpoint!(checkpointer, "vcur" => grid.fields["vcur"], 0)
+            savecheckpoint!(checkpointer, "ψ" => grid.fields["ψ"], 0)
+            savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], 0)
+        end
 
-        # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? backend.zeros(T, gridsize..., div(nt, snapevery)) : nothing)
+        if snapevery !== nothing
+            # Initialize snapshotter
+            snapshotter = LinearSnapshotter{Array{N, T}}(nt, snapevery, filter(p -> p.first in ["pcur", "vcur"], grid.fields))
+        end
+
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
@@ -457,14 +461,12 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             nt,
             dt,
             grid,
-            gradient,
-            smooth_radius,
-            snapevery,
-            snapshots,
             infoevery,
             matprop,
             cpmlcoeffs,
-            checkpointer,
+            gradient ? checkpointer : nothing,
+            smooth_radius,
+            snapevery === nothing ? nothing : snapshotter,
             parall
         )
     end
@@ -477,7 +479,9 @@ end
 @views function reset!(model::AcousticVDStaggeredCPMLWaveSimulation)
     # Reset computational arrays
     reset!(model.grid; except=["fact_m0", "fact_m1_stag", "a_pml", "b_pml"])
-    reset!(model.checkpointer)
+    if model.checkpointer !== nothing
+        reset!(model.checkpointer)
+    end
 end
 ###########################################################
 
