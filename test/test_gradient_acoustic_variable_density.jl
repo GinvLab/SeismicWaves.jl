@@ -8,7 +8,10 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     test_backends = [:threads]
     # test GPU backend only if CUDA is functional
     if @isdefined(CUDA) && CUDA.functional()
-        push!(test_backends, :GPU)
+        push!(test_backends, :CUDA)
+    end
+    if @isdefined(AMDGPU) && AMDGPU.functional()
+            push!(test_backends, :AMDGPU)
     end
 
     for parall in test_backends

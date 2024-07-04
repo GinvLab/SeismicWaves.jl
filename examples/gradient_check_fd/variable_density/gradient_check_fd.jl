@@ -163,7 +163,7 @@ end
 ########################################################################
 
 # Backend selection
-parall = :GPU
+parall = :CUDA
 device!(4)
 run = true
 

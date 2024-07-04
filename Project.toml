@@ -12,17 +12,20 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [weakdeps]
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 
 [extensions]
-CUDABackendExt = "CUDA"
+SeismicWaves_AMDGPUBackendExt = "AMDGPU"
+SeismicWaves_CUDABackendExt = "CUDA"
 
 [compat]
 julia = ">=1.9"
 
 [extras]
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "CUDA"]
+test = ["Test", "CUDA", "AMDGPU"]

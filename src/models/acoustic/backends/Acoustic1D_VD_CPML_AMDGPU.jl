@@ -1,11 +1,11 @@
-module Acoustic1D_VD_CPML_GPU
+module Acoustic1D_VD_CPML_AMDGPU
 
-using CUDA
+using AMDGPU
 using ParallelStencil
 using ParallelStencil.FiniteDifferences1D
 include("shared/fourth_order_FiniteDifferences1D.jl")
 
-@init_parallel_stencil(package = CUDA, ndims = 1, inbounds = true)
+@init_parallel_stencil(package = AMDGPU, ndims = 1, inbounds = true)
 
 include("shared/standard_xPU.jl")
 include("shared/correlate_gradient_xPU.jl")

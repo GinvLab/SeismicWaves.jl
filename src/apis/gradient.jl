@@ -21,7 +21,8 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 
 # Keyword arguments
 - `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:GPU`
+    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
+    - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
     - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
@@ -76,7 +77,8 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 
 # Keyword arguments
 - `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:GPU`
+    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
+    - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
     - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`

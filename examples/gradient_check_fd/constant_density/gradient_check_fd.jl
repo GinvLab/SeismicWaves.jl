@@ -136,7 +136,7 @@ if length(ARGS) >= 1
     if ARGS[1] == "--threads"
         parall = :threads
     elseif ARGS[1] == "--GPU"
-        parall = :GPU
+        parall = :CUDA
         devs = devices()
         if length(devs) >= 1 && length(ARGS) >= 2
             device!(parse(Int, ARGS[2]))
