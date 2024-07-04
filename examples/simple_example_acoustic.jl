@@ -44,7 +44,7 @@ function exacouprob(parall=:serial)
     ##========================================
     # shots definition
     nshots = 6
-    shots = Vector{Shot{Float64}}()  #Pair{Sources, Receivers}}()
+    shots = Vector{ScalarShot{Float64}}()  #Pair{Sources, Receivers}}()
     # sources x-position (in grid points) (different for every shot)
     ixsrc = round.(Int, LinRange(32, nx - 31, nshots))
     for i in 1:nshots
@@ -77,7 +77,7 @@ function exacouprob(parall=:serial)
         #@show recs.positions
 
         # add pair as shot
-        push!(shots, Shot(; srcs=srcs, recs=recs)) # srcs => recs)
+        push!(shots, ScalarShot(; srcs=srcs, recs=recs)) # srcs => recs)
     end
 
     ##============================================
@@ -102,13 +102,13 @@ function exacouprob(parall=:serial)
 
     ##===============================================
     ## compute the gradient
-    shots_grad = Vector{Shot{Float64}}()
+    shots_grad = Vector{ScalarShot{Float64}}()
     for i in 1:nshots
         seis = shots[i].recs.seismograms
         nt = size(seis, 1)
         recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
             invcov=Diagonal(ones(nt)))
-        push!(shots_grad, Shot(; srcs=shots[i].srcs, recs=recs_grad))
+        push!(shots_grad, ScalarShot(; srcs=shots[i].srcs, recs=recs_grad))
     end
 
     newvelmod = matprop.vp .- 0.2

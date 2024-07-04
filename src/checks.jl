@@ -1,5 +1,5 @@
 
-function check_sim_consistency(model::WaveSimulation{T, N}, matprop::MaterialProperties{T, N}, shots::Vector{Shot{T}}) where {T, N}
+function check_sim_consistency(model::WaveSimulation{T, N}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}}) where {T, N}
     tysource = typeof(shots[1].srcs)
     tyreceiver = typeof(shots[1].recs)
 
@@ -34,7 +34,7 @@ function check_sim_consistency(model::WaveSimulation{T, N}, matprop::MaterialPro
         \n $(typeof(model)), \n $(typeof(matprop)), \n $(typeof(shots[1].srcs)), $(typeof(shots[1].recs))")
 end
 
-function check_shot(model::WaveSimulation, shot::Shot; kwargs...)
+function check_shot(model::WaveSimulation{T}, shot::Shot{T}; kwargs...) where {T}
     @debug "Checking model/shot numerics"
     check_numerics(model, shot; kwargs...)
     @debug "Checking sources positions"

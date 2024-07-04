@@ -50,14 +50,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             )
 
             # compute forward
-            swforward!(wavesim, matprop, [Shot(srcs, recs)])
+            swforward!(wavesim, matprop, [ScalarShot(srcs, recs)])
             # save seismograms
             res = copy(recs.seismograms)
 
             # same receivers, but positions reversed
             reverse!(recs.positions; dims=1)
             # compute forward
-            swforward!(wavesim, matprop, [Shot(srcs, recs)])
+            swforward!(wavesim, matprop, [ScalarShot(srcs, recs)])
 
             # test that seismograms are the same
             for i in 1:nrecs
@@ -105,7 +105,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             )
 
             # compute forward
-            swforward!(wavesim, matprop, [Shot(srcs, recs)])
+            swforward!(wavesim, matprop, [ScalarShot(srcs, recs)])
             # save seismograms
             res = copy(recs.seismograms)
 
@@ -114,7 +114,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             # same receivers, but positions reversed
             reverse!(recs.positions; dims=1)
             # compute forward
-            swforward!(wavesim, matprop, [Shot(srcs, recs)])
+            swforward!(wavesim, matprop, [ScalarShot(srcs, recs)])
 
             # test that seismograms are the same
             for i in 1:nrecs
@@ -163,14 +163,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             )
 
             # compute forward
-            swforward!(wavesim, matprop, [Shot(srcs, recs)])
+            swforward!(wavesim, matprop, [ScalarShot(srcs, recs)])
             # save seismograms
             res = copy(recs.seismograms)
 
             # same receivers, but positions reversed
             reverse!(recs.positions; dims=1)
             # compute forward
-            swforward!(wavesim, matprop, [Shot(srcs, recs)])
+            swforward!(wavesim, matprop, [ScalarShot(srcs, recs)])
 
             # test that seismograms are the same
             for i in 1:nrecs
@@ -221,7 +221,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             )
 
             # compute forward
-            swforward!(wavesim, matprop, [Shot(srcs, recs)])
+            swforward!(wavesim, matprop, [ScalarShot(srcs, recs)])
             # save seismograms
             res = copy(recs.seismograms)
 
@@ -230,7 +230,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             # same receivers, but positions reversed
             reverse!(recs.positions; dims=1)
             # compute forward
-            swforward!(wavesim, matprop, [Shot(srcs, recs)])
+            swforward!(wavesim, matprop, [ScalarShot(srcs, recs)])
 
             # test that seismograms are the same
             for i in 1:nrecs

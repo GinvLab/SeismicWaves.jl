@@ -74,7 +74,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss; compute
     end
 
     # new receivers with observed seismograms
-    shots_obs = Vector{Shot{Float64}}()  #Pair{ScalarSources, ScalarReceivers}}()
+    shots_obs = Vector{ScalarShot{Float64}}()  #Pair{ScalarSources, ScalarReceivers}}()
     for i in eachindex(shots)
         # receivers definition
         recs = ScalarReceivers(
@@ -84,7 +84,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss; compute
             invcov=Diagonal(ones(nt))
         )
         # add pair as shot
-        push!(shots_obs, Shot(; srcs=shots[i].srcs, recs=recs)) # srcs => recs)
+        push!(shots_obs, ScalarShot(; srcs=shots[i].srcs, recs=recs)) # srcs => recs)
     end
 
     println("Computing gradients")

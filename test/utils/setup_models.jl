@@ -40,7 +40,7 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     posrecs[1, :] = [lx / 3]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, vel
 end
 
@@ -63,7 +63,7 @@ function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, r
     posrecs[1, :] = [lx / 3]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, matprop, refsrctf
 end
 
@@ -87,7 +87,7 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     posrecs[1, :] = [lx / 3, ly / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, vel
 end
 
@@ -110,7 +110,7 @@ function setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0,
     posrecs[1, :] = [lx / 3, ly / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, matprop
 end
 
@@ -135,7 +135,7 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     posrecs[1, :] = [lx / 3, ly / 2, lz / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, vel
 end
 

@@ -3,7 +3,7 @@
 swforward_1shot!(model::AcousticWaveSimulation, args...) = swforward_1shot!(BoundaryConditionTrait(model), model, args...)
 
 # Scaling for AcousticCDWaveSimulation
-@views function possrcrec_scaletf(model::AcousticWaveSimulation, shot::Shot)
+@views function possrcrec_scaletf(model::AcousticWaveSimulation{T}, shot::ScalarShot{T}) where {T}
     # find nearest grid points indexes for both sources and receivers
     possrcs = find_nearest_grid_points(model, shot.srcs.positions)
     posrecs = find_nearest_grid_points(model, shot.recs.positions)
@@ -22,7 +22,7 @@ end
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDCPMLWaveSimulation{T, N},
-    shot::Shot
+    shot::ScalarShot{T}
 ) where {T, N}
 
     # Scale source time function, etc.
@@ -70,7 +70,7 @@ end
 #####################################################
 
 # Scaling for AcousticVDStaggeredCPMLWaveSimulation
-@views function possrcrec_scaletf(model::AcousticVDStaggeredCPMLWaveSimulation, shot::Shot)
+@views function possrcrec_scaletf(model::AcousticVDStaggeredCPMLWaveSimulation{T}, shot::ScalarShot{T}) where {T}
     # find nearest grid points indexes for both sources and receivers
     possrcs = find_nearest_grid_points(model, shot.srcs.positions)
     posrecs = find_nearest_grid_points(model, shot.recs.positions)
@@ -89,7 +89,7 @@ end
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticVDStaggeredCPMLWaveSimulation{T, N},
-    shot::Shot
+    shot::ScalarShot{T}
 ) where {T, N}
 
     # scale source time function, etc.

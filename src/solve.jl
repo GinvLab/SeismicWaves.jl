@@ -13,7 +13,7 @@ end
 @views function run_swforward!(
     model::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
-    shots::Vector{Shot{T}};
+    shots::Vector{<:Shot{T}};
 )::Union{Vector{Array{T}}, Nothing} where {T, N}
 
     # Check wavesim consistency
@@ -58,7 +58,7 @@ end
 @views function run_swforward!(
     model::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
-    shots::Vector{Shot{T}};
+    shots::Vector{<:Shot{T}};
 )::Union{Vector{Array{T}}, Nothing} where {T, N}
     nwsim = length(model)
     nthr = Threads.nthreads()
@@ -117,7 +117,7 @@ end
 @views function run_swmisfit!(
     model::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
-    shots::Vector{Shot{T}};
+    shots::Vector{<:Shot{T}};
     misfit::AbstractMisfit=L2Misfit(nothing)
 )::T where {T, N}
 
@@ -147,7 +147,7 @@ end
 @views function run_swgradient!(
     model::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
-    shots::Vector{Shot{T}};
+    shots::Vector{<:Shot{T}};
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing)
 )::Union{Dict{String, Array{T, N}},
@@ -191,7 +191,7 @@ end
 @views function run_swgradient!(
     model::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
-    shots::Vector{Shot{T}};
+    shots::Vector{<:Shot{T}};
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing)
 )::Union{Dict{String, Array{T, N}},

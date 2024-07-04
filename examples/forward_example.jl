@@ -21,7 +21,7 @@ function forward_example()
     ##========================================
     # shots definition
     nshots = 6
-    shots = Vector{Shot{Float64}}()  #Pair{Sources, Receivers}}()
+    shots = Vector{ScalarShot{Float64}}()  #Pair{Sources, Receivers}}()
     # sources x-position (in grid points) (different for every shot)
     ixsrc = round.(Int, LinRange(32, nx - 31, nshots))
     for i in 1:nshots
@@ -47,7 +47,7 @@ function forward_example()
         recs = ScalarReceivers(posrecs, nt)
 
         # add pair as shot
-        push!(shots, Shot(; srcs=srcs, recs=recs)) # srcs => recs)
+        push!(shots, ScalarShot(; srcs=srcs, recs=recs)) # srcs => recs)
     end
     ##============================================
     ## Input parameters for acoustic simulation

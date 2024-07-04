@@ -13,10 +13,10 @@
 end
 
 function check_numerics(
-    model::AcousticWaveSimulation,
-    shot::Shot;
+    model::AcousticWaveSimulation{T},
+    shot::ScalarShot{T};
     min_ppw::Int=10
-)
+) where {T}
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
     h_max = maximum(model.grid.spacing)
@@ -255,10 +255,10 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimulation}) = LocalGrid()
 end
 
 function check_numerics(
-    model::AcousticVDStaggeredWaveSimulation,
-    shot::Shot;
+    model::AcousticVDStaggeredWaveSimulation{T},
+    shot::ScalarShot{T};
     min_ppw::Int=10
-)
+) where {T}
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
     h_max = maximum(model.grid.spacing)

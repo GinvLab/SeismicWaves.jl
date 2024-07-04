@@ -26,12 +26,12 @@ export AcouWavCDProb
 struct AcouWavCDProb
     #wavesim::WaveSimulation
     inpars::InputParametersAcoustic
-    shots::Vector{Shot{Float64}} #invCovds::Vector{<:AbstractMatrix{Float64}}
+    shots::Vector{ScalarShot{Float64}} #invCovds::Vector{<:AbstractMatrix{Float64}}
     parall::Symbol
     #firsttime::Base.RefValue{Bool}
 
     function AcouWavCDProb(inpars::InputParametersAcoustic,
-        shots::Vector{Shot{Float64}},
+        shots::Vector{ScalarShot{Float64}},
         parall::Symbol)
 
         #     nt = inpars.ntimesteps

@@ -12,11 +12,13 @@ abstract type InputBoundaryConditionParameters{T} end
 
 abstract type MaterialProperties{T, N} end
 
+abstract type Shot{T} end
+
 abstract type Sources{T} end
 
 abstract type Receivers{T} end
 
-abstract type MomentTensor{T} end
+abstract type MomentTensor{T, N} end
 
 abstract type InterpolationMethod end
 

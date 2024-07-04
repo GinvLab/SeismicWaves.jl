@@ -3,13 +3,13 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
 
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
-    model::ElasticIsoCPMLWaveSimulation{T, N},
-    shot::Shot
+    model::ElasticIsoCPMLWaveSimulation{T, 2},
+    shot::MomentTensorShot{T, 2, MomentTensor2D{T}}
     # possrcs::Matrix{<:Int},
     # posrecs::Matrix{<:Int},
     # srctf,
     # recs
-) where {T, N}
+) where {T}
 
     # scale source time function, etc.
     # find nearest grid points indexes for both sources and receivers

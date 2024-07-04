@@ -21,7 +21,7 @@ export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
 export VpAcousticCDMaterialProperties, VpRhoAcousticVDMaterialProperties
 export ElasticIsoMaterialProperties
 # export sources, receivers and shots
-export Shot
+export ScalarShot, MomentTensorShot
 export ScalarSources, MomentTensorSources
 export MomentTensor2D, MomentTensor3D
 export ScalarReceivers, VectorReceivers
@@ -46,10 +46,12 @@ include("srcrec_interpolation.jl")
 
 include("models/cpmlcoeffs.jl")
 
-include("grids/abstract_types.jl")
-include("grids/fields.jl")
-include("grids/grids.jl")
-include("grids/checkpointers.jl")
+# Utils
+include("utils/utils.jl")
+include("utils/abstract_types.jl")
+include("utils/fields.jl")
+include("utils/grids.jl")
+include("utils/checkpointers.jl")
 
 # Acoustic
 include("models/acoustic/acou_abstract_types.jl")
@@ -94,9 +96,6 @@ include("models/acoustic/backends/Acoustic1D_VD_CPML_Threads.jl")
 include("models/acoustic/backends/Acoustic2D_VD_CPML_Threads.jl")
 
 # Elastic parallel backends
-
-# Utils
-include("utils.jl")
 
 ## HMC stuff
 include("HMCseiswaves.jl")

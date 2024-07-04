@@ -24,10 +24,10 @@
 end
 
 function check_numerics(
-    model::ElasticIsoWaveSimulation,
-    shot::Shot;
+    model::ElasticIsoWaveSimulation{T},
+    shot::MomentTensorShot{T};
     min_ppw::Int=10
-)
+) where {T}
     # Check points per wavelengh
     # min Vs
     vel_min = get_minimum_func(model)(sqrt.(model.matprop.μ ./ model.matprop.ρ))

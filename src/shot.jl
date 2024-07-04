@@ -2,20 +2,36 @@
 """
 $(TYPEDEF)
 
-Type representing a source-receiver pair, i.e., a \"shot\".
+Type representing a shot with scalar sources and receivers.
 
 $(TYPEDFIELDS)
 """
-Base.@kwdef struct Shot{T}
-    "Structure containing the appropriate Sources for a given simulation."
-    srcs::Sources{T}
-    "Structure containing the appropriate Receivers for a given simulation."
-    recs::Receivers{T}
+Base.@kwdef struct ScalarShot{T} <: Shot{T}
+    "Structure containing the ScalarSources for a given simulation."
+    srcs::ScalarSources{T}
+    "Structure containing the ScalarReceivers for a given simulation."
+    recs::ScalarReceivers{T}
 end
+
+"""
+$(TYPEDEF)
+
+Type representing a shot with moment tensor sources and multi-component receivers.
+
+$(TYPEDFIELDS)
+"""
+Base.@kwdef struct MomentTensorShot{T, N, M <: MomentTensor{T, N}} <: Shot{T}
+    "Structure containing the MomentTensorSources for a given simulation."
+    srcs::MomentTensorSources{T, N, M}
+    "Structure containing the VectorReceivers for a given simulation."
+    recs::VectorReceivers{T, N}
+end
+
+
 
 ##################################################
 
-function init_shot!(model::WaveSimulation, shot::Shot; kwargs...)
+function init_shot!(model::WaveSimulation{T}, shot::Shot{T}; kwargs...) where {T}
     # Check shot configuration
     check_shot(model, shot; kwargs...)
     # Initialize boundary conditions based on current shot
