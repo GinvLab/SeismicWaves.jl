@@ -1,9 +1,9 @@
 
-swforward_1shot!(model::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryConditionTrait(model), model, args...)
+swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(BoundaryConditionTrait(model), model, args...)
 
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
-    model::ElasticIsoCPMLWaveSimul{T, N},
+    model::ElasticIsoCPMLWaveSimulation{T, N},
     shot::Shot
     # possrcs::Matrix{<:Int},
     # posrecs::Matrix{<:Int},

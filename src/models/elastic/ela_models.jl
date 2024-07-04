@@ -1,8 +1,8 @@
 ###########################################################
 
-# Functions for all ElasticIsoWaveSimul subtypes
+# Functions for all ElasticIsoWaveSimulation subtypes
 
-@views function check_matprop(model::ElasticIsoWaveSimul{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
+@views function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
     # Checks
     vp = sqrt.((matprop.λ .+ 2.0 * matprop.μ) ./ matprop.ρ)
     @assert ndims(vp) == N "Material property dimensionality must be the same as the wavesim!"
@@ -24,7 +24,7 @@
 end
 
 function check_numerics(
-    model::ElasticIsoWaveSimul,
+    model::ElasticIsoWaveSimulation,
     shot::Shot;
     min_ppw::Int=10
 )
@@ -41,7 +41,7 @@ function check_numerics(
     return
 end
 
-@views function update_matprop!(model::ElasticIsoWaveSimul{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
+@views function update_matprop!(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
 
     # Update material properties
     model.matprop.λ .= matprop.λ
@@ -108,7 +108,7 @@ end
 
 ##############################################################
 
-struct ElasticIsoCPMLWaveSimul{T, N} <: ElasticIsoWaveSimul{T, N}
+struct ElasticIsoCPMLWaveSimulation{T, N} <: ElasticIsoWaveSimulation{T, N}
     # Physics
     domainextent::NTuple{N, T}
     # Numerics
@@ -149,7 +149,7 @@ struct ElasticIsoCPMLWaveSimul{T, N} <: ElasticIsoWaveSimul{T, N}
     backend::Module
     parall::Symbol
 
-    function ElasticIsoCPMLWaveSimul(
+    function ElasticIsoCPMLWaveSimulation(
         gridsize::NTuple{N, Int},
         gridspacing::NTuple{N, T},
         nt::Int,
@@ -179,7 +179,7 @@ struct ElasticIsoCPMLWaveSimul{T, N} <: ElasticIsoWaveSimul{T, N}
         domainextent = gridspacing .* (gridsize .- 1)
 
         # Select backend
-        backend = select_backend(ElasticIsoCPMLWaveSimul{T, N}, parall)
+        backend = select_backend(ElasticIsoCPMLWaveSimulation{T, N}, parall)
         V = backend.Data.Array{T, 1}
 
         # Initialize computational arrays
@@ -297,9 +297,9 @@ end
 
 ###########################################################
 
-# Specific functions for ElasticIsoCPMLWaveSimul
+# Specific functions for ElasticIsoCPMLWaveSimulation
 
-@views function reset!(model::ElasticIsoCPMLWaveSimul{T, N}) where {T, N}
+@views function reset!(model::ElasticIsoCPMLWaveSimulation{T, N}) where {T, N}
 
     # Reset computational arrays
     for p in propertynames(model.velpartic)
@@ -327,22 +327,22 @@ end
 end
 ###########################################################
 
-# Traits for ElasticIsoCPMLWaveSimul
+# Traits for ElasticIsoCPMLWaveSimulation
 
-IsSnappableTrait(::Type{<:ElasticIsoCPMLWaveSimul}) = Snappable()
-BoundaryConditionTrait(::Type{<:ElasticIsoCPMLWaveSimul}) = CPMLBoundaryCondition()
-GridTrait(::Type{<:ElasticIsoCPMLWaveSimul}) = LocalGrid()
-
-###########################################################
-
-struct ElasticIsoReflWaveSimul{T, N} <: ElasticIsoWaveSimul{T, N} end    # TODO implementation
+IsSnappableTrait(::Type{<:ElasticIsoCPMLWaveSimulation}) = Snappable()
+BoundaryConditionTrait(::Type{<:ElasticIsoCPMLWaveSimulation}) = CPMLBoundaryCondition()
+GridTrait(::Type{<:ElasticIsoCPMLWaveSimulation}) = LocalGrid()
 
 ###########################################################
 
-# Traits for ElasticIsoReflWaveSimul
+struct ElasticIsoReflWaveSimulation{T, N} <: ElasticIsoWaveSimulation{T, N} end    # TODO implementation
 
-IsSnappableTrait(::Type{<:ElasticIsoReflWaveSimul}) = Snappable()
-BoundaryConditionTrait(::Type{<:ElasticIsoReflWaveSimul}) = ReflectiveBoundaryCondition()
-GridTrait(::Type{<:ElasticIsoReflWaveSimul}) = LocalGrid()
+###########################################################
+
+# Traits for ElasticIsoReflWaveSimulation
+
+IsSnappableTrait(::Type{<:ElasticIsoReflWaveSimulation}) = Snappable()
+BoundaryConditionTrait(::Type{<:ElasticIsoReflWaveSimulation}) = ReflectiveBoundaryCondition()
+GridTrait(::Type{<:ElasticIsoReflWaveSimulation}) = LocalGrid()
 
 ###########################################################

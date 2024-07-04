@@ -2,7 +2,7 @@
 module Elastic2D_Iso_CPML_Serial
 
 # To get those structs into this module
-using SeismicWaves: ElasticIsoCPMLWaveSimul, ElasticIsoMaterialProperties
+using SeismicWaves: ElasticIsoCPMLWaveSimulation, ElasticIsoMaterialProperties
 
 # Dummy data module
 module Data
@@ -405,7 +405,7 @@ function update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
     return
 end
 
-function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimul{T, N},
+function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T, N},
     srccoeij_bk::Array{Int},
     srccoeval_bk::Array{T},
     reccoeij_bk::Array{Int},
@@ -417,7 +417,7 @@ function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimul{T, N},
     Mzz_bk::Vector{T},
     Mxz_bk::Vector{T};
     save_trace::Bool=true) where {T, N}
-    # function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimul{T,N},
+    # function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T,N},
     #                            possrcs_bk::Array{Int,2},
     #                            srctf_bk::Matrix{T},
     #                            posrecs_bk::Array{Int,2},

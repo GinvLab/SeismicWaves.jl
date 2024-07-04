@@ -1,12 +1,12 @@
 
-init_bdc!(model::ElasticWaveSimul, srcs::Sources) =
+init_bdc!(model::ElasticWaveSimulation, srcs::Sources) =
     init_bdc!(BoundaryConditionTrait(model), model, srcs)
 
-init_bdc!(::ReflectiveBoundaryCondition, model::ElasticWaveSimul, srcs::Sources) = nothing
+init_bdc!(::ReflectiveBoundaryCondition, model::ElasticWaveSimulation, srcs::Sources) = nothing
 
 @views function init_bdc!(
     ::CPMLBoundaryCondition,
-    model::ElasticIsoWaveSimul,
+    model::ElasticIsoWaveSimulation,
     srcs::Sources
 )
     N = length(model.cpmlcoeffs)

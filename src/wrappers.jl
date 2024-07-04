@@ -290,7 +290,7 @@ build_concrete_wavesim(
     matprop::VpAcousticCDMaterialProperties{T, N},
     cpmlparams::CPMLBoundaryConditionParameters{T};
     kwargs...
-) where {T, N} = AcousticCDCPMLWaveSimul(
+) where {T, N} = AcousticCDCPMLWaveSimulation(
     params,
     matprop,
     cpmlparams;
@@ -302,7 +302,7 @@ build_concrete_wavesim(
     matprop::VpRhoAcousticVDMaterialProperties{T, N},
     cpmlparams::CPMLBoundaryConditionParameters;
     kwargs...
-) where {T, N} = AcousticVDStaggeredCPMLWaveSimul(
+) where {T, N} = AcousticVDStaggeredCPMLWaveSimulation(
     params,
     matprop,
     cpmlparams;
@@ -314,7 +314,7 @@ build_concrete_wavesim(
     matprop::ElasticIsoMaterialProperties{T, N},
     cpmlparams::CPMLBoundaryConditionParameters;
     kwargs...
-) where {T, N} = ElasticIsoCPMLWaveSimul(
+) where {T, N} = ElasticIsoCPMLWaveSimulation(
     params.gridsize,
     params.gridspacing,
     params.ntimesteps,

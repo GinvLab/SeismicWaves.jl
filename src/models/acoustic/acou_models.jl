@@ -1,8 +1,8 @@
 ###########################################################
 
-# Functions for all AcousticWaveSimul subtypes
+# Functions for all AcousticWaveSimulation subtypes
 
-@views function check_courant_condition(model::AcousticWaveSimul{T, N}, vp::Array{T, N}) where {T, N}
+@views function check_courant_condition(model::AcousticWaveSimulation{T, N}, vp::Array{T, N}) where {T, N}
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.grid.gridspacing .^ 2))
     courant = vel_max * model.dt * tmp
@@ -13,7 +13,7 @@
 end
 
 function check_numerics(
-    model::AcousticWaveSimul,
+    model::AcousticWaveSimulation,
     shot::Shot;
     min_ppw::Int=10
 )
@@ -27,9 +27,9 @@ end
 
 ###########################################################
 
-# Functions for all AcousticCDWaveSimul subtypes
+# Functions for all AcousticCDWaveSimulation subtypes
 
-@views function check_matprop(model::AcousticCDWaveSimul{T, N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
+@views function check_matprop(model::AcousticCDWaveSimulation{T, N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == model.grid.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.grid.ns)"
@@ -38,22 +38,22 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticCDWaveSimul{T, N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
+@views function update_matprop!(model::AcousticCDWaveSimulation{T, N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     # Precompute factors
     precompute_fact!(model)
 end
 
-precompute_fact!(model::AcousticCDWaveSimul) = copyto!(model.grid.fields["fact"].value, (model.dt^2) .* (model.matprop.vp .^ 2))
+precompute_fact!(model::AcousticCDWaveSimulation) = copyto!(model.grid.fields["fact"].value, (model.dt^2) .* (model.matprop.vp .^ 2))
 
-init_gradient(model::AcousticCDWaveSimul{N, T}) where {N, T}  = Dict("vp" => zero(model.matprop.vp))
+init_gradient(model::AcousticCDWaveSimulation{N, T}) where {N, T}  = Dict("vp" => zero(model.matprop.vp))
 
-accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticCDWaveSimul{T, N}) where {T, N, D <: Dict{String, Array{T, N}}} = totgrad["vp"] .+= curgrad["vp"]
+accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticCDWaveSimulation{T, N}) where {T, N, D <: Dict{String, Array{T, N}}} = totgrad["vp"] .+= curgrad["vp"]
 
 ###########################################################
 
-struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}, V <: AbstractVector{T}} <: AcousticCDWaveSimul{T, N}
+struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: AbstractVector{T}} <: AcousticCDWaveSimulation{T, N}
     # Parameters
     params::InputParametersAcoustic{T, N}
     cpmlparams::CPMLBoundaryConditionParameters{T}
@@ -83,7 +83,7 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}, V <: AbstractVect
     # Parallelization type
     parall::Symbol
 
-    function AcousticCDCPMLWaveSimul(
+    function AcousticCDCPMLWaveSimulation(
         params::InputParametersAcoustic{T, N},
         matprop::VpAcousticCDMaterialProperties{T, N},
         cpmlparams::CPMLBoundaryConditionParameters{T};
@@ -112,7 +112,7 @@ struct AcousticCDCPMLWaveSimul{T, N, A <: AbstractArray{T, N}, V <: AbstractVect
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
-        backend = select_backend(AcousticCDCPMLWaveSimul{T, N}, parall)
+        backend = select_backend(AcousticCDCPMLWaveSimulation{T, N}, parall)
         A = backend.Data.Array{T, N}
         V = backend.Data.Array{T, 1}
         # Initialize computational grid
@@ -219,7 +219,7 @@ end
 
 ###########################################################
 
-@views function find_nearest_grid_points(model::AcousticCDCPMLWaveSimul{T}, positions::Matrix{T})::Matrix{Int} where {T}
+@views function find_nearest_grid_points(model::AcousticCDCPMLWaveSimulation{T}, positions::Matrix{T})::Matrix{Int} where {T}
     # source time functions
     nsrcs = size(positions, 1)                      # number of sources
     ncoos = size(positions, 2)                      # number of coordinates
@@ -232,26 +232,26 @@ end
     return idx_positions
 end
 
-# Specific functions for AcousticCDCPMLWaveSimul
+# Specific functions for AcousticCDCPMLWaveSimulation
 
-@views function reset!(model::AcousticCDCPMLWaveSimul)
+@views function reset!(model::AcousticCDCPMLWaveSimulation)
     reset!(model.grid; except=["fact", "a_pml", "b_pml"])
     reset!(model.checkpointer)
 end
 
 ###########################################################
 
-# Traits for AcousticCDCPMLWaveSimul
+# Traits for AcousticCDCPMLWaveSimulation
 
-IsSnappableTrait(::Type{<:AcousticCDCPMLWaveSimul}) = Snappable()
-BoundaryConditionTrait(::Type{<:AcousticCDCPMLWaveSimul}) = CPMLBoundaryCondition()
-GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
+IsSnappableTrait(::Type{<:AcousticCDCPMLWaveSimulation}) = Snappable()
+BoundaryConditionTrait(::Type{<:AcousticCDCPMLWaveSimulation}) = CPMLBoundaryCondition()
+GridTrait(::Type{<:AcousticCDCPMLWaveSimulation}) = LocalGrid()
 
 ###########################################################
 
-# Functions for all AcousticVDStaggeredWaveSimul subtypes
+# Functions for all AcousticVDStaggeredWaveSimulation subtypes
 
-@views function check_courant_condition(model::AcousticVDStaggeredWaveSimul{T, N}, vp::Array{T, N}) where {T, N}
+@views function check_courant_condition(model::AcousticVDStaggeredWaveSimulation{T, N}, vp::Array{T, N}) where {T, N}
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.grid.gridspacing .^ 2))
     courant = vel_max * model.dt * tmp * 7 / 6    # 7/6 comes from the higher order stencil
@@ -262,7 +262,7 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimul}) = LocalGrid()
 end
 
 function check_numerics(
-    model::AcousticVDStaggeredWaveSimul,
+    model::AcousticVDStaggeredWaveSimulation,
     shot::Shot;
     min_ppw::Int=10
 )
@@ -274,7 +274,7 @@ function check_numerics(
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
-@views function check_matprop(model::AcousticVDStaggeredWaveSimul{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
+@views function check_matprop(model::AcousticVDStaggeredWaveSimulation{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert ndims(matprop.vp) == ndims(matprop.rho) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == size(matprop.rho) == model.grid.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.ns)"
@@ -284,7 +284,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticVDStaggeredWaveSimul{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
+@views function update_matprop!(model::AcousticVDStaggeredWaveSimulation{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     copyto!(model.matprop.rho, matprop.rho)
@@ -293,7 +293,7 @@ end
     precompute_fact!(model)
 end
 
-@views function precompute_fact!(model::AcousticVDStaggeredWaveSimul{T, N}) where {T, N}
+@views function precompute_fact!(model::AcousticVDStaggeredWaveSimulation{T, N}) where {T, N}
     # Precompute 1/m0 * dt factor
     copyto!(model.grid.fields["fact_m0"].value, model.matprop.vp .^ 2 .* model.matprop.rho .* model.dt)
     # Precompute m1 * dt factor by interpolation
@@ -303,16 +303,16 @@ end
     end
 end
 
-init_gradient(model::AcousticVDStaggeredWaveSimul{N, T}) where {N, T} = Dict("vp" => zero(model.matprop.vp), "rho" => zero(model.matprop.rho))
+init_gradient(model::AcousticVDStaggeredWaveSimulation{N, T}) where {N, T} = Dict("vp" => zero(model.matprop.vp), "rho" => zero(model.matprop.rho))
 
-function accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticVDStaggeredWaveSimul{T, N}) where {T, N, D <: Dict{String, Array{T, N}}}
+function accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticVDStaggeredWaveSimulation{T, N}) where {T, N, D <: Dict{String, Array{T, N}}}
     totgrad["vp"] .+= curgrad["vp"]
     totgrad["rho"] .+= curgrad["rho"]
 end
 
 ###########################################################
 
-struct AcousticVDStaggeredCPMLWaveSimul{T, N, A <: AbstractArray{T, N}, V <: AbstractVector{T}} <: AcousticVDStaggeredWaveSimul{T, N}
+struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: AbstractVector{T}} <: AcousticVDStaggeredWaveSimulation{T, N}
     # Parameters
     params::InputParametersAcoustic{T, N}
     cpmlparams::CPMLBoundaryConditionParameters{T}
@@ -342,7 +342,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{T, N, A <: AbstractArray{T, N}, V <: Abs
     # Parallelization type
     parall::Symbol
 
-    function AcousticVDStaggeredCPMLWaveSimul(
+    function AcousticVDStaggeredCPMLWaveSimulation(
         params::InputParametersAcoustic{T, N},
         matprop::VpRhoAcousticVDMaterialProperties{T, N},
         cpmlparams::CPMLBoundaryConditionParameters{T};
@@ -371,7 +371,7 @@ struct AcousticVDStaggeredCPMLWaveSimul{T, N, A <: AbstractArray{T, N}, V <: Abs
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
-        backend = select_backend(AcousticCDCPMLWaveSimul{T, N}, parall)
+        backend = select_backend(AcousticCDCPMLWaveSimulation{T, N}, parall)
         A = backend.Data.Array{T, N}
         V = backend.Data.Array{T, 1}
         # Initialize computational grid
@@ -486,19 +486,19 @@ end
 
 ###########################################################
 
-# Specific functions for AcousticVDStaggeredCPMLWaveSimul
+# Specific functions for AcousticVDStaggeredCPMLWaveSimulation
 
-@views function reset!(model::AcousticVDStaggeredCPMLWaveSimul)
+@views function reset!(model::AcousticVDStaggeredCPMLWaveSimulation)
     # Reset computational arrays
     reset!(model.grid; except=["fact_m0", "fact_m1_stag", "a_pml", "b_pml"])
     reset!(model.checkpointer)
 end
 ###########################################################
 
-# Traits for AcousticVDStaggeredCPMLWaveSimul
+# Traits for AcousticVDStaggeredCPMLWaveSimulation
 
-IsSnappableTrait(::Type{<:AcousticVDStaggeredCPMLWaveSimul}) = Snappable()
-BoundaryConditionTrait(::Type{<:AcousticVDStaggeredCPMLWaveSimul}) = CPMLBoundaryCondition()
-GridTrait(::Type{<:AcousticVDStaggeredCPMLWaveSimul}) = LocalGrid()
+IsSnappableTrait(::Type{<:AcousticVDStaggeredCPMLWaveSimulation}) = Snappable()
+BoundaryConditionTrait(::Type{<:AcousticVDStaggeredCPMLWaveSimulation}) = CPMLBoundaryCondition()
+GridTrait(::Type{<:AcousticVDStaggeredCPMLWaveSimulation}) = LocalGrid()
 
 ###########################################################
