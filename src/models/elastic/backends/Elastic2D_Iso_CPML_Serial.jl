@@ -405,7 +405,7 @@ function update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
     return
 end
 
-function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T, N},
+function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimul{T, N},
     srccoeij_bk::Array{Int},
     srccoeval_bk::Array{T},
     reccoeij_bk::Array{Int},
@@ -417,7 +417,7 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T, N},
     Mzz_bk::Vector{T},
     Mxz_bk::Vector{T};
     save_trace::Bool=true) where {T, N}
-    # function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T,N},
+    # function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimul{T,N},
     #                            possrcs_bk::Array{Int,2},
     #                            srctf_bk::Matrix{T},
     #                            posrecs_bk::Array{Int,2},
@@ -429,22 +429,22 @@ function forward_onestep_CPML!(wavsim::ElasticIsoCPMLWaveSimul{T, N},
     #                            save_trace::Bool=true) where {N}
 
     @assert N == 2
-    freetop = wavsim.freetop
-    cpmlcoeffs = wavsim.cpmlcoeffs
-    matprop = wavsim.matprop
-    dx = wavsim.gridspacing[1]
-    dz = wavsim.gridspacing[2]
-    dt = wavsim.dt
-    nx, nz = wavsim.gridsize[1:2]
-    halo = wavsim.halo
+    freetop = model.freetop
+    cpmlcoeffs = model.cpmlcoeffs
+    matprop = model.matprop
+    dx = model.gridspacing[1]
+    dz = model.gridspacing[2]
+    dt = model.dt
+    nx, nz = model.gridsize[1:2]
+    halo = model.halo
 
-    vx = wavsim.velpartic.vx
-    vz = wavsim.velpartic.vz
-    σxx = wavsim.stress.σxx
-    σzz = wavsim.stress.σzz
-    σxz = wavsim.stress.σxz
+    vx = model.velpartic.vx
+    vz = model.velpartic.vz
+    σxx = model.stress.σxx
+    σzz = model.stress.σzz
+    σxz = model.stress.σxz
 
-    psi = wavsim.ψ
+    psi = model.ψ
 
     a_x = cpmlcoeffs[1].a
     a_x_half = cpmlcoeffs[1].a_h

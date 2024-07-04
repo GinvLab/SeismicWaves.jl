@@ -45,11 +45,11 @@ end
     precompute_fact!(model)
 end
 
-@views precompute_fact!(model::AcousticCDWaveSimul) = copyto!(model.grid.fields["fact"].value, (model.dt^2) .* (model.matprop.vp .^ 2))
+precompute_fact!(model::AcousticCDWaveSimul) = copyto!(model.grid.fields["fact"].value, (model.dt^2) .* (model.matprop.vp .^ 2))
 
-@views init_gradient(model::AcousticCDWaveSimul{T, N})::Dict{String, Array{T, N}} where {T, N} = Dict("vp" => zero(model.matprop.vp))
+init_gradient(model::AcousticCDWaveSimul{N, T}) where {N, T}  = Dict("vp" => zero(model.matprop.vp))
 
-@views accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticCDWaveSimul{T, N}) where {T, N, D <: Dict{String, Array{T, N}}} = totgrad["vp"] .+= curgrad["vp"]
+accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticCDWaveSimul{T, N}) where {T, N, D <: Dict{String, Array{T, N}}} = totgrad["vp"] .+= curgrad["vp"]
 
 ###########################################################
 
@@ -303,9 +303,9 @@ end
     end
 end
 
-@views init_gradient(model::AcousticVDStaggeredWaveSimul{T, N})::Dict{String, Array{T, N}} where {T, N} = Dict("vp" => zero(model.matprop.vp), "rho" => zero(model.matprop.rho))
+init_gradient(model::AcousticVDStaggeredWaveSimul{N, T}) where {N, T} = Dict("vp" => zero(model.matprop.vp), "rho" => zero(model.matprop.rho))
 
-@views function accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticVDStaggeredWaveSimul{T, N}) where {T, N, D <: Dict{String, Array{T, N}}}
+function accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticVDStaggeredWaveSimul{T, N}) where {T, N, D <: Dict{String, Array{T, N}}}
     totgrad["vp"] .+= curgrad["vp"]
     totgrad["rho"] .+= curgrad["rho"]
 end

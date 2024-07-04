@@ -1,9 +1,9 @@
 
-swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryConditionTrait(wavsim), wavsim, args...)
+swforward_1shot!(model::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryConditionTrait(model), model, args...)
 
 @views function swforward_1shot!(
     ::CPMLBoundaryCondition,
-    wavsim::ElasticIsoCPMLWaveSimul{T, N},
+    model::ElasticIsoCPMLWaveSimul{T, N},
     shot::Shot
     # possrcs::Matrix{<:Int},
     # posrecs::Matrix{<:Int},
@@ -13,16 +13,16 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
 
     # scale source time function, etc.
     # find nearest grid points indexes for both sources and receivers
-    # possrcs = find_nearest_grid_points(wavsim, shot.srcs.positions)
-    # posrecs = find_nearest_grid_points(wavsim, shot.recs.positions)
+    # possrcs = find_nearest_grid_points(model, shot.srcs.positions)
+    # posrecs = find_nearest_grid_points(model, shot.recs.positions)
 
     if N == 2
         # interpolation coefficients for sources
-        srccoeij, srccoeval = spreadsrcrecinterp2D(wavsim.gridspacing, wavsim.gridsize,
+        srccoeij, srccoeval = spreadsrcrecinterp2D(model.gridspacing, model.gridsize,
             shot.srcs.positions;
             nptssinc=4, xstart=0.0, zstart=0.0)
         # interpolation coefficients for receivers
-        reccoeij, reccoeval = spreadsrcrecinterp2D(wavsim.gridspacing, wavsim.gridsize,
+        reccoeij, reccoeval = spreadsrcrecinterp2D(model.gridspacing, model.gridsize,
             shot.recs.positions;
             nptssinc=4, xstart=0.0, zstart=0.0)
     elseif N == 3
@@ -35,32 +35,32 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     momtens = shot.srcs.momtens
 
     # Numerics
-    nt = wavsim.nt
+    nt = model.nt
 
     # Wrap sources and receivers arrays
 
-    # possrcs_bk = wavsim.backend.Data.Array(possrcs)
-    # posrecs_bk = wavsim.backend.Data.Array(posrecs)
+    # possrcs_bk = model.backend.Data.Array(possrcs)
+    # posrecs_bk = model.backend.Data.Array(posrecs)
 
-    srccoeij_bk = wavsim.backend.Data.Array(srccoeij)
-    srccoeval_bk = wavsim.backend.Data.Array(srccoeval)
-    reccoeij_bk = wavsim.backend.Data.Array(reccoeij)
-    reccoeval_bk = wavsim.backend.Data.Array(reccoeval)
+    srccoeij_bk = model.backend.Data.Array(srccoeij)
+    srccoeval_bk = model.backend.Data.Array(srccoeval)
+    reccoeij_bk = model.backend.Data.Array(reccoeij)
+    reccoeval_bk = model.backend.Data.Array(reccoeval)
 
-    srctf_bk = wavsim.backend.Data.Array(srctf)
-    traces_bk = wavsim.backend.Data.Array(shot.recs.seismograms)
+    srctf_bk = model.backend.Data.Array(srctf)
+    traces_bk = model.backend.Data.Array(shot.recs.seismograms)
 
     if N == 2
         ## ONLY 2D for now!!!
-        Mxx_bk = wavsim.backend.Data.Array(momtens.Mxx)
-        Mzz_bk = wavsim.backend.Data.Array(momtens.Mzz)
-        Mxz_bk = wavsim.backend.Data.Array(momtens.Mxz)
+        Mxx_bk = model.backend.Data.Array(momtens.Mxx)
+        Mzz_bk = model.backend.Data.Array(momtens.Mzz)
+        Mxz_bk = model.backend.Data.Array(momtens.Mxz)
     elseif N == 3
         error("swforward_1shot!(): Elastic 3D not yet implemented!")
     end
 
     # Reset wavesim
-    reset!(wavsim)
+    reset!(model)
     # Zeros traces (there is a summation in record_receivers2D!()
     traces_bk .= 0.0
 
@@ -68,7 +68,7 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
     for it in 1:nt
         if N == 2
             # Compute one forward step
-            wavsim.backend.forward_onestep_CPML!(wavsim,
+            model.backend.forward_onestep_CPML!(model,
                 srccoeij_bk,
                 srccoeval_bk,
                 reccoeij_bk,
@@ -79,7 +79,7 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
                 Mxx_bk, Mzz_bk, Mxz_bk;
                 save_trace=true)
             # # Compute one forward step
-            # wavsim.backend.forward_onestep_CPML!(wavsim,
+            # model.backend.forward_onestep_CPML!(model,
             #                                      possrcs_bk,
             #                                      srctf_bk,
             #                                      posrecs_bk,
@@ -92,7 +92,7 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
         end
 
         # Print timestep info
-        if it % wavsim.infoevery == 0
+        if it % model.infoevery == 0
             # Move the cursor to the beginning to overwrite last line
             # ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
             # REPL.Terminals.clear_line(ter)
@@ -100,19 +100,19 @@ swforward_1shot!(wavsim::ElasticWaveSimul, args...) = swforward_1shot!(BoundaryC
             @info @sprintf(
                 "Iteration: %d/%d, simulation time: %g s",
                 it, nt,
-                wavsim.dt * (it - 1)
+                model.dt * (it - 1)
             )
         end
 
         # Save snapshot
-        if snapenabled(wavsim) && it % wavsim.snapevery == 0
+        if snapenabled(model) && it % model.snapevery == 0
             #error("Snapshot for elastic not yet implemented...")
             @info @sprintf("Snapping iteration: %d", it)
             dummyidxs = fill(Colon(), N)
             # Vx
-            wavsim.snapshots[1][dummyidxs..., div(it, wavsim.snapevery)] .= Array(wavsim.velpartic.vx)
+            model.snapshots[1][dummyidxs..., div(it, model.snapevery)] .= Array(model.velpartic.vx)
             # Vz
-            wavsim.snapshots[2][dummyidxs..., div(it, wavsim.snapevery)] .= Array(wavsim.velpartic.vz)
+            model.snapshots[2][dummyidxs..., div(it, model.snapevery)] .= Array(model.velpartic.vz)
         end
     end
 

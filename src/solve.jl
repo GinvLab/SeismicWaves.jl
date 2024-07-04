@@ -11,23 +11,23 @@ end
 
 ## single WaveSimulation object
 @views function run_swforward!(
-    wavsim::WaveSimulation{T, N},
+    model::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{Shot{T}};
 )::Union{Vector{Array{T}}, Nothing} where {T, N}
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-    check_sim_consistency(wavsim, matprop, shots)
+    check_sim_consistency(model, matprop, shots)
 
     # Set wavesim material properties
     # Remark: matprop in wavesim are mutated
     @debug "Setting wavesim material properties"
-    set_wavesim_matprop!(wavsim, matprop)
+    set_wavesim_matprop!(model, matprop)
     # Now onwards matprop from "outside" should not be used anymore!!!
 
     # Snapshots setup
-    takesnapshots = snapenabled(wavsim)
+    takesnapshots = snapenabled(model)
     if takesnapshots
         snapshots_per_shot = []
     end
@@ -37,14 +37,14 @@ end
         @info "Shot #$s"
         # Initialize shot
         @debug "Initializing shot"
-        init_shot!(wavsim, singleshot)
+        init_shot!(model, singleshot)
         # Compute forward solver
         @info "Computing forward solver"
-        swforward_1shot!(wavsim, singleshot)
+        swforward_1shot!(model, singleshot)
         # Save shot's snapshots
         if takesnapshots
             @info "Saving snapshots"
-            push!(snapshots_per_shot, Array(wavsim.snapshots))
+            push!(snapshots_per_shot, Array(model.snapshots))
         end
     end
 
@@ -56,11 +56,11 @@ end
 
 ## :threadpersrc, multiple WaveSimulation objects
 @views function run_swforward!(
-    wavsim::Vector{<:WaveSimulation{T, N}},
+    model::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{Shot{T}};
 )::Union{Vector{Array{T}}, Nothing} where {T, N}
-    nwsim = length(wavsim)
+    nwsim = length(model)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
     @assert nthr == nwsim
@@ -69,15 +69,15 @@ end
     for w in 1:nwsim
         # Check wavesim consistency
         @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-        check_sim_consistency(wavsim[w], matprop, shots)
+        check_sim_consistency(model[w], matprop, shots)
         # Set wavesim material properties
         # Remark: matprop in wavesim are mutated
         @debug "Setting wavesim material properties"
-        set_wavesim_matprop!(wavsim[w], matprop)
+        set_wavesim_matprop!(model[w], matprop)
         # Now onwards matprop from outside should not be used anymore!!!
 
         # Snapshots setup
-        if snapenabled(wavsim[w])
+        if snapenabled(model[w])
             snapshots_per_shot[w] = []
         end
     end
@@ -93,14 +93,14 @@ end
             singleshot = shots[s]
             # Initialize shot
             @debug "Initializing shot"
-            init_shot!(wavsim[w], singleshot)
+            init_shot!(model[w], singleshot)
             # Compute forward solver
             @info "Computing forward solver"
-            swforward_1shot!(wavsim[w], singleshot)
+            swforward_1shot!(model[w], singleshot)
             # Save shot's snapshots
-            if snapenabled(wavsim[w])
+            if snapenabled(model[w])
                 @info "Saving snapshots"
-                push!(snapshots_per_shot[w], copy(wavsim[w].snapshots))
+                push!(snapshots_per_shot[w], copy(model[w].snapshots))
             end
         end
     end
@@ -115,25 +115,25 @@ end
 
 ## single or multiple WaveSimulation objects
 @views function run_swmisfit!(
-    wavsim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
+    model::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
     shots::Vector{Shot{T}};
     misfit::AbstractMisfit=L2Misfit(nothing)
 )::T where {T, N}
 
     # Solve forward model for all shots
-    run_swforward!(wavsim, matprop, shots)
+    run_swforward!(model, matprop, shots)
     # Compute total misfit for all shots
     @info "Computing misfit"
     totmisfitval = 0
     for singleshot in shots
         @debug "Checking invcov matrix"
-        if typeof(wavsim) <: Vector{<:WaveSimulation}
-            for i in eachindex(wavsim)
-                check_invcov_matrix(wavsim[i], singleshot.recs.invcov)
+        if typeof(model) <: Vector{<:WaveSimulation}
+            for i in eachindex(model)
+                check_invcov_matrix(model[i], singleshot.recs.invcov)
             end
         else
-            check_invcov_matrix(wavsim, singleshot.recs.invcov)
+            check_invcov_matrix(model, singleshot.recs.invcov)
         end
         totmisfitval += misfit(singleshot.recs, matprop)
     end
@@ -145,7 +145,7 @@ end
 
 ## single WaveSimulation object
 @views function run_swgradient!(
-    wavsim::WaveSimulation{T, N},
+    model::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{Shot{T}};
     compute_misfit::Bool=false,
@@ -155,28 +155,28 @@ end
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-    check_sim_consistency(wavsim, matprop, shots)
+    check_sim_consistency(model, matprop, shots)
 
     # Set wavesim material properties
     @debug "Setting wavesim material properties"
-    set_wavesim_matprop!(wavsim, matprop)
+    set_wavesim_matprop!(model, matprop)
 
     # Initialize total gradient and total misfit
-    totgrad = init_gradient(wavsim)
+    totgrad = init_gradient(model)
     totmisfitval = 0
     # Shots loop
     for (s, singleshot) in enumerate(shots)
         @info "Shot #$s"
         # Initialize shot
         @debug "Initializing shot"
-        init_shot!(wavsim, singleshot)
+        init_shot!(model, singleshot)
         @debug "Checking invcov matrix"
-        check_invcov_matrix(wavsim, singleshot.recs.invcov)
+        check_invcov_matrix(model, singleshot.recs.invcov)
         # Compute forward solver
         @info "Computing gradient solver"
-        curgrad = swgradient_1shot!(wavsim, singleshot, misfit)
+        curgrad = swgradient_1shot!(model, singleshot, misfit)
         # Accumulate gradient
-        accumulate_gradient!(totgrad, curgrad, wavsim)
+        accumulate_gradient!(totgrad, curgrad, model)
         # Compute misfit if needed
         if compute_misfit
             @info "Computing misfit"
@@ -189,14 +189,14 @@ end
 
 ## :threadpersrc, multiple WaveSimulation objects
 @views function run_swgradient!(
-    wavsim::Vector{<:WaveSimulation{T, N}},
+    model::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{Shot{T}};
     compute_misfit::Bool=false,
     misfit::AbstractMisfit=L2Misfit(nothing)
 )::Union{Dict{String, Array{T, N}},
     Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
-    nwsim = length(wavsim)
+    nwsim = length(model)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
     @assert Threads.nthreads() == nwsim
@@ -204,11 +204,11 @@ end
     for w in 1:nwsim
         # Check wavesim consistency
         @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-        check_sim_consistency(wavsim[w], matprop, shots)
+        check_sim_consistency(model[w], matprop, shots)
 
         # Set wavesim material properties
         @debug "Setting wavesim material properties"
-        set_wavesim_matprop!(wavsim[w], matprop)
+        set_wavesim_matprop!(model[w], matprop)
     end
 
     # Initialize total gradient and total misfit
@@ -230,13 +230,13 @@ end
             @info "Shot #$s"
             # Initialize shot
             @debug "Initializing shot"
-            init_shot!(wavsim[w], singleshot)
+            init_shot!(model[w], singleshot)
             @debug "Checking invcov matrix"
-            check_invcov_matrix(wavsim[w], singleshot.recs.invcov)
+            check_invcov_matrix(model[w], singleshot.recs.invcov)
             # Compute forward solver
             @info "Computing gradient solver"
             curgrad = swgradient_1shot!(
-                wavsim[w], singleshot, misfit
+                model[w], singleshot, misfit
             )
             # Save gradient
             allgrad[s] = curgrad
@@ -249,9 +249,9 @@ end
     end
 
     # Accumulate gradient and misfit
-    totgrad = init_gradient(wavsim)
+    totgrad = init_gradient(model)
     for curgrad in allgrad
-        accumulate_gradient!(wavsim, totgrad, curgrad)
+        accumulate_gradient!(model, totgrad, curgrad)
     end
     if compute_misfit
         totmisfitval = sum(allmisfitval)

@@ -1,5 +1,5 @@
 
-function check_sim_consistency(wavsim::WaveSimulation{T, N}, matprop::MaterialProperties{T, N}, shots::Vector{Shot{T}}) where {T, N}
+function check_sim_consistency(model::WaveSimulation{T, N}, matprop::MaterialProperties{T, N}, shots::Vector{Shot{T}}) where {T, N}
     tysource = typeof(shots[1].srcs)
     tyreceiver = typeof(shots[1].recs)
 
@@ -11,19 +11,19 @@ function check_sim_consistency(wavsim::WaveSimulation{T, N}, matprop::MaterialPr
     end
 
     # Check that the subtypes of WaveSimulation, MaterialProperties and Shot are consistent
-    if wavsim isa AcousticCDCPMLWaveSimul{T, N, <:AbstractArray{T, N}} &&
+    if model isa AcousticCDCPMLWaveSimul{T, N, <:AbstractArray{T, N}} &&
        matprop isa VpAcousticCDMaterialProperties{T, N} &&
        tysource <: ScalarSources &&
        tyreceiver <: ScalarReceivers
         return
 
-    elseif wavsim isa AcousticVDStaggeredCPMLWaveSimul{T, N} &&
+    elseif model isa AcousticVDStaggeredCPMLWaveSimul{T, N} &&
            matprop isa VpRhoAcousticVDMaterialProperties{T, N} &&
            tysource <: ScalarSources &&
            tyreceiver <: ScalarReceivers
         return
 
-    elseif wavsim isa ElasticIsoCPMLWaveSimul{T, 2} &&   # <<<<<---------<<<<
+    elseif model isa ElasticIsoCPMLWaveSimul{T, 2} &&   # <<<<<---------<<<<
            matprop isa ElasticIsoMaterialProperties{T, 2} &&
            tysource <: MomentTensorSources &&
            tyreceiver <: VectorReceivers
@@ -31,7 +31,7 @@ function check_sim_consistency(wavsim::WaveSimulation{T, N}, matprop::MaterialPr
     end
 
     return error("Types of WaveSimulation, MaterialProperties and Sources/Receivers are inconsistent \
-        \n $(typeof(wavsim)), \n $(typeof(matprop)), \n $(typeof(shots[1].srcs)), $(typeof(shots[1].recs))")
+        \n $(typeof(model)), \n $(typeof(matprop)), \n $(typeof(shots[1].srcs)), $(typeof(shots[1].recs))")
 end
 
 function check_shot(model::WaveSimulation, shot::Shot; kwargs...)
