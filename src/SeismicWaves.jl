@@ -30,28 +30,29 @@ export swforward!, swmisfit!, swgradient!
 # source time functions
 export gaussstf, gaussderivstf, rickerstf
 
-include("abstract_types.jl")
+include("utils/abstract_types.jl")
 
+# Traits
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
 include("traits/snappable.jl")
 include("traits/grid.jl")
 
-include("sources.jl")
-include("receivers.jl")
-include("shot.jl")
-include("checks.jl")
-include("boundarycond.jl")
-include("srcrec_interpolation.jl")
-
-include("models/cpmlcoeffs.jl")
-
 # Utils
 include("utils/utils.jl")
-include("utils/abstract_types.jl")
+include("utils/checks.jl")
 include("utils/fields.jl")
 include("utils/grids.jl")
 include("utils/checkpointers.jl")
+
+# Shots
+include("shots/sources.jl")
+include("shots/receivers.jl")
+include("shots/shot.jl")
+
+# General models
+include("models/bdc_params.jl")
+include("models/cpmlcoeffs.jl")
 
 # Acoustic
 include("models/acoustic/acou_abstract_types.jl")
@@ -73,12 +74,18 @@ include("models/elastic/ela_init_bc.jl")
 
 # Backend selection
 include("models/backend_selection.jl")
-# Misfit 
-include("misfits.jl")
-# Generic solve
-include("solve.jl")
-# Main functions
-include("wrappers.jl")
+
+# Inversion 
+include("inversion/misfits/L2Misfit.jl")
+include("inversion/regularizations/ZerothOrderTikhonovRegularization.jl")
+
+# APIs
+include("apis/build.jl")
+include("apis/utils.jl")
+include("apis/forward.jl")
+include("apis/misfit.jl")
+include("apis/gradient.jl")
+
 
 # Acoustic serial backend
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Serial.jl")
