@@ -15,14 +15,14 @@ init_bdc!(::ReflectiveBoundaryCondition, model::AcousticWaveSimulation, srcs::So
             model.cpmlcoeffs[n],
             get_maximum_func(model)(model.matprop.vp),
             model.dt,
-            model.halo,
-            model.rcoef,
-            model.grid.gridspacing[n] * model.halo,
+            model.cpmlparams.halo,
+            model.cpmlparams.rcoef,
+            model.grid.spacing[n] * model.cpmlparams.halo,
             srcs.domfreq
         )
     end
 
-    if model.freetop && N >= 1
+    if model.cpmlparams.freeboundtop && N >= 1
         model.cpmlcoeffs[N].a_l .= 0.0
         model.cpmlcoeffs[N].a_hl .= 0.0
         model.cpmlcoeffs[N].b_l .= 1.0

@@ -1,18 +1,18 @@
 struct UniformFiniteDifferenceGrid{N, T} <: AbstractGrid{N, T}
-    domainextent::NTuple{N, T}
-    ns::NTuple{N, Int}
-    gridspacing::NTuple{N, T}
+    extent::NTuple{N, T}
+    size::NTuple{N, Int}
+    spacing::NTuple{N, T}
     fields::Dict{String, AbstractField{T}}
 
     function UniformFiniteDifferenceGrid(
-        ns::NTuple{N, Int}, gridspacing::NTuple{N, T}
+        size::NTuple{N, Int}, spacing::NTuple{N, T}
     ) where {N, T}
         # Check numerics
-        @assert all(ns .> 0) "All numbers of grid points must be positive!"
-        @assert all(gridspacing .> 0) "All cell sizes must be positive!"
+        @assert all(size .> 0) "All numbers of grid points must be positive!"
+        @assert all(spacing .> 0) "All cell sizes must be positive!"
         # Compute domain extent
-        domainextent = gridspacing .* (ns .- 1)
-        new{N, T}(domainextent, ns, gridspacing, Dict())
+        extent = spacing .* (size .- 1)
+        new{N, T}(extent, size, spacing, Dict())
     end
 end
 

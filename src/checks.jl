@@ -13,20 +13,20 @@ function check_sim_consistency(model::WaveSimulation{T, N}, matprop::MaterialPro
     # Check that the subtypes of WaveSimulation, MaterialProperties and Shot are consistent
     if model isa AcousticCDCPMLWaveSimulation{T, N, <:AbstractArray{T, N}} &&
        matprop isa VpAcousticCDMaterialProperties{T, N} &&
-       tysource <: ScalarSources &&
-       tyreceiver <: ScalarReceivers
+       tysource <: ScalarSources{T} &&
+       tyreceiver <: ScalarReceivers{T}
         return
 
     elseif model isa AcousticVDStaggeredCPMLWaveSimulation{T, N} &&
            matprop isa VpRhoAcousticVDMaterialProperties{T, N} &&
-           tysource <: ScalarSources &&
-           tyreceiver <: ScalarReceivers
+           tysource <: ScalarSources{T} &&
+           tyreceiver <: ScalarReceivers{T}
         return
 
     elseif model isa ElasticIsoCPMLWaveSimulation{T, 2} &&   # <<<<<---------<<<<
            matprop isa ElasticIsoMaterialProperties{T, 2} &&
-           tysource <: MomentTensorSources &&
-           tyreceiver <: VectorReceivers
+           tysource <: MomentTensorSources{T, MomentTensor2D{T}} &&
+           tyreceiver <: VectorReceivers{T, N}
         return
     end
 
@@ -35,12 +35,12 @@ function check_sim_consistency(model::WaveSimulation{T, N}, matprop::MaterialPro
 end
 
 function check_shot(model::WaveSimulation, shot::Shot; kwargs...)
-    # @debug "Checking model/shot numerics"
-    # check_numerics(model, shot; kwargs...)
-    # @debug "Checking sources positions"
-    # check_positions(model, shot.srcs.positions)
-    # @debug "Checking receivers positions"
-    # check_positions(model, shot.recs.positions)
+    @debug "Checking model/shot numerics"
+    check_numerics(model, shot; kwargs...)
+    @debug "Checking sources positions"
+    check_positions(model, shot.srcs.positions)
+    @debug "Checking receivers positions"
+    check_positions(model, shot.recs.positions)
     return
 end
 
@@ -51,13 +51,13 @@ function check_positions(
     model::WaveSimulation{T},
     positions::Matrix{T}
 ) where {T}
-    ndimwavsim = length(model.gridspacing)
+    ndimwavsim = length(model.grid.spacing)
     @assert size(positions, 2) == ndimwavsim "Positions matrix do not match the dimension of the model!"
 
     Ndim = size(positions, 2)
     for s in axes(positions, 1)
         for c in 1:Ndim
-            @assert (0 <= positions[s, c] <= model.domainextent[c]) "Position $(positions[s,:]) is not inside the grid!"
+            @assert (0 <= positions[s, c] <= model.grid.extent[c]) "Position $(positions[s,:]) is not inside the grid!"
         end
     end
     return
@@ -73,11 +73,11 @@ function check_positions(
     for s in axes(positions, 1)
         for c in 1:Ndim
             # Check that positions are outside of the CPML region
-            if !(c == Ndim && model.freetop)
+            if !(c == Ndim && model.cpmlparams.freeboundtop)
                 @assert (
-                    model.gridspacing[c] * model.halo <=
+                    model.grid.spacing[c] * model.cpmlparams.halo <=
                     positions[s, c] <=
-                    model.domainextent[c] - (model.gridspacing[c] * model.halo)
+                    model.grid.extent[c] - (model.grid.spacing[c] * model.cpmlparams.halo)
                 ) "Position $(positions[s,:]) is inside the CPML region!"
             end
         end

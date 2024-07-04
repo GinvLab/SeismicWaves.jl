@@ -29,7 +29,7 @@ end
     # find nearest grid point for each source
     idx_positions = zeros(Int, size(positions))     # sources positions (in grid points)
     for s in 1:nsrcs
-        tmp = [positions[s, i] / model.grid.gridspacing[i] + 1 for i in 1:ncoos]
+        tmp = [positions[s, i] / model.grid.spacing[i] + 1 for i in 1:ncoos]
         idx_positions[s, :] .= round.(Int, tmp, RoundNearestTiesUp)
     end
     return idx_positions

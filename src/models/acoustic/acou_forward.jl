@@ -10,7 +10,7 @@ swforward_1shot!(model::AcousticWaveSimulation, args...) = swforward_1shot!(Boun
 
     # source time function 
     # scale with boxcar and timestep size
-    scal_srctf = shot.srcs.tf ./ prod(model.grid.gridspacing) .* (model.dt^2)
+    scal_srctf = shot.srcs.tf ./ prod(model.grid.spacing) .* (model.dt^2)
     # scale with velocity squared at each source position
     for s in axes(scal_srctf, 2)
         scal_srctf[:, s] .*= model.matprop.vp[possrcs[s, :]...] .^ 2
@@ -77,7 +77,7 @@ end
 
     # source time function 
     # scale with boxcar and timestep size
-    scal_srctf = shot.srcs.tf ./ prod(model.grid.gridspacing) .* (model.dt)
+    scal_srctf = shot.srcs.tf ./ prod(model.grid.spacing) .* (model.dt)
     # scale with velocity squared times density at each source position (its like dividing by m0)
     for s in axes(scal_srctf, 2)
         scal_srctf[:, s] .*= model.matprop.vp[possrcs[s, :]...] .^ 2 .* model.matprop.rho[possrcs[s, :]...]

@@ -16,14 +16,14 @@ init_bdc!(::ReflectiveBoundaryCondition, model::ElasticWaveSimulation, srcs::Sou
             model.cpmlcoeffs[n],
             get_maximum_func(model)(sqrt.((model.matprop.λ + 2.0 * model.matprop.μ) ./ model.matprop.ρ)),
             model.dt,
-            model.halo,
-            model.rcoef,
-            model.gridspacing[n] * model.halo,  ##  <<-- Check: dx*(n-1)?
+            model.cpmlparams.halo,
+            model.cpmlparams.rcoef,
+            model.grid.spacing[n] * model.cpmlparams.halo,  ##  <<-- Check: dx*(n-1)?
             srcs.domfreq
         )
     end
 
-    if model.freetop && N >= 1
+    if model.cpmlparams.freeboundtop && N >= 1
         lastcoe = model.cpmlcoeffs[N]
 
         lastcoe.a[1:length(lastcoe.a)÷2] .= 0.0

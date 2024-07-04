@@ -4,7 +4,7 @@
 
 @views function check_courant_condition(model::AcousticWaveSimulation{T, N}, vp::Array{T, N}) where {T, N}
     vel_max = get_maximum_func(model)(vp)
-    tmp = sqrt(sum(1 ./ model.grid.gridspacing .^ 2))
+    tmp = sqrt(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp
     @info "Courant number: $(courant)"
     if courant > 1.0
@@ -19,7 +19,7 @@ function check_numerics(
 )
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
-    h_max = maximum(model.grid.gridspacing)
+    h_max = maximum(model.grid.spacing)
     ppw = vel_min / shot.srcs.domfreq / h_max
     @info "Points per wavelength: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
@@ -32,7 +32,7 @@ end
 @views function check_matprop(model::AcousticCDWaveSimulation{T, N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
-    @assert size(matprop.vp) == model.grid.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.grid.ns)"
+    @assert size(matprop.vp) == model.grid.size "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.grid.size)"
     @assert all(matprop.vp .> 0) "Pressure velocity material property must be positive!"
     # Check courant condition
     check_courant_condition(model, matprop.vp)
@@ -62,10 +62,6 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # BDC and CPML parameters
-    halo::Int
-    rcoef::T
-    freetop::Bool
     # Gradient computation setup
     gradient::Bool
     smooth_radius::Int
@@ -98,7 +94,7 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         nt = params.ntimesteps
         dt = params.dt
         gridspacing = params.gridspacing
-        ns = params.gridsize
+        gridsize = params.gridsize
         halo = cpmlparams.halo
         freetop = cpmlparams.freeboundtop
         rcoef = cpmlparams.rcoef
@@ -108,7 +104,7 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
 
         # Check BDC parameters
         @assert halo >= 0 "CPML halo size must be non-negative!"
-        ns_cpml = freetop ? ns[1:(end-1)] : ns
+        ns_cpml = freetop ? gridsize[1:(end-1)] : gridsize
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
@@ -116,20 +112,20 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         A = backend.Data.Array{T, N}
         V = backend.Data.Array{T, 1}
         # Initialize computational grid
-        grid = UniformFiniteDifferenceGrid(ns, gridspacing)
+        grid = UniformFiniteDifferenceGrid(gridsize, gridspacing)
         # Initialize CPML coefficients
         cpmlcoeffs = tuple([CPMLCoefficients{T, V}(halo, backend, true) for _ in 1:N]...)
 
         # Populate computational grid
-        addfield!(grid, "fact" => ScalarVariableField(backend.zeros(T, ns...)))
-        addfield!(grid, "pold" => ScalarVariableField(backend.zeros(T, ns...)))
-        addfield!(grid, "pcur" => ScalarVariableField(backend.zeros(T, ns...)))
-        addfield!(grid, "pnew" => ScalarVariableField(backend.zeros(T, ns...)))
+        addfield!(grid, "fact" => ScalarVariableField(backend.zeros(T, gridsize...)))
+        addfield!(grid, "pold" => ScalarVariableField(backend.zeros(T, gridsize...)))
+        addfield!(grid, "pcur" => ScalarVariableField(backend.zeros(T, gridsize...)))
+        addfield!(grid, "pnew" => ScalarVariableField(backend.zeros(T, gridsize...)))
         if gradient
-            addfield!(grid, "grad_vp" => ScalarVariableField(backend.zeros(T, ns...)))
-            addfield!(grid, "adjold" => ScalarVariableField(backend.zeros(T, ns...)))
-            addfield!(grid, "adjcur" => ScalarVariableField(backend.zeros(T, ns...)))
-            addfield!(grid, "adjnew" => ScalarVariableField(backend.zeros(T, ns...)))
+            addfield!(grid, "grad_vp" => ScalarVariableField(backend.zeros(T, gridsize...)))
+            addfield!(grid, "adjold" => ScalarVariableField(backend.zeros(T, gridsize...)))
+            addfield!(grid, "adjcur" => ScalarVariableField(backend.zeros(T, gridsize...)))
+            addfield!(grid, "adjnew" => ScalarVariableField(backend.zeros(T, gridsize...)))
         end
         # CPML coefficients
         addfield!(
@@ -148,26 +144,26 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         addfield!(
             grid,
             "ψ" => MultiVariableField(
-                cat([[backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat([[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
             )
         )
         addfield!(
             grid,
             "ξ" => MultiVariableField(
-                cat([[backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat([[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
             )
         )
         if gradient
             addfield!(
                 grid,
                 "ψ_adj" => MultiVariableField(
-                    cat([[backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat([[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
                 )
             )
             addfield!(
                 grid,
                 "ξ_adj" => MultiVariableField(
-                    cat([[backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat([[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
                 )
             )
         end
@@ -187,7 +183,7 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], 0)
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? backend.zeros(T, ns..., div(nt, snapevery)) : nothing)
+        snapshots = (snapevery !== nothing ? backend.zeros(T, gridsize..., div(nt, snapevery)) : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
@@ -201,9 +197,6 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             nt,
             dt,
             grid,
-            halo,
-            rcoef,
-            freetop,
             gradient,
             smooth_radius,
             snapevery,
@@ -226,7 +219,7 @@ end
     # find nearest grid point for each source
     idx_positions = zeros(Int, size(positions))     # sources positions (in grid points)
     for s in 1:nsrcs
-        tmp = [positions[s, i] / model.grid.gridspacing[i] + 1 for i in 1:ncoos]
+        tmp = [positions[s, i] / model.grid.spacing[i] + 1 for i in 1:ncoos]
         idx_positions[s, :] .= round.(Int, tmp, RoundNearestTiesUp)
     end
     return idx_positions
@@ -253,7 +246,7 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimulation}) = LocalGrid()
 
 @views function check_courant_condition(model::AcousticVDStaggeredWaveSimulation{T, N}, vp::Array{T, N}) where {T, N}
     vel_max = get_maximum_func(model)(vp)
-    tmp = sqrt(sum(1 ./ model.grid.gridspacing .^ 2))
+    tmp = sqrt(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp * 7 / 6    # 7/6 comes from the higher order stencil
     @info "Courant number: $(courant)"
     if courant > 1
@@ -268,7 +261,7 @@ function check_numerics(
 )
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
-    h_max = maximum(model.gridspacing)
+    h_max = maximum(model.grid.spacing)
     ppw = vel_min / shot.srcs.domfreq / h_max
     @info "Points per wavelength: $(ppw)"
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
@@ -277,7 +270,7 @@ end
 @views function check_matprop(model::AcousticVDStaggeredWaveSimulation{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert ndims(matprop.vp) == ndims(matprop.rho) == N "Material property dimensionality must be the same as the wavesim!"
-    @assert size(matprop.vp) == size(matprop.rho) == model.grid.ns "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.ns)"
+    @assert size(matprop.vp) == size(matprop.rho) == model.grid.size "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.grid.size)"
     @assert all(matprop.vp .> 0) "Pressure velocity material property must be positive!"
     @assert all(matprop.rho .> 0) "Density material property must be positive!"
     # Check courant condition
@@ -321,10 +314,6 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # BDC and CPML parameters
-    halo::Int
-    rcoef::T
-    freetop::Bool
     # Gradient computation setup
     gradient::Bool
     smooth_radius::Int
@@ -357,7 +346,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         nt = params.ntimesteps
         dt = params.dt
         gridspacing = params.gridspacing
-        ns = params.gridsize
+        gridsize = params.gridsize
         halo = cpmlparams.halo
         freetop = cpmlparams.freeboundtop
         rcoef = cpmlparams.rcoef
@@ -367,7 +356,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
 
         # Check BDC parameters
         @assert halo >= 0 "CPML halo size must be non-negative!"
-        ns_cpml = freetop ? ns[1:(end-1)] : ns
+        ns_cpml = freetop ? gridsize[1:(end-1)] : gridsize
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
@@ -375,27 +364,27 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         A = backend.Data.Array{T, N}
         V = backend.Data.Array{T, 1}
         # Initialize computational grid
-        grid = UniformFiniteDifferenceGrid(ns, gridspacing)
+        grid = UniformFiniteDifferenceGrid(gridsize, gridspacing)
         # Initialize CPML coefficients
         cpmlcoeffs = tuple([CPMLCoefficients{T, V}(halo, backend, true) for _ in 1:N]...)
 
         # Populate computational grid
-        addfield!(grid, "fact_m0" => ScalarVariableField(backend.zeros(T, ns...)))
+        addfield!(grid, "fact_m0" => ScalarVariableField(backend.zeros(T, gridsize...)))
         addfield!(grid, "fact_m1_stag" => MultiVariableField(
-            [backend.zeros(T, (ns .- [i == j ? 1 : 0 for j in 1:N])...) for i in 1:N]
+            [backend.zeros(T, (gridsize .- [i == j ? 1 : 0 for j in 1:N])...) for i in 1:N]
         ))
-        addfield!(grid, "pcur" => ScalarVariableField(backend.zeros(T, ns...)))
+        addfield!(grid, "pcur" => ScalarVariableField(backend.zeros(T, gridsize...)))
         addfield!(grid, "vcur" => MultiVariableField(
-            [backend.zeros(T, (ns .- [i == j ? 1 : 0 for j in 1:N])...) for i in 1:N]
+            [backend.zeros(T, (gridsize .- [i == j ? 1 : 0 for j in 1:N])...) for i in 1:N]
         ))
         if gradient
-            addfield!(grid, "grad_m0" => ScalarVariableField(backend.zeros(T, ns...)))
+            addfield!(grid, "grad_m0" => ScalarVariableField(backend.zeros(T, gridsize...)))
             addfield!(grid, "grad_m1_stag" => MultiVariableField(
-                [backend.zeros(T, (ns .- [i == j ? 1 : 0 for j in 1:N])...) for i in 1:N]
+                [backend.zeros(T, (gridsize .- [i == j ? 1 : 0 for j in 1:N])...) for i in 1:N]
             ))
-            addfield!(grid, "adjpcur" => ScalarVariableField(backend.zeros(T, ns...)))
+            addfield!(grid, "adjpcur" => ScalarVariableField(backend.zeros(T, gridsize...)))
             addfield!(grid, "adjvcur" => MultiVariableField(
-                [backend.zeros(T, (ns .- [i == j ? 1 : 0 for j in 1:N])...) for i in 1:N]
+                [backend.zeros(T, (gridsize .- [i == j ? 1 : 0 for j in 1:N])...) for i in 1:N]
             ))
         end
         # CPML coefficients
@@ -415,26 +404,26 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         addfield!(
             grid,
             "ψ" => MultiVariableField(
-                cat([[backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat([[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
             )
         )
         addfield!(
             grid,
             "ξ" => MultiVariableField(
-                cat([[backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat([[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
             )
         )
         if gradient
             addfield!(
                 grid,
                 "ψ_adj" => MultiVariableField(
-                    cat([[backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat([[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
                 )
             )
             addfield!(
                 grid,
                 "ξ_adj" => MultiVariableField(
-                    cat([[backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : ns[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat([[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
                 )
             )
         end
@@ -454,7 +443,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], 0)
 
         # Initialize snapshots array
-        snapshots = (snapevery !== nothing ? backend.zeros(T, ns..., div(nt, snapevery)) : nothing)
+        snapshots = (snapevery !== nothing ? backend.zeros(T, gridsize..., div(nt, snapevery)) : nothing)
         # Check infoevery
         if infoevery === nothing
             infoevery = nt + 2  # never reach it
@@ -468,9 +457,6 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             nt,
             dt,
             grid,
-            halo,
-            rcoef,
-            freetop,
             gradient,
             smooth_radius,
             snapevery,

@@ -72,8 +72,8 @@ end
     save_trace=true
 )
     # Extract info from grid
-    nx = grid.ns[1]
-    dx = grid.gridspacing[1]
+    nx = grid.size[1]
+    dx = grid.spacing[1]
     pcur, vx_cur = grid.fields["pcur"].value, grid.fields["vcur"].value[1]
     fact_m0 = grid.fields["fact_m0"].value
     fact_m1_x = grid.fields["fact_m1_stag"].value[1]
@@ -99,8 +99,8 @@ end
     grid, possrcs, srctf, it
 )
     # Extract info from grid
-    nx = grid.ns[1]
-    dx = grid.gridspacing[1]
+    nx = grid.size[1]
+    dx = grid.spacing[1]
     pcur, vx_cur = grid.fields["adjpcur"].value, grid.fields["adjvcur"].value[1]
     fact_m0 = grid.fields["fact_m0"].value
     fact_m1_x = grid.fields["fact_m1_stag"].value[1]

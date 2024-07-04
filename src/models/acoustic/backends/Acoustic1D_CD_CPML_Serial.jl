@@ -99,8 +99,8 @@ end
     save_trace=true
 )
     # Extract info from grid
-    nx = grid.ns[1]
-    dx = grid.gridspacing[1]
+    nx = grid.size[1]
+    dx = grid.spacing[1]
     pold, pcur, pnew = grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value
     fact = grid.fields["fact"].value
     ψ_l, ψ_r = grid.fields["ψ"].value
@@ -136,8 +136,8 @@ end
 
 @views function adjoint_onestep_CPML!(grid, possrcs, dt2srctf, it)
     # Extract info from grid
-    nx = grid.ns[1]
-    dx = grid.gridspacing[1]
+    nx = grid.size[1]
+    dx = grid.spacing[1]
     pold, pcur, pnew = grid.fields["adjold"].value, grid.fields["adjcur"].value, grid.fields["adjnew"].value
     fact = grid.fields["fact"].value
     ψ_l, ψ_r = grid.fields["ψ_adj"].value

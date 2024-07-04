@@ -115,8 +115,8 @@ function forward_onestep_CPML!(
     save_trace=true
 )
     # Extract info from grid
-    nx, ny = grid.ns
-    dx, dy = grid.gridspacing
+    nx, ny = grid.size
+    dx, dy = grid.spacing
     pold, pcur, pnew = grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value
     fact = grid.fields["fact"].value
     ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ"].value
@@ -158,8 +158,8 @@ end
 
 function adjoint_onestep_CPML!(grid, possrcs, dt2srctf, it)
     # Extract info from grid
-    nx, ny = grid.ns
-    dx, dy = grid.gridspacing
+    nx, ny = grid.size
+    dx, dy = grid.spacing
     pold, pcur, pnew = grid.fields["adjold"].value, grid.fields["adjcur"].value, grid.fields["adjnew"].value
     fact = grid.fields["fact"].value
     ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ_adj"].value

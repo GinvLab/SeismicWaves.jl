@@ -6,14 +6,14 @@
     # Checks
     vp = sqrt.((matprop.λ .+ 2.0 * matprop.μ) ./ matprop.ρ)
     @assert ndims(vp) == N "Material property dimensionality must be the same as the wavesim!"
-    @assert size(vp) == model.gridsize "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.gridsize)"
+    @assert size(vp) == model.grid.size "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.grid.size)"
     @assert all(matprop.λ .> 0) "Lamè coefficient λ must be positive!"
     @assert all(matprop.μ .> 0) "Lamè coefficient μ must be positive!"
     @assert all(matprop.ρ .> 0) "Density must be positive!"
 
     # Check courant condition
     vel_max = get_maximum_func(model)(vp)
-    tmp = sqrt.(sum(1 ./ model.gridspacing .^ 2))
+    tmp = sqrt.(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp
     @info "Courant number: $(courant)"
     if courant > 1.0
@@ -31,7 +31,7 @@ function check_numerics(
     # Check points per wavelengh
     # min Vs
     vel_min = get_minimum_func(model)(sqrt.(model.matprop.μ ./ model.matprop.ρ))
-    h_max = maximum(model.gridspacing)
+    h_max = maximum(model.grid.spacing)
     fmax = shot.srcs.domfreq * 2.0
     ppw = vel_min / (fmax * h_max)
     @info "Points per wavelength: $(ppw)"
@@ -110,7 +110,7 @@ end
 
 struct ElasticIsoCPMLWaveSimulation{T, N} <: ElasticIsoWaveSimulation{T, N}
     # Physics
-    domainextent::NTuple{N, T}
+    extent::NTuple{N, T}
     # Numerics
     gridsize::NTuple{N, Int}
     gridspacing::NTuple{N, T}
@@ -176,7 +176,7 @@ struct ElasticIsoCPMLWaveSimulation{T, N} <: ElasticIsoWaveSimulation{T, N}
         @assert all(n -> n >= 2halo + 3, gridsize_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Compute model sizes
-        domainextent = gridspacing .* (gridsize .- 1)
+        extent = gridspacing .* (gridsize .- 1)
 
         # Select backend
         backend = select_backend(ElasticIsoCPMLWaveSimulation{T, N}, parall)
@@ -264,7 +264,7 @@ struct ElasticIsoCPMLWaveSimulation{T, N} <: ElasticIsoWaveSimulation{T, N}
         end
 
         return new{T, N}(
-            domainextent,
+            extent,
             gridsize,
             gridspacing,
             nt,

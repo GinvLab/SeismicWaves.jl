@@ -18,11 +18,11 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
 
     if N == 2
         # interpolation coefficients for sources
-        srccoeij, srccoeval = spreadsrcrecinterp2D(model.gridspacing, model.gridsize,
+        srccoeij, srccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
             shot.srcs.positions;
             nptssinc=4, xstart=0.0, zstart=0.0)
         # interpolation coefficients for receivers
-        reccoeij, reccoeval = spreadsrcrecinterp2D(model.gridspacing, model.gridsize,
+        reccoeij, reccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
             shot.recs.positions;
             nptssinc=4, xstart=0.0, zstart=0.0)
     elseif N == 3

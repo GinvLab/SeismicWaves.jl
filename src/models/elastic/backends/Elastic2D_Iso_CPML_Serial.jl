@@ -429,14 +429,14 @@ function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T, N},
     #                            save_trace::Bool=true) where {N}
 
     @assert N == 2
-    freetop = model.freetop
+    freetop = model.cpmlparams.freeboundtop
     cpmlcoeffs = model.cpmlcoeffs
     matprop = model.matprop
-    dx = model.gridspacing[1]
-    dz = model.gridspacing[2]
+    dx = model.grid.spacing[1]
+    dz = model.grid.spacing[2]
     dt = model.dt
-    nx, nz = model.gridsize[1:2]
-    halo = model.halo
+    nx, nz = model.grid.size[1:2]
+    halo = model.cpmlparams.halo
 
     vx = model.velpartic.vx
     vz = model.velpartic.vz

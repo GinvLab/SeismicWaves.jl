@@ -173,16 +173,16 @@ end
         pcur_old = getsaved(checkpointer, "pcur", it - 1).value
         # Correlate for gradient computation
         backend.correlate_gradient_m0!(grid.fields["grad_m0"].value, grid.fields["adjpcur"].value, pcur_corr, pcur_old, model.dt)
-        backend.correlate_gradient_m1!(grid.fields["grad_m1_stag"].value, grid.fields["adjvcur"].value, pcur_corr, grid.gridspacing)
+        backend.correlate_gradient_m1!(grid.fields["grad_m1_stag"].value, grid.fields["adjvcur"].value, pcur_corr, grid.spacing)
     end
     # Allocate gradients
-    gradient_m0 = zeros(T, grid.ns...)
-    gradient_m1 = zeros(T, grid.ns...)
+    gradient_m0 = zeros(T, grid.size...)
+    gradient_m1 = zeros(T, grid.size...)
     # Get gradients
     copyto!(gradient_m0, grid.fields["grad_m0"].value)
     for i in eachindex(grid.fields["grad_m1_stag"].value)
         # Accumulate and interpolate staggered gradients
-        gradient_m1[CartesianIndices(Tuple(j == i ? (2:grid.ns[j]-1) : (1:grid.ns[j]) for j in 1:N))] .+=
+        gradient_m1[CartesianIndices(Tuple(j == i ? (2:grid.size[j]-1) : (1:grid.size[j]) for j in 1:N))] .+=
             interp(model.matprop.interp_method, Array(grid.fields["grad_m1_stag"].value[i]), i)
     end
     # Smooth gradients
