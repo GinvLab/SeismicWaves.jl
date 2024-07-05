@@ -127,7 +127,7 @@ function exelaprob()
     snapshots = swforward!(params,
         matprop,
         shots;
-        parall=:serial,
+        parall=:threads,
         infoevery=infoevery,
         snapevery=snapevery)
 

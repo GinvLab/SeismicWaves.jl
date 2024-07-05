@@ -104,6 +104,7 @@ include("models/acoustic/backends/Acoustic1D_VD_CPML_Threads.jl")
 include("models/acoustic/backends/Acoustic2D_VD_CPML_Threads.jl")
 
 # Elastic parallel backends
+include("models/elastic/backends/Elastic2D_Iso_CPML_Threads.jl")
 
 ## HMC stuff
 include("HMCseiswaves.jl")

@@ -199,7 +199,7 @@ function update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ih
     end
 
     #  vz       
-    for j in 2:nz-2
+    for j in 2:nz-2 # TODO maybe typo (2 -> 3)
         for i in 2:nx-2
 
             # Vz
@@ -405,7 +405,8 @@ function update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
     return
 end
 
-function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T, N},
+function forward_onestep_CPML!(
+    model::ElasticIsoCPMLWaveSimulation{T, N},
     srccoeij_bk::Array{Int},
     srccoeval_bk::Array{T},
     reccoeij_bk::Array{Int},
@@ -416,22 +417,11 @@ function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T, N},
     Mxx_bk::Vector{T},
     Mzz_bk::Vector{T},
     Mxz_bk::Vector{T};
-    save_trace::Bool=true) where {T, N}
-    # function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T,N},
-    #                            possrcs_bk::Array{Int,2},
-    #                            srctf_bk::Matrix{T},
-    #                            posrecs_bk::Array{Int,2},
-    #                            traces_bk::Array{T},
-    #                            it::Int,
-    #                            Mxx_bk::Vector{T},
-    #                            Mzz_bk::Vector{T},
-    #                            Mxz_bk::Vector{T};
-    #                            save_trace::Bool=true) where {N}
-
-    @assert N == 2
+    save_trace::Bool=true
+) where {T, N}
+    # Extract info from grid
     freetop = model.cpmlparams.freeboundtop
     cpmlcoeffs = model.cpmlcoeffs
-    matprop = model.matprop
     dx = model.grid.spacing[1]
     dz = model.grid.spacing[2]
     dt = model.dt
@@ -463,13 +453,7 @@ function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T, N},
     μ_ihalf = grid.fields["μ_ihalf"].value
     μ_jhalf = grid.fields["μ_jhalf"].value
 
-    # @show size(vx),size(vz)
-    # @show size(σxx),size(σzz),size(σxz)
-    # @show size(a_x),size(a_x_half)
-    # @show size(b_x),size(b_x_half)
-    # error("\nExiting...")
-
-    ## pre-scale coefficients
+    # Precomputing divisions
     factx = 1.0 / (24.0 * dx)
     factz = 1.0 / (24.0 * dz)
 
