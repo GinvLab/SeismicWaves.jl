@@ -56,17 +56,12 @@ build_concrete_wavesim(
 build_concrete_wavesim(
     params::InputParametersElastic{T,N},
     matprop::ElasticIsoMaterialProperties{T,N},
-    cpmlparams::CPMLBoundaryConditionParameters;
+    cpmlparams::CPMLBoundaryConditionParameters{T};
     kwargs...
 ) where {T,N} = ElasticIsoCPMLWaveSimulation(
-    params.gridsize,
-    params.gridspacing,
-    params.ntimesteps,
-    params.dt,
+    params,
     matprop,
-    cpmlparams.halo,
-    cpmlparams.rcoef;
-    freetop=cpmlparams.freeboundtop,
+    cpmlparams;
     kwargs...
 )
 

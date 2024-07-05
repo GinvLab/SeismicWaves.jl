@@ -36,7 +36,7 @@ function swforward!(
     snapevery::Union{Int, Nothing}=nothing,
     infoevery::Union{Int, Nothing}=nothing,
     logger::Union{Nothing, AbstractLogger}=nothing
-)::Union{Vector{Array{T}}, Nothing} where {T, N}
+)::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
     if logger === nothing
         logger = current_logger()
     end

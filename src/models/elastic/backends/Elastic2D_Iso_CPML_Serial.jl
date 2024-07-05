@@ -437,14 +437,15 @@ function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T, N},
     dt = model.dt
     nx, nz = model.grid.size[1:2]
     halo = model.cpmlparams.halo
+    grid = model.grid
 
-    vx = model.velpartic.vx
-    vz = model.velpartic.vz
-    σxx = model.stress.σxx
-    σzz = model.stress.σzz
-    σxz = model.stress.σxz
+    vx, vz = grid.fields["v"].value
+    σxx, σzz, σxz = grid.fields["σ"].value
 
-    psi = model.ψ
+    ψ_∂σxx∂x, ψ_∂σxz∂x = grid.fields["ψ_∂σ∂x"].value
+    ψ_∂σzz∂z, ψ_∂σxz∂z = grid.fields["ψ_∂σ∂z"].value
+    ψ_∂vx∂x, ψ_∂vz∂x = grid.fields["ψ_∂v∂x"].value
+    ψ_∂vx∂z, ψ_∂vz∂z = grid.fields["ψ_∂v∂z"].value
 
     a_x = cpmlcoeffs[1].a
     a_x_half = cpmlcoeffs[1].a_h
@@ -456,12 +457,11 @@ function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T, N},
     b_z = cpmlcoeffs[2].b
     b_z_half = cpmlcoeffs[2].b_h
 
-    λ_ihalf = matprop.λ_ihalf
-    ρ = matprop.ρ
-    ρ_ihalf_jhalf = matprop.ρ_ihalf_jhalf
-    μ = matprop.μ
-    μ_ihalf = matprop.μ_ihalf
-    μ_jhalf = matprop.μ_jhalf
+    ρ = grid.fields["ρ"].value
+    ρ_ihalf_jhalf = grid.fields["ρ_ihalf_jhalf"].value
+    λ_ihalf = grid.fields["λ_ihalf"].value
+    μ_ihalf = grid.fields["μ_ihalf"].value
+    μ_jhalf = grid.fields["μ_jhalf"].value
 
     # @show size(vx),size(vz)
     # @show size(σxx),size(σzz),size(σxz)
@@ -474,11 +474,11 @@ function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T, N},
     factz = 1.0 / (24.0 * dz)
 
     # update velocity vx 
-    update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, psi.ψ_∂σxx∂x, psi.ψ_∂σxz∂z,
+    update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z,
         b_x, b_z, a_x, a_z, freetop)
     # update velocity vz
-    update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, psi.ψ_∂σxz∂x,
-        psi.ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+    update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, ψ_∂σxz∂x,
+        ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
 
     # inject sources (external body force)
     #inject_bodyforce_sources!(vx,vz,fx,fz,srctf_bk, dt, possrcs_bk,it)
@@ -486,12 +486,12 @@ function forward_onestep_CPML!(model::ElasticIsoCPMLWaveSimulation{T, N},
     # update stresses σxx and σzz 
     update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
         vx, vz, dt, λ_ihalf, μ_ihalf,
-        psi.ψ_∂vx∂x, psi.ψ_∂vz∂z,
+        ψ_∂vx∂x, ψ_∂vz∂z,
         b_x_half, b_z, a_x_half, a_z, freetop)
     # update stress σxz
     update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
         μ_jhalf, b_x, b_z_half,
-        psi.ψ_∂vx∂z, psi.ψ_∂vz∂x, a_x, a_z_half, freetop)
+        ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
 
     # inject sources (moment tensor type of internal force)
     inject_momten_sources2D!(σxx, σzz, σxz, Mxx_bk, Mzz_bk, Mxz_bk, srctf_bk, dt,

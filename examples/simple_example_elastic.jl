@@ -52,7 +52,7 @@ function exelaprob()
     ##========================================
     # shots definition
     nshots = 1
-    shots = Vector{ScalarShot{Float64}}()  #Pair{Sources, Receivers}}()
+    shots = Vector{MomentTensorShot{Float64, 2, MomentTensor2D{Float64}}}()  #Pair{Sources, Receivers}}()
 
     for i in 1:nshots
         # sources definition
@@ -79,12 +79,12 @@ function exelaprob()
         for s in 1:nsrc
             srcstf[:, s] .= rickerstf.(t, t0, f0)
             Mxx[s] = 5e10 #1.5e10  #1.5e6 #e20
-            Mzz[s] = 3e10 #2.4e10  #1.5e6 #e20
-            Mxz[s] = 2e10 #0.89e10 #0.0e6 #e20
+            Mzz[s] = 5e10 #2.4e10  #1.5e6 #e20
+            Mxz[s] = 0 #0.89e10 #0.0e6 #e20
         end
 
         srcs = MomentTensorSources(possrcs, srcstf,
-            MomentTensor2D(; Mxx=Mxx, Mzz=Mzz, Mxz=Mxz),
+            [MomentTensor2D(; Mxx=Mxx[s], Mzz=Mzz[s], Mxz=Mxz[s]) for s in 1:nsrc],
             f0)
         #srcs = ScalarSources(possrcs, srcstf, f0)
 
@@ -214,12 +214,12 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     xsrc = shots[1].srcs.positions[:, 1]
     ysrc = shots[1].srcs.positions[:, 2]
 
-    vxsnap = snapsh[1][1]
-    vzsnap = snapsh[1][2]
+    vxsnap = [snapsh[1][kk]["v"].value[1] for kk in sort(keys(snapsh[1]))]
+    vzsnap = [snapsh[1][kk]["v"].value[2] for kk in sort(keys(snapsh[1]))]
     @show size(vxsnap), size(vzsnap)
 
-    curvx = Observable(vxsnap[:, :, 1])
-    curvz = Observable(vzsnap[:, :, 1])
+    curvx = Observable(vxsnap[1])
+    curvz = Observable(vzsnap[1])
     @show typeof(curvx), size(curvx[])
 
     vp = sqrt.((matprop.λ + 2 .* matprop.μ) ./ matprop.ρ)
@@ -248,7 +248,9 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     ax1 = Axis(fig[1, 1]; aspect=DataAspect(),
         xlabel="x [m]", ylabel="z [m]")
     #poly!(ax4,Rect(rect...),color=:green,alpha=0.3)
-    vmax = max(abs.(extrema(vxsnap))...)
+    extx = extrema.([vxsnap[i] for i in 1:length(vxsnap)])
+    extx = map(p -> max(abs(p[1]), abs(p[2])), extx)
+    vmax = max(extx...)
     vminmax = scalamp .* (-vmax, vmax)
     hm = heatmap!(ax1, xgrd, ygrd, curvx; colormap=cmapwavefield,
         colorrange=vminmax) #,alpha=0.7)
@@ -263,7 +265,9 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     ax2 = Axis(fig[2, 1]; aspect=DataAspect(),
         xlabel="x [m]", ylabel="z [m]")
     #poly!(ax4,Rect(rect...),color=:green,alpha=0.3)
-    vmax = max(abs.(extrema(vzsnap))...)
+    extx = extrema.([vzsnap[i] for i in 1:length(vzsnap)])
+    extx = map(p -> max(abs(p[1]), abs(p[2])), extx)
+    vmax = max(extx...)
     vminmax = scalamp .* (-vmax, vmax)
     hm = heatmap!(ax2, xgrd, ygrd, curvz; colormap=cmapwavefield,
         colorrange=vminmax) #,alpha=0.7)
@@ -289,11 +293,11 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     display(fig)
     ##=====================================
 
-    nframes = size(vxsnap, 3)
+    nframes = length(vxsnap)
 
     function updatefunction(curax1, curax2, vxsnap, vzsnap, it)
-        cvx = vxsnap[:, :, it]
-        cvz = vzsnap[:, :, it]
+        cvx = vxsnap[it]
+        cvz = vzsnap[it]
         curax1.title = "Vx, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
         curax2.title = "Vz, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
         return cvx, cvz

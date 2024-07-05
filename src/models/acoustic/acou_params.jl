@@ -26,6 +26,10 @@ struct InputParametersAcoustic{T, N} <: InputParameters{T, N}
         boundcond::InputBoundaryConditionParameters{T}
     ) where {T, N}
         @assert N <= 3 "Dimensionality must be less than or equal to 3!"
+        @assert all(gridsize .> 0) "All numbers of grid points must be positive!"
+        @assert all(gridspacing .> 0) "All grid spacings must be positive!"
+        @assert ntimesteps > 0 "Number of timesteps must be positive!"
+        @assert dt > 0 "Timestep size must be positive!"
         new{T, N}(ntimesteps, dt, gridsize, gridspacing, boundcond)
     end
 end

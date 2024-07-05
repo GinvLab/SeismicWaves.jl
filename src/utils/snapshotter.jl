@@ -1,12 +1,12 @@
 struct LinearSnapshotter{T, N, A} <: AbstractSnapshotter{T, N}
     nt::Int
     snapevery::Int
-    snapshots::Dict{Int, Dict{String, AbstractField{T}}}
+    snapshots::Dict{Int, Dict{String, <:AbstractField{T}}}
 
     function LinearSnapshotter{A}(
         nt::Int,
         snapevery::Int,
-        snapshotted_fields::Dict{String, AbstractField{T}}
+        snapshotted_fields::Dict{String, <:AbstractField{T}}
     ) where {T, N, A <: AbstractArray{T, N}}
         @assert snapevery < nt "Checkpointing frequency must be smaller than the number of timesteps!"
         # Preallocate snapshots
@@ -17,11 +17,12 @@ struct LinearSnapshotter{T, N, A} <: AbstractSnapshotter{T, N}
                     if !haskey(snapshots, it)
                         snapshots[it] = Dict()
                     end
-                    cfield = copy(convert(A, field.value))
                     if typeof(field) <: ScalarVariableField
+                        cfield = copy(convert(A, field.value))
                         snapshots[it][name] = ScalarVariableField(cfield)
                     elseif typeof(field) <: MultiVariableField
-                        snapshots[it][name] = MultiVariableField(cfield)
+                        cfields = [copy(convert(A, field.value[i])) for i in 1:length(field.value)]
+                        snapshots[it][name] = MultiVariableField(cfields)
                     end
                 end
             end
@@ -34,6 +35,7 @@ end
 function savesnapshot!(snapshotter::LinearSnapshotter{T, N}, field::Pair{String, <:AbstractField{T}}, it::Int) where {T, N}
     # Save field in snapshots
     if it % snapshotter.snapevery == 0
+        @info @sprintf("Snapping iteration: %d", it)
         copyto!(snapshotter.snapshots[it][field.first], field.second)
     end
 end

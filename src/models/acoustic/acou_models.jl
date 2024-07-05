@@ -95,10 +95,6 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         gridsize = params.gridsize
         halo = cpmlparams.halo
         freetop = cpmlparams.freeboundtop
-        # Check numerics
-        @assert nt > 0 "Number of timesteps must be positive!"
-        @assert dt > 0 "Timestep size must be positive!"
-
         # Check BDC parameters
         @assert halo >= 0 "CPML halo size must be non-negative!"
         ns_cpml = freetop ? gridsize[1:(end-1)] : gridsize
@@ -348,11 +344,6 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         gridsize = params.gridsize
         halo = cpmlparams.halo
         freetop = cpmlparams.freeboundtop
-        rcoef = cpmlparams.rcoef
-        # Check numerics
-        @assert nt > 0 "Number of timesteps must be positive!"
-        @assert dt > 0 "Timestep size must be positive!"
-
         # Check BDC parameters
         @assert halo >= 0 "CPML halo size must be non-negative!"
         ns_cpml = freetop ? gridsize[1:(end-1)] : gridsize

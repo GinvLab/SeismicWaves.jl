@@ -5,10 +5,6 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     ::CPMLBoundaryCondition,
     model::ElasticIsoCPMLWaveSimulation{T, 2},
     shot::MomentTensorShot{T, 2, MomentTensor2D{T}}
-    # possrcs::Matrix{<:Int},
-    # posrecs::Matrix{<:Int},
-    # srctf,
-    # recs
 ) where {T}
 
     # scale source time function, etc.
@@ -16,59 +12,47 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     # possrcs = find_nearest_grid_points(model, shot.srcs.positions)
     # posrecs = find_nearest_grid_points(model, shot.recs.positions)
 
-    if N == 2
-        # interpolation coefficients for sources
-        srccoeij, srccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
-            shot.srcs.positions;
-            nptssinc=4, xstart=0.0, zstart=0.0)
-        # interpolation coefficients for receivers
-        reccoeij, reccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
-            shot.recs.positions;
-            nptssinc=4, xstart=0.0, zstart=0.0)
-    elseif N == 3
-        error("swforward_1shot!(): Elastic 3D not yet implemented!")
-    end
+    # interpolation coefficients for sources
+    srccoeij, srccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
+        shot.srcs.positions;
+        nptssinc=4, xstart=0.0, zstart=0.0)
+    # interpolation coefficients for receivers
+    reccoeij, reccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
+        shot.recs.positions;
+        nptssinc=4, xstart=0.0, zstart=0.0)
 
     # source time function
     srctf = shot.srcs.tf
     # moment tensors
     momtens = shot.srcs.momtens
 
+    # Get computational grid and backend
+    backend = select_backend(typeof(model), model.parall)
+
     # Numerics
     nt = model.nt
 
     # Wrap sources and receivers arrays
+    srccoeij_bk = backend.Data.Array(srccoeij)
+    srccoeval_bk = backend.Data.Array(srccoeval)
+    reccoeij_bk = backend.Data.Array(reccoeij)
+    reccoeval_bk = backend.Data.Array(reccoeval)
+    
+    srctf_bk = backend.Data.Array(srctf)
+    traces_bk = backend.Data.Array(shot.recs.seismograms)
 
-    # possrcs_bk = model.backend.Data.Array(possrcs)
-    # posrecs_bk = model.backend.Data.Array(posrecs)
-
-    srccoeij_bk = model.backend.Data.Array(srccoeij)
-    srccoeval_bk = model.backend.Data.Array(srccoeval)
-    reccoeij_bk = model.backend.Data.Array(reccoeij)
-    reccoeval_bk = model.backend.Data.Array(reccoeval)
-
-    srctf_bk = model.backend.Data.Array(srctf)
-    traces_bk = model.backend.Data.Array(shot.recs.seismograms)
-
-    if N == 2
-        ## ONLY 2D for now!!!
-        Mxx_bk = model.backend.Data.Array(momtens.Mxx)
-        Mzz_bk = model.backend.Data.Array(momtens.Mzz)
-        Mxz_bk = model.backend.Data.Array(momtens.Mxz)
-    elseif N == 3
-        error("swforward_1shot!(): Elastic 3D not yet implemented!")
-    end
+    ## ONLY 2D for now!!!
+    nsrcs = length(momtens)
+    Mxx_bk = backend.Data.Array([momtens[i].Mxx for i in 1:nsrcs])
+    Mzz_bk = backend.Data.Array([momtens[i].Mzz for i in 1:nsrcs])
+    Mxz_bk = backend.Data.Array([momtens[i].Mxz for i in 1:nsrcs])
 
     # Reset wavesim
     reset!(model)
-    # Zeros traces (there is a summation in record_receivers2D!()
-    traces_bk .= 0.0
 
     # Time loop
     for it in 1:nt
-        if N == 2
-            # Compute one forward step
-            model.backend.forward_onestep_CPML!(model,
+        backend.forward_onestep_CPML!(model,
                 srccoeij_bk,
                 srccoeval_bk,
                 reccoeij_bk,
@@ -78,18 +62,6 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
                 it,
                 Mxx_bk, Mzz_bk, Mxz_bk;
                 save_trace=true)
-            # # Compute one forward step
-            # model.backend.forward_onestep_CPML!(model,
-            #                                      possrcs_bk,
-            #                                      srctf_bk,
-            #                                      posrecs_bk,
-            #                                      traces_bk,
-            #                                      it,
-            #                                      Mxx_bk,Mzz_bk,Mxz_bk,
-            #                                      save_trace=true)
-        else
-            error("swforward_1shot!(): Elastic 3D not yet implemented!")
-        end
 
         # Print timestep info
         if it % model.infoevery == 0
@@ -105,14 +77,8 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
         end
 
         # Save snapshot
-        if snapenabled(model) && it % model.snapevery == 0
-            #error("Snapshot for elastic not yet implemented...")
-            @info @sprintf("Snapping iteration: %d", it)
-            dummyidxs = fill(Colon(), N)
-            # Vx
-            model.snapshots[1][dummyidxs..., div(it, model.snapevery)] .= Array(model.velpartic.vx)
-            # Vz
-            model.snapshots[2][dummyidxs..., div(it, model.snapevery)] .= Array(model.velpartic.vz)
+        if snapenabled(model)
+            savesnapshot!(model.snapshotter, "v" => model.grid.fields["v"], it)
         end
     end
 

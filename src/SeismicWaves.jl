@@ -66,8 +66,8 @@ include("models/acoustic/acou_init_bc.jl")
 
 # Elastic
 include("models/elastic/ela_abstract_types.jl")
-include("models/elastic/ela_material_properties.jl")
 include("models/elastic/ela_params.jl")
+include("models/elastic/ela_material_properties.jl")
 include("models/elastic/ela_models.jl")
 include("models/elastic/ela_forward.jl")
 #include("models/elastic/ela_gradient.jl")
