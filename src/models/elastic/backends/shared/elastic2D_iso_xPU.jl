@@ -251,7 +251,7 @@ end
 end
 
 @parallel_indices (p) function record_receivers2D!(vx, vz, traces_bk, reccoeij_bk, reccoeval_bk, it)
-    r, irec, jrec = reccoeij_bk[p, :]
+    r, irec, jrec = reccoeij_bk[p, 1], reccoeij_bk[p, 2], reccoeij_bk[p, 3] 
     traces_bk[it, 1, r] += vx[irec, jrec]
     traces_bk[it, 2, r] += vz[irec, jrec]
     
