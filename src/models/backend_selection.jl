@@ -36,5 +36,5 @@ select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggere
 select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimulation{<:AbstractFloat, 2}}, ::Type{Val{:threads}}) = Acoustic2D_VD_CPML_Threads
 
 # Backend selections for ElasticIsoWaveSimulation
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:ElasticIsoWaveSimulation{<:AbstractFloat, 2}}, ::Type{Val{:serial}}) = Elastic2D_Iso_CPML_Serial
-select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:ElasticIsoWaveSimulation{<:AbstractFloat, 2}}, ::Type{Val{:threads}}) = Elastic2D_Iso_CPML_Threads
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:ElasticIsoCPMLWaveSimulation{<:AbstractFloat, 2}}, ::Type{Val{:serial}}) = Elastic2D_Iso_CPML_Serial
+select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:ElasticIsoCPMLWaveSimulation{<:AbstractFloat, 2}}, ::Type{Val{:threads}}) = Elastic2D_Iso_CPML_Threads

@@ -17,6 +17,5 @@ SeismicWaves.select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:Acous
 SeismicWaves.select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticCDCPMLWaveSimulation{<:Union{Float16, Float32, Float64}, 3}}, ::Type{Val{:CUDA}}) = Acoustic3D_CD_CPML_CUDA
 SeismicWaves.select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimulation{<:Union{Float16, Float32, Float64}, 1}}, ::Type{Val{:CUDA}}) = Acoustic1D_VD_CPML_CUDA
 SeismicWaves.select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:AcousticVDStaggeredCPMLWaveSimulation{<:Union{Float16, Float32, Float64}, 2}}, ::Type{Val{:CUDA}}) = Acoustic2D_VD_CPML_CUDA
-SeismicWaves.select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:ElasticIsoWaveSimulation{<:Union{Float16, Float32, Float64}, 2}}, ::Type{Val{:CUDA}}) = Elastic2D_Iso_CPML_CUDA
-
+SeismicWaves.select_backend(::CPMLBoundaryCondition, ::LocalGrid, ::Type{<:ElasticIsoCPMLWaveSimulation{<:Union{Float16, Float32, Float64}, 2}}, ::Type{Val{:CUDA}}) = Elastic2D_Iso_CPML_CUDA
 end
