@@ -261,18 +261,18 @@ end
 
 function forward_onestep_CPML!(
     model,
-    srccoeij_bk::Array{Int},
-    srccoeval_bk::Array{T},
-    reccoeij_bk::Array{Int},
-    reccoeval_bk::Array{T},
-    srctf_bk::Matrix{T},
-    traces_bk::Array{T},
+    srccoeij_bk,
+    srccoeval_bk,
+    reccoeij_bk,
+    reccoeval_bk,
+    srctf_bk,
+    traces_bk,
     it::Int,
-    Mxx_bk::Vector{T},
-    Mzz_bk::Vector{T},
-    Mxz_bk::Vector{T};
+    Mxx_bk,
+    Mzz_bk,
+    Mxz_bk;
     save_trace::Bool=true
-) where {T}
+)
     # Extract info from grid
     freetop = model.cpmlparams.freeboundtop
     cpmlcoeffs = model.cpmlcoeffs
