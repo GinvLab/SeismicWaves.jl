@@ -1,7 +1,7 @@
 module SeismicWaves_AMDGPUBackendExt
 
 using SeismicWaves, AMDGPU
-using SeismicWaves: CPMLBoundaryCondition, LocalGrid, AcousticCDCPMLWaveSimulation, AcousticVDStaggeredCPMLWaveSimulation
+using SeismicWaves: CPMLBoundaryCondition, LocalGrid, AcousticCDCPMLWaveSimulation, AcousticVDStaggeredCPMLWaveSimulation, ElasticIsoCPMLWaveSimulation
 
 # Include AMDGPU backends
 include("../src/models/acoustic/backends/Acoustic1D_CD_CPML_AMDGPU.jl")

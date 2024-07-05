@@ -1,7 +1,7 @@
 module SeismicWaves_CUDABackendExt
 
 using SeismicWaves, CUDA
-using SeismicWaves: CPMLBoundaryCondition, LocalGrid, AcousticCDCPMLWaveSimulation, AcousticVDStaggeredCPMLWaveSimulation
+using SeismicWaves: CPMLBoundaryCondition, LocalGrid, AcousticCDCPMLWaveSimulation, AcousticVDStaggeredCPMLWaveSimulation, ElasticIsoCPMLWaveSimulation
 
 # Include CUDA backends
 include("../src/models/acoustic/backends/Acoustic1D_CD_CPML_CUDA.jl")
