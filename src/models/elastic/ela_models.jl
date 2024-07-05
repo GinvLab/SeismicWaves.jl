@@ -137,7 +137,7 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         @assert all(n -> n >= 2halo + 3, gridsize_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
-        backend = select_backend(AcousticCDCPMLWaveSimulation{T, N}, parall)
+        backend = select_backend(ElasticIsoCPMLWaveSimulation{T, N}, parall)
         A = backend.Data.Array{T, N}
         V = backend.Data.Array{T, 1}
         # Initialize computational grid
