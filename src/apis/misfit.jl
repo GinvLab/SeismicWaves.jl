@@ -3,6 +3,7 @@
 $(TYPEDSIGNATURES)
 
 Return the misfit w.r.t. observed data by running a forward simulation using the given input parameters `params` and material properties `matprop` on multiple shots.
+Receivers traces are stored in the receivers for each shot.
 
 # Positional arguments
 - `params::InputParameters{T, N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
@@ -16,10 +17,10 @@ Return the misfit w.r.t. observed data by running a forward simulation using the
     - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
+- `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used.
 
-Receivers traces are stored in the `Receivers` object for each shot.
-    
-See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
+See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
+See also [`swforward!`](@ref) and [`swgradient!`](@ref) and [`Shot`](@ref).
 """
 function swmisfit!(
     params::InputParameters{T, N},
@@ -45,6 +46,7 @@ end
 $(TYPEDSIGNATURES)
 
 Return the misfit w.r.t. observed data by running a forward simulation using the given `WaveSimulation` object as an input.
+Receivers traces are stored in the receivers for each shot. See also [`build_wavesim`](@ref) on how to build the `WaveSimulation`.
 
 # Positional arguments
 - `wavesim::Union{WaveSimulation{T,N},Vector{<:WaveSimulation{T,N}}}`: input `WaveSimulation` object containing all required information to run the simulation.
@@ -59,9 +61,8 @@ Return the misfit w.r.t. observed data by running a forward simulation using the
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
 
-Receivers traces are stored in the `Receivers` object for each shot.
-    
-See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref).
+See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
+See also [`swforward!`](@ref) and [`swgradient!`](@ref) and [`Shot`](@ref).
 """
 function swmisfit!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::T where {T, N}

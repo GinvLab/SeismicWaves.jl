@@ -11,8 +11,6 @@ Receivers traces are stored in the receivers for each shot.
 
 Return a vector of `Dict` containing for each shot the snapshots of the fields computed in the simulation for each timestep.
 
-See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
-
 # Positional arguments
 - `params::InputParameters{T, N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation type.
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation type.
@@ -28,6 +26,8 @@ See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@r
 - `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays.  
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 - `logger::Union{Nothing, AbstractLogger} = nothing`: if specified, uses the given `logger` object to print logs, otherwise it uses the logger returned from `current_logger()`.
+
+See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 """
 function swforward!(
     params::InputParameters{T, N},
@@ -53,12 +53,10 @@ end
 
 $(TYPEDSIGNATURES)
 
-Compute forward simulation using a previously constructed `WaveSimulation` object.
+Compute forward simulation using a previously constructed `WaveSimulation` object. See also [`build_wavesim`](@ref) on how to build the `WaveSimulation`.
 Receivers traces are stored in the receivers for each shot.
 
 Return a vector of `Dict` containing for each shot the snapshots of the fields computed in the simulation for each timestep.
-
-See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 
 # Positional arguments
 - `wavesim`: wave simulation object containing all required information to run the simulation.
@@ -67,6 +65,8 @@ See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@r
 
 # Keyword arguments
 - `logger::Union{Nothing, AbstractLogger} = nothing`: if specified, uses the given `logger` object to print logs, otherwise it uses the logger returned from `current_logger()`.
+
+See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 """
 function swforward!(
     wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}},

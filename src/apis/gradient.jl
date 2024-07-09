@@ -12,8 +12,6 @@ If greater than 2, a checkpoint is saved every `check_freq` time step.
 The optimal tradeoff value is `check_freq = sqrt(nt)` where `nt` is the number of time steps of the forward simulation.
 Bigger values speed up computation at the cost of using more memory.
 
-See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfit!`](@ref).
-
 # Positional arguments
 - `params::InputParameters{T, N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
@@ -30,7 +28,10 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 - `compute_misfit::Bool = false`: if true, also computes and return misfit value.
 - `smooth_radius::Int = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
-- `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used. 
+- `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used.
+
+See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
+See also [`swforward!`](@ref) and [`swmisfit!`](@ref) and [`Shot`](@ref).
 """
 function swgradient!(
     params::InputParameters{T,N},
@@ -61,14 +62,13 @@ end
 $(TYPEDSIGNATURES)
 
 Compute gradients w.r.t. model parameters using the *previously* built `WaveSimulation`. This avoids re-initializing and re-allocating several arrays in case of multiple gradient calculations.
+See also [`build_wavesim`](@ref) on how to build the `WaveSimulation`.
 
 The `check_freq` parameter controls the checkpoiting frequency for adjoint computation.
 If `nothing`, no checkpointing is performed.
 If greater than 2, a checkpoint is saved every `check_freq` time step.
 The optimal tradeoff value is `check_freq = sqrt(nt)` where `nt` is the number of time steps of the forward simulation.
 Bigger values speed up computation at the cost of using more memory.
-
-See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfit!`](@ref).
 
 # Positional arguments
 - `wavesim::Union{WaveSimulation{T,N},Vector{<:WaveSimulation{T,N}}}`: input `WaveSimulation` object containing all required information to run the simulation.
@@ -87,6 +87,9 @@ See also [`Sources`](@ref), [`Receivers`](@ref), [`swforward!`](@ref), [`swmisfi
 - `compute_misfit::Bool = false`: if true, also computes and return misfit value.
 - `smooth_radius::Int = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
 - `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used. 
+
+See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
+See also [`swforward!`](@ref) and [`swmisfit!`](@ref) and [`Shot`](@ref).
 """
 function swgradient!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::Union{Dict{String, Array{T, N}},
