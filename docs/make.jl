@@ -1,5 +1,17 @@
 
-using Documenter, SeismicWaves
+using SeismicWaves
+
+import Literate
+using Documenter
+
+println("Converting examples...")
+
+Literate.markdown(
+    joinpath(@__DIR__, "src", "examples.jl"), joinpath(@__DIR__, "src");
+    credit = false
+)
+
+println("Building documentation...")
 
 makedocs(; repo=Remotes.GitLab("JuliaGeoph", "SeismicWaves.jl"), # "https://gitlab.com/JuliaGeoph/SeismicWaves.jl/blob/{commit}{path}#{line}",
     sitename="SeismicWaves.jl",
@@ -7,7 +19,10 @@ makedocs(; repo=Remotes.GitLab("JuliaGeoph", "SeismicWaves.jl"), # "https://gitl
     authors="Andrea Zunino, Giacomo Aloisi",
     format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"),
     pages=[
-        "Home" => "index.md"
+        "Home" => "index.md",
+        "User guide" => "guide.md",
+        "Examples" => "examples.md",
+        "API" => "api.md"
     ],
     warnonly=[:missing_docs, :cross_references]
 )

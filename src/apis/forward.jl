@@ -7,15 +7,15 @@
 $(TYPEDSIGNATURES)
 
 Compute forward simulation using the given input parameters `params` and material properties `matprop` on multiple shots.
-Receivers traces are stored in the `Receivers` object for each shot. See also [`Receivers`](@ref).
+Receivers traces are stored in the receivers for each shot.
 
-Return a vector of snapshots for every shot if snapshotting is enabled.
+Return a vector of `Dict` containing for each shot the snapshots of the fields computed in the simulation for each timestep.
 
-See also [`Sources`](@ref), [`Receivers`](@ref).
+See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 
 # Positional arguments
-- `params::InputParameters{T, N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
-- `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
+- `params::InputParameters{T, N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation type.
+- `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation type.
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
 # Keyword arguments
@@ -27,6 +27,7 @@ See also [`Sources`](@ref), [`Receivers`](@ref).
     - otherwise the serial version if set to `:serial`
 - `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays.  
 - `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
+- `logger::Union{Nothing, AbstractLogger} = nothing`: if specified, uses the given `logger` object to print logs, otherwise it uses the logger returned from `current_logger()`.
 """
 function swforward!(
     params::InputParameters{T, N},
@@ -53,17 +54,20 @@ end
 $(TYPEDSIGNATURES)
 
 Compute forward simulation using a previously constructed `WaveSimulation` object.
-Return a vector of snapshots for every shot if snapshotting is enabled.
+Receivers traces are stored in the receivers for each shot.
 
-See also [`Sources`](@ref), [`Receivers`](@ref).
+Return a vector of `Dict` containing for each shot the snapshots of the fields computed in the simulation for each timestep.
+
+See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 
 # Positional arguments
-- `wavesim::Union{WaveSimulation{T,N},Vector{<:WaveSimulation{T,N}}}`: input `WaveSimulation` object containing all required information to run the simulation.
-- `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
+- `wavesim`: wave simulation object containing all required information to run the simulation.
+- `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation type.
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
 # Keyword arguments
-    """
+- `logger::Union{Nothing, AbstractLogger} = nothing`: if specified, uses the given `logger` object to print logs, otherwise it uses the logger returned from `current_logger()`.
+"""
 function swforward!(
     wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}},
     matprop::MaterialProperties{T, N},

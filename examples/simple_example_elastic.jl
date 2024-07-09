@@ -11,7 +11,7 @@ function exelaprob()
 
     ##========================================
     # time stuff
-    nt = 1500 #1500
+    nt = 3000 #1500
     dt = 0.0008
     t = collect(Float64, range(0.0; step=dt, length=nt)) # seconds
     #@show dt,(nt-1)*dt
@@ -80,7 +80,7 @@ function exelaprob()
             srcstf[:, s] .= rickerstf.(t, t0, f0)
             Mxx[s] = 5e10 #1.5e10  #1.5e6 #e20
             Mzz[s] = 5e10 #2.4e10  #1.5e6 #e20
-            Mxz[s] = 0 #0.89e10 #0.0e6 #e20
+            Mxz[s] = 0.89e10 #0.89e10 #0.0e6 #e20
         end
 
         srcs = MomentTensorSources(possrcs, srcstf,
@@ -96,7 +96,7 @@ function exelaprob()
         ixrec = round.(Int, LinRange(40, nx - 40, nrecs))
         posrecs = zeros(nrecs, 2)    # 20 receivers, 2 dimensions
         posrecs[:, 1] .= (ixrec .- 1) .* dh .- 0.324   # x-positions in meters
-        posrecs[:, 2] .= (nz / 4) * dh .- 0.312 # (nz/2) * dh                # y-positions in meters
+        posrecs[:, 2] .= (10) * dh # (nz/2) * dh                # y-positions in meters
 
         ndim = 2
         recs = VectorReceivers(posrecs, nt, ndim)
@@ -303,7 +303,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
         return cvx, cvz
     end
 
-    fps = 15
+    fps = 30
 
     # live plot
     # for j in 1:1
@@ -330,7 +330,7 @@ global_logger(info_logger)
 
 par, matprop, shots, snapsh = exelaprob()
 
-snapanimate(par, matprop, shots, snapsh)
+snapanimate(par, matprop, shots, snapsh; scalamp=0.02)
 
 fig = plotstuff(par, matprop, shots)
 

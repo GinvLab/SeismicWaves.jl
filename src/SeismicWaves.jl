@@ -1,6 +1,3 @@
-"""
-Module for generalized wave propagation solvers.
-"""
 module SeismicWaves
 
 using LinearAlgebra
@@ -12,21 +9,22 @@ using DocStringExtensions
 
 # main struct for wave simulation
 export WaveSimulation
-export build_wavesim
 # input parameters
-export InputParametersAcoustic, InputParametersElastic
+export InputParameters, InputParametersAcoustic, InputParametersElastic
 # boundary conditions
+export InputBoundaryConditionParameters
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
 # material properties
+export MaterialProperties
 export VpAcousticCDMaterialProperties, VpRhoAcousticVDMaterialProperties
 export ElasticIsoMaterialProperties
 # export sources, receivers and shots
-export ScalarShot, MomentTensorShot
-export ScalarSources, MomentTensorSources
+export Shot, ScalarShot, MomentTensorShot
+export Sources, ScalarSources, MomentTensorSources
 export MomentTensor2D, MomentTensor3D
-export ScalarReceivers, VectorReceivers
+export Receivers, ScalarReceivers, VectorReceivers
 # forward, misfit and gradient functions
-export swforward!, swmisfit!, swgradient!
+export build_wavesim, swforward!, swmisfit!, swgradient!
 # source time functions
 export gaussstf, gaussderivstf, rickerstf
 

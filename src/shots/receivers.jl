@@ -67,7 +67,6 @@ Type representing a multi-receiver configuration for a wave propagation shot.
 
 $(TYPEDFIELDS)
 """
-# What about using the package ComputedFieldTypes.jl? @computed ...
 struct VectorReceivers{T, N} <: Receivers{T}
     "Receiver positions"
     positions::Matrix{T}
