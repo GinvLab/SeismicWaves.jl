@@ -1,5 +1,5 @@
 using Plots, Plots.Measures
-pyplot()
+# pyplot()
 
 function plot_nice_heatmap(A; lx=size(A, 1), ly=size(A, 2), dx=1, dy=1, shift=0)
     heatmap(

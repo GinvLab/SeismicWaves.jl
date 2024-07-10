@@ -1,8 +1,8 @@
 function smooth_gradient!(grad, possrcs, radius)
     nx = length(grad)
-    nsources = size(possrcs,1)
+    nsources = size(possrcs, 1)
     for s in 1:nsources
-        isrc = possrcs[s,1]
+        isrc = possrcs[s, 1]
         imin = isrc - radius
         imax = isrc + radius
         for i in imin:imax

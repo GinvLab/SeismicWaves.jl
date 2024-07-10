@@ -1,18 +1,17 @@
 using Test
 using DSP, NumericalIntegration, LinearAlgebra
 using CUDA: CUDA
-
+using Logging
 using SeismicWaves
 
-include("utils/setup_models.jl")
-
-using Logging
-error_logger = ConsoleLogger(stderr, Logging.Error)
-with_logger(error_logger) do
+with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     test_backends = [:threads]
     # test GPU backend only if CUDA is functional
-    if CUDA.functional()
-        push!(test_backends, :GPU)
+    if @isdefined(CUDA) && CUDA.functional()
+        push!(test_backends, :CUDA)
+    end
+    if @isdefined(AMDGPU) && AMDGPU.functional()
+            push!(test_backends, :AMDGPU)
     end
 
     for parall in test_backends
@@ -24,7 +23,7 @@ with_logger(error_logger) do
                 nt = 500
                 nx = 501
                 dx = 2.5
-                dt = dx / c0 * 6/7
+                dt = dx / c0 * 6 / 7
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
@@ -48,7 +47,7 @@ with_logger(error_logger) do
                 nt = 5000
                 nx = 501
                 dx = 2.5
-                dt = dx / c0 * 6/7
+                dt = dx / c0 * 6 / 7
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0
@@ -74,7 +73,7 @@ with_logger(error_logger) do
                 nt = 350
                 nx = ny = 401
                 dx = dy = 5.0
-                dt = dx / c0 / sqrt(2) * 6/7
+                dt = dx / c0 / sqrt(2) * 6 / 7
                 halo = 0
                 rcoef = 1.0
                 f0 = 5.0
@@ -95,10 +94,10 @@ with_logger(error_logger) do
                 # constant velocity setup
                 c0 = 1000.0
                 ρ0 = 1500.0
-                nt = 350*4
+                nt = 350 * 4
                 nx = ny = 401
                 dx = dy = 5.0
-                dt = dx / c0 / sqrt(2) * 6/7
+                dt = dx / c0 / sqrt(2) * 6 / 7
                 halo = 20
                 rcoef = 0.0001
                 f0 = 5.0

@@ -2,11 +2,20 @@
 
 # the following lines allow for precompiling of depencencies, making tests run faster
 push!(LOAD_PATH, "../src")
-using SeismicWaves: SeismicWaves
 
 using Test, TestSetExtensions
+using DSP, NumericalIntegration, LinearAlgebra
+using Logging
+using SeismicWaves
 
-# Run all specified tests
+# Load CUDA only if requested for testing
+if "CUDA" in ARGS
+    using CUDA
+end
+
+include("utils/setup_models.jl")
+
+# Run all tests
 @testset ExtendedTestSet "SeismicWaves Tests" begin
-    @includetests ARGS
+    @includetests
 end

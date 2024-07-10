@@ -1,16 +1,17 @@
 using Test
-using SeismicWaves
+using DSP, NumericalIntegration, LinearAlgebra
 using CUDA: CUDA
-
-include("utils/setup_models.jl")
-
 using Logging
-error_logger = ConsoleLogger(stderr, Logging.Error)
-with_logger(error_logger) do
+using SeismicWaves
+
+with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     test_backends = [:serial, :threads]
     # test GPU backend only if CUDA is functional
-    if CUDA.functional()
-        push!(test_backends, :GPU)
+    if @isdefined(CUDA) && CUDA.functional()
+        push!(test_backends, :CUDA)
+    end
+    if @isdefined(AMDGPU) && AMDGPU.functional()
+            push!(test_backends, :AMDGPU)
     end
 
     for parall in test_backends
@@ -40,7 +41,10 @@ with_logger(error_logger) do
             misfit_check = swmisfit!(params, vel, shots; parall=parall)
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
+            # Check that misfits are non zero
+            @test !(misfit ≈ 0.0)
+            @test !(misfit_check ≈ 0.0)
             # Check that misfits are equivalent
             @test misfit ≈ misfit_check
         end
@@ -72,7 +76,10 @@ with_logger(error_logger) do
             misfit_check = swmisfit!(params, vel, shots; parall=parall)
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
+            # Check that misfits are non zero
+            @test !(misfit ≈ 0.0)
+            @test !(misfit_check ≈ 0.0)
             # Check that misfits are equivalent
             @test misfit ≈ misfit_check
         end
@@ -103,7 +110,10 @@ with_logger(error_logger) do
             misfit_check = swmisfit!(params, vel, shots; parall=parall)
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
+            # Check that misfits are non zero
+            @test !(misfit ≈ 0.0)
+            @test !(misfit_check ≈ 0.0)
             # Check that misfits are equivalent
             @test misfit ≈ misfit_check
         end
@@ -134,7 +144,10 @@ with_logger(error_logger) do
             misfit_check = swmisfit!(params, vel, shots; parall=parall)
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
+            # Check that misfits are non zero
+            @test !(misfit ≈ 0.0)
+            @test !(misfit_check ≈ 0.0)
             # Check that misfits are equivalent
             @test misfit ≈ misfit_check
         end
@@ -170,9 +183,9 @@ with_logger(error_logger) do
             )
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that computations are equivalent
-            @test grad ≈ grad_check
+            @test grad["vp"] ≈ grad_check["vp"]
         end
 
         @testset "Test 2D $(parall) swgradient! checkpointing" begin
@@ -206,9 +219,9 @@ with_logger(error_logger) do
             )
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that computations are equivalent
-            @test grad ≈ grad_check
+            @test grad["vp"] ≈ grad_check["vp"]
         end
 
         @testset "Test 3D $(parall) swgradient! checkpointing" begin
@@ -242,9 +255,9 @@ with_logger(error_logger) do
             )
 
             # Check that gradient is non zero
-            @test !all(g -> g == 0.0, grad)
+            @test !all(g -> g == 0.0, grad["vp"])
             # Check that computations are equivalent
-            @test grad ≈ grad_check
+            @test grad["vp"] ≈ grad_check["vp"]
         end
     end
 end

@@ -1,87 +1,112 @@
-"""
-Module for generalized wave propagation solvers.
-"""
 module SeismicWaves
 
 using LinearAlgebra
+using SpecialFunctions
 using Printf
 using ParallelStencil
 using Logging
 using DocStringExtensions
 
-export InputParametersAcoustic, InputParametersAcousticVariableDensity
+# main struct for wave simulation
+export WaveSimulation
+# input parameters
+export InputParameters, InputParametersAcoustic, InputParametersElastic
+# boundary conditions
+export InputBoundaryConditionParameters
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
-export VpAcousticCDMaterialProperty, VpRhoAcousticVDMaterialProperty
-export WaveSimul
-
-#export Sources, Receivers, Shot
-export ScalarSources, ScalarReceivers, Shot
-export swforward!, swmisfit!, swgradient!
-export build_wavesim
+# material properties
+export MaterialProperties
+export VpAcousticCDMaterialProperties, VpRhoAcousticVDMaterialProperties
+export ElasticIsoMaterialProperties
+# export sources, receivers and shots
+export Shot, ScalarShot, MomentTensorShot
+export Sources, ScalarSources, MomentTensorSources
+export MomentTensor2D, MomentTensor3D
+export Receivers, ScalarReceivers, VectorReceivers
+# forward, misfit and gradient functions
+export build_wavesim, swforward!, swmisfit!, swgradient!
+# source time functions
 export gaussstf, gaussderivstf, rickerstf
 
+include("utils/abstract_types.jl")
 
-
-include("abstract_types.jl")
-
+# Traits
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
 include("traits/snappable.jl")
 include("traits/grid.jl")
 
-include("sources.jl")
-include("receivers.jl")
-include("shot.jl")
-include("checks.jl")
-include("boundarycond.jl")
+# Utils
+include("utils/utils.jl")
+include("utils/checks.jl")
+include("utils/fields.jl")
+include("utils/grids.jl")
+include("utils/checkpointers.jl")
+include("utils/snapshotter.jl")
 
+# Shots
+include("shots/sources.jl")
+include("shots/receivers.jl")
+include("shots/shot.jl")
+
+# General models
+include("models/bdc_params.jl")
 include("models/cpmlcoeffs.jl")
 
+# Acoustic
 include("models/acoustic/acou_abstract_types.jl")
-include("models/acoustic/material_properties.jl")
-include("models/acoustic/acou_models.jl")
+include("models/acoustic/acou_material_properties.jl")
 include("models/acoustic/acou_params.jl")
+include("models/acoustic/acou_models.jl")
 include("models/acoustic/acou_forward.jl")
 include("models/acoustic/acou_gradient.jl")
 include("models/acoustic/acou_init_bc.jl")
 
-include("misfits.jl")
-include("solve.jl")
-include("wrappers.jl")
+# Elastic
+include("models/elastic/ela_abstract_types.jl")
+include("models/elastic/ela_params.jl")
+include("models/elastic/ela_material_properties.jl")
+include("models/elastic/ela_models.jl")
+include("models/elastic/ela_forward.jl")
+#include("models/elastic/ela_gradient.jl")
+include("models/elastic/ela_init_bc.jl")
 
+# Backend selection
+include("models/backend_selection.jl")
+
+# Inversion 
+include("inversion/misfits/L2Misfit.jl")
+include("inversion/regularizations/ZerothOrderTikhonovRegularization.jl")
+
+# APIs
+include("apis/build.jl")
+include("apis/utils.jl")
+include("apis/forward.jl")
+include("apis/misfit.jl")
+include("apis/gradient.jl")
+
+
+# Acoustic serial backend
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Serial.jl")
 include("models/acoustic/backends/Acoustic2D_CD_CPML_Serial.jl")
 include("models/acoustic/backends/Acoustic3D_CD_CPML_Serial.jl")
 
-ParallelStencil.@reset_parallel_stencil()
+# Elastic serial backend
+include("models/elastic/backends/Elastic2D_Iso_CPML_Serial.jl")
+
+# Acoustic parallel backends
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Threads.jl")
-ParallelStencil.@reset_parallel_stencil()
-include("models/acoustic/backends/Acoustic1D_CD_CPML_GPU.jl")
-ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic2D_CD_CPML_Threads.jl")
-ParallelStencil.@reset_parallel_stencil()
-include("models/acoustic/backends/Acoustic2D_CD_CPML_GPU.jl")
-ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic3D_CD_CPML_Threads.jl")
-ParallelStencil.@reset_parallel_stencil()
-include("models/acoustic/backends/Acoustic3D_CD_CPML_GPU.jl")
-
-ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic1D_VD_CPML_Threads.jl")
-ParallelStencil.@reset_parallel_stencil()
-include("models/acoustic/backends/Acoustic1D_VD_CPML_GPU.jl")
-ParallelStencil.@reset_parallel_stencil()
 include("models/acoustic/backends/Acoustic2D_VD_CPML_Threads.jl")
-ParallelStencil.@reset_parallel_stencil()
-include("models/acoustic/backends/Acoustic2D_VD_CPML_GPU.jl")
 
-include("utils.jl")
-
+# Elastic parallel backends
+include("models/elastic/backends/Elastic2D_Iso_CPML_Threads.jl")
 
 ## HMC stuff
 include("HMCseiswaves.jl")
 using .HMCseiswaves
 export AcouWavCDProb
-
 
 end # module

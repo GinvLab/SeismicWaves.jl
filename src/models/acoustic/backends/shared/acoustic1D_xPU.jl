@@ -95,14 +95,20 @@ end
 end
 
 @views function forward_onestep_CPML!(
-    pold, pcur, pnew, fact, dx, halo,
-    ψ_l, ψ_r, ξ_l, ξ_r,
-    a_x_l, a_x_r, a_x_hl, a_x_hr,
-    b_x_l, b_x_r, b_x_hl, b_x_hr,
-    possrcs, dt2srctf, posrecs, traces, it;
+    grid, possrcs, dt2srctf, posrecs, traces, it;
     save_trace=true
 )
-    nx = length(pcur)
+    # Extract info from grid
+    nx = grid.size[1]
+    dx = grid.spacing[1]
+    pold, pcur, pnew = grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value
+    fact = grid.fields["fact"].value
+    ψ_l, ψ_r = grid.fields["ψ"].value
+    ξ_l, ξ_r = grid.fields["ξ"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
+    # Precompute divisions
     _dx = 1 / dx
     _dx2 = 1 / dx^2
 
@@ -120,5 +126,43 @@ end
         @parallel (1:size(posrecs, 1)) record_receivers!(pnew, traces, posrecs, it)
     end
 
-    return pcur, pnew, pold
+    # Exchange pressures in grid
+    grid.fields["pold"] = grid.fields["pcur"]
+    grid.fields["pcur"] = grid.fields["pnew"]
+    grid.fields["pnew"] = grid.fields["pold"]
+    return nothing
+end
+
+@views function adjoint_onestep_CPML!(grid, possrcs, dt2srctf, it)
+    # Extract info from grid
+    nx = grid.size[1]
+    dx = grid.spacing[1]
+    pold, pcur, pnew = grid.fields["adjold"].value, grid.fields["adjcur"].value, grid.fields["adjnew"].value
+    fact = grid.fields["fact"].value
+    ψ_l, ψ_r = grid.fields["ψ_adj"].value
+    ξ_l, ξ_r = grid.fields["ξ_adj"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
+    # Precompute divisions
+    _dx = 1 / dx
+    _dx2 = 1 / dx^2
+
+    @parallel (1:(halo+1)) update_ψ!(ψ_l, ψ_r, pcur,
+        halo, nx, _dx,
+        a_x_hl, a_x_hr,
+        b_x_hl, b_x_hr)
+    @parallel (2:(nx-1)) update_p_CPML!(pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
+        ψ_l, ψ_r,
+        ξ_l, ξ_r,
+        a_x_l, a_x_r,
+        b_x_l, b_x_r)
+    @parallel (1:size(possrcs, 1)) inject_sources!(pnew, dt2srctf, possrcs, it)
+
+    # Exchange pressures in grid
+    grid.fields["adjold"] = grid.fields["adjcur"]
+    grid.fields["adjcur"] = grid.fields["adjnew"]
+    grid.fields["adjnew"] = grid.fields["adjold"]
+
+    return nothing
 end

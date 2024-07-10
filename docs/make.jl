@@ -1,21 +1,35 @@
 
-using Documenter, SeismicWaves
+using SeismicWaves
 
+import Literate
+using Documenter
 
-makedocs(repo=Remotes.GitLab("JuliaGeoph","SeismicWaves.jl"), # "https://gitlab.com/JuliaGeoph/SeismicWaves.jl/blob/{commit}{path}#{line}",
-         sitename="SeismicWaves.jl",
-         modules = [SeismicWaves],
-         authors = "Andrea Zunino, Giacomo Aloisi",
-         format = Documenter.HTML(prettyurls=get(ENV,"CI",nothing)=="true"),
-         pages = [
-             "Home" => "index.md",
-         ],
-         warnonly = [:missing_docs, :cross_references]
-         )
+println("Converting examples...")
 
-deploydocs(
+Literate.markdown(
+    joinpath(@__DIR__, "src", "examples.jl"), joinpath(@__DIR__, "src");
+    credit = false
+)
+
+println("Building documentation...")
+
+makedocs(; repo=Remotes.GitLab("JuliaGeoph", "SeismicWaves.jl"), # "https://gitlab.com/JuliaGeoph/SeismicWaves.jl/blob/{commit}{path}#{line}",
+    sitename="SeismicWaves.jl",
+    modules=[SeismicWaves],
+    authors="Andrea Zunino, Giacomo Aloisi",
+    format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"),
+    pages=[
+        "Home" => "index.md",
+        "User guide" => "guide.md",
+        "Examples" => "examples.md",
+        "API" => "api.md"
+    ],
+    warnonly=[:missing_docs, :cross_references]
+)
+
+deploydocs(;
     repo="gitlab.com/JuliaGeoph/SeismicWaves.jl.git",
-    devbranch = "main",
-    deploy_config = Documenter.GitLab(),
-    branch = "gl-pages"
+    devbranch="main",
+    deploy_config=Documenter.GitLab(),
+    branch="gl-pages"
 )
