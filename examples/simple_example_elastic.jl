@@ -96,7 +96,7 @@ function exelaprob()
         ixrec = round.(Int, LinRange(40, nx - 40, nrecs))
         posrecs = zeros(nrecs, 2)    # 20 receivers, 2 dimensions
         posrecs[:, 1] .= (ixrec .- 1) .* dh .- 0.324   # x-positions in meters
-        posrecs[:, 2] .= (10) * dh # (nz/2) * dh                # y-positions in meters
+        posrecs[:, 2] .= 3 * dh # (nz/2) * dh                # y-positions in meters
 
         ndim = 2
         recs = VectorReceivers(posrecs, nt, ndim)
@@ -241,12 +241,14 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     end
 
     ##=====================================
-    fig = Figure(; size=(900, 1800))
+    fig = Figure(; size=(800, 1500))
 
-    cmapwavefield = :balance #:cyclic_grey_15_85_c0_n256_s25 #:balance
+    nframes = length(vxsnap)
+
+    cmapwavefield = :vik #:cyclic_grey_15_85_c0_n256_s25 #:balance
 
     ax1 = Axis(fig[1, 1]; aspect=DataAspect(),
-        xlabel="x [m]", ylabel="z [m]")
+        xlabel="x [m]", ylabel="z [m]", title="Vx, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
     #poly!(ax4,Rect(rect...),color=:green,alpha=0.3)
     extx = extrema.([vxsnap[i] for i in 1:length(vxsnap)])
     extx = map(p -> max(abs(p[1]), abs(p[2])), extx)
@@ -259,11 +261,11 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     lines!(ax1, Rect(rectpml...); color=:green)
     scatter!(ax1, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
     scatter!(ax1, xsrc, ysrc; label="Sources", markersize=15)
-    axislegend(ax1)
+    # axislegend(ax1)
     ax1.yreversed = true
 
     ax2 = Axis(fig[2, 1]; aspect=DataAspect(),
-        xlabel="x [m]", ylabel="z [m]")
+        xlabel="x [m]", ylabel="z [m]", title="Vz, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
     #poly!(ax4,Rect(rect...),color=:green,alpha=0.3)
     extx = extrema.([vzsnap[i] for i in 1:length(vzsnap)])
     extx = map(p -> max(abs(p[1]), abs(p[2])), extx)
@@ -276,24 +278,23 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     lines!(ax2, Rect(rectpml...); color=:green)
     scatter!(ax2, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
     scatter!(ax2, xsrc, ysrc; label="Sources", markersize=15)
-    axislegend(ax2)
+    # axislegend(ax2)
     ax2.yreversed = true
 
-    ax3 = Axis(fig[3, 1]; aspect=DataAspect(),
-        xlabel="x [m]", ylabel="z [m]")
-    hm = heatmap!(ax3, xgrd, ygrd, vp; colormap=:Reds) #,alpha=0.7)
-    Colorbar(fig[3, 2], hm; label="Vp")
+    # ax3 = Axis(fig[3, 1]; aspect=DataAspect(),
+    #     xlabel="x [m]", ylabel="z [m]")
+    # hm = heatmap!(ax3, xgrd, ygrd, vp; colormap=:Reds) #,alpha=0.7)
+    # Colorbar(fig[3, 2], hm; label="Vp")
 
-    scatter!(ax3, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
-    scatter!(ax3, xsrc, ysrc; label="Sources", markersize=15)
-    axislegend(ax3)
-    ax3.yreversed = true
+    # scatter!(ax3, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
+    # scatter!(ax3, xsrc, ysrc; label="Sources", markersize=15)
+    # axislegend(ax3)
+    # ax3.yreversed = true
 
     ##
     display(fig)
+    save("first_frame.png", fig)
     ##=====================================
-
-    nframes = length(vxsnap)
 
     function updatefunction(curax1, curax2, vxsnap, vzsnap, it)
         cvx = vxsnap[it]

@@ -138,7 +138,7 @@ for i in 1:nshots
     ixrec = round.(Int, LinRange(40, nx - 40, nrecs))
     posrecs = zeros(nrecs, 2)    ## 20 receivers, 2 dimensions
     posrecs[:, 1] .= (ixrec .- 1) .* dh .- 0.324   ## x-positions in meters
-    posrecs[:, 2] .= (10) * dh                     ## y-positions in meters
+    posrecs[:, 2] .= 3 * dh                        ## y-positions in meters
 
     ndim = 2
     recs = VectorReceivers(posrecs, nt, ndim)
