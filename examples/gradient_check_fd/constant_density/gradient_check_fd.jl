@@ -5,8 +5,8 @@ using LinearAlgebra
 ###################################################################
 using Logging
 using Plots
-
 using CUDA
+
 using Serialization
 
 info_logger = ConsoleLogger(stderr, Logging.Info)
@@ -27,14 +27,14 @@ function setup(nt, c0, c0max, r, dx, dy, dt, halo, rcoef, nx, ny, parall)
     # create constant and gaussian velocity model
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
-    matprop_const = VpAcousticCDMaterialProperty(c0 .* ones(nx, ny))
+    matprop_const = VpAcousticCDMaterialProperties(c0 .* ones(nx, ny))
     # gaussian perturbed model
-    matprop_gauss = VpAcousticCDMaterialProperty(gaussian_vel_2D(nx, ny, c0, c0max, r))
+    matprop_gauss = VpAcousticCDMaterialProperties(gaussian_vel_2D(nx, ny, c0, c0max, r))
 
     ##========================================
     # shots definition
     nshots = 10
-    f0 = 10
+    f0 = 10.0
     t0 = 4 / f0
     srctf = 1000.0 .* rickerstf.(t, t0, f0)
     dd = 60
@@ -57,15 +57,15 @@ function setup(nt, c0, c0max, r, dx, dy, dt, halo, rcoef, nx, ny, parall)
     ##============================================
     ## Input parameters for acoustic simulation
     boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false)
-    params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy], boundcond)
+    params = InputParametersAcoustic(nt, dt, (nx, ny), (dx, dy), boundcond)
 
     # Wave simulation builder
-    wavesim = build_wavesim(params; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)))
+    wavesim = build_wavesim(params, matprop_const; smooth_radius=0, gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)))
 
     return wavesim, shots, matprop_const, matprop_gauss
 end
 
-function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
+function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss; compute_fd=true)
     println("Computing forward solver")
 
     # compute forward gaussian
@@ -74,7 +74,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
     end
 
     # new receivers with observed seismograms
-    shots_obs = Vector{Shot{Float64}}()  #Pair{ScalarSources, ScalarReceivers}}()
+    shots_obs = Vector{ScalarShot{Float64}}()  #Pair{ScalarSources, ScalarReceivers}}()
     for i in eachindex(shots)
         # receivers definition
         recs = ScalarReceivers(
@@ -84,7 +84,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
             invcov=Diagonal(ones(nt))
         )
         # add pair as shot
-        push!(shots_obs, Shot(; srcs=shots[i].srcs, recs=recs)) # srcs => recs)
+        push!(shots_obs, ScalarShot(; srcs=shots[i].srcs, recs=recs)) # srcs => recs)
     end
 
     println("Computing gradients")
@@ -93,37 +93,39 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
     gradient, misfit = with_logger(error_logger) do
         swgradient!(wavesim, matprop_const, shots_obs; compute_misfit=true)
     end
+    # save current gradient into file
+    serialize("adjgrad.dat", gradient["vp"])
 
     println("Initial misfit: $misfit")
 
-    # Compute gradient with finite differences
-    fd_gradient = zeros(nx, ny)
-    dm = -1e-3
-    for i in 1:nx
-        for j in 1:ny
-            println("Computing ($i, $j) gradient with FD")
-            vp_perturbed = copy(matprop_const.vp)
-            vp_perturbed[i, j] += dm
-            matprop_perturbed = VpAcousticCDMaterialProperty(vp_perturbed)
-            @time new_misfit = with_logger(error_logger) do
-                swmisfit!(wavesim, matprop_perturbed, shots_obs)
+    if compute_fd
+        # Compute gradient with finite differences
+        fd_gradient = zeros(nx, ny)
+        dm = -1e-3
+        for i in 1:nx
+            for j in 1:ny
+                println("Computing ($i, $j) gradient with FD")
+                vp_perturbed = copy(matprop_const.vp)
+                vp_perturbed[i, j] += dm
+                matprop_perturbed = VpAcousticCDMaterialProperties(vp_perturbed)
+                @time new_misfit = with_logger(error_logger) do
+                    swmisfit!(wavesim, matprop_perturbed, shots_obs)
+                end
+                println("New misfit: $new_misfit")
+                fd_gradient[i, j] = (new_misfit - misfit) / dm
             end
-            println("New misfit: $new_misfit")
-            fd_gradient[i, j] = (new_misfit - misfit) / dm
         end
+        # save FD gradient into file
+        serialize("fdgrad.dat", fd_gradient)
     end
-
-    # save FD gradient into file
-    serialize("fdgrad.dat", fd_gradient)
-    serialize("fdgrad_diff.dat", fd_gradient .- gradient)
 end
 
 function load_gradients()
     # deserialize saved gradients
+    grad = deserialize("adjgrad.dat")
     fdgrad = deserialize("fdgrad.dat")
-    fdgrad_diff = deserialize("fdgrad_diff.dat")
-    grad = fdgrad .- fdgrad_diff
-    return grad, fdgrad, -fdgrad_diff
+    fdgrad_diff = fdgrad .- grad
+    return grad, fdgrad, fdgrad_diff
 end
 
 ########################################################################
@@ -134,7 +136,7 @@ if length(ARGS) >= 1
     if ARGS[1] == "--threads"
         parall = :threads
     elseif ARGS[1] == "--GPU"
-        parall = :GPU
+        parall = :CUDA
         devs = devices()
         if length(devs) >= 1 && length(ARGS) >= 2
             device!(parse(Int, ARGS[2]))
@@ -142,7 +144,6 @@ if length(ARGS) >= 1
         @show device()
     end
 end
-run = "--run" in ARGS
 
 # Numerical parameters
 nt = 1000
@@ -160,13 +161,13 @@ ly = (ny - 1) * dy
 
 # setup
 wavesim, shots, matprop_const, matprop_gauss = setup(nt, c0, c0max, r, dx, dy, dt, halo, rcoef, nx, ny, parall)
-if run
-    gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
-end
+gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss; compute_fd=true)
 # load saved results
 adjgrad, fdgrad, grad_diff = load_gradients()
 
 ##################################################################
+
+# Plotting
 
 corner1 = 21
 corner2 = round(Int, 300 ÷ dx)

@@ -111,17 +111,19 @@ prescale_residuals!(residuals, posrecs, fact) =
     end
 
 function forward_onestep_CPML!(
-    pold, pcur, pnew, fact, dx, dy, halo,
-    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
-    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,
-    a_x_l, a_x_r, a_x_hl, a_x_hr,
-    a_y_l, a_y_r, a_y_hl, a_y_hr,
-    b_x_l, b_x_r, b_x_hl, b_x_hr,
-    b_y_l, b_y_r, b_y_hl, b_y_hr,
-    possrcs, dt2srctf, posrecs, traces, it;
+    grid, possrcs, dt2srctf, posrecs, traces, it;
     save_trace=true
 )
-    nx, ny = size(pcur)
+    # Extract info from grid
+    nx, ny = grid.size
+    dx, dy = grid.spacing
+    pold, pcur, pnew = grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value
+    fact = grid.fields["fact"].value
+    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ"].value
+    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r = grid.fields["ξ"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr, a_y_l, a_y_r, a_y_hl, a_y_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr, b_y_l, b_y_r, b_y_hl, b_y_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
     _dx = 1 / dx
     _dx2 = 1 / dx^2
     _dy = 1 / dy
@@ -147,7 +149,51 @@ function forward_onestep_CPML!(
         record_receivers!(pnew, traces, posrecs, it)
     end
 
-    return pcur, pnew, pold
+    # Exchange pressures in grid
+    grid.fields["pold"] = grid.fields["pcur"]
+    grid.fields["pcur"] = grid.fields["pnew"]
+    grid.fields["pnew"] = grid.fields["pold"]
+    return nothing
+end
+
+function adjoint_onestep_CPML!(grid, possrcs, dt2srctf, it)
+    # Extract info from grid
+    nx, ny = grid.size
+    dx, dy = grid.spacing
+    pold, pcur, pnew = grid.fields["adjold"].value, grid.fields["adjcur"].value, grid.fields["adjnew"].value
+    fact = grid.fields["fact"].value
+    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ_adj"].value
+    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r = grid.fields["ξ_adj"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr, a_y_l, a_y_r, a_y_hl, a_y_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr, b_y_l, b_y_r, b_y_hl, b_y_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
+    # Precompute divisions
+    _dx = 1 / dx
+    _dx2 = 1 / dx^2
+    _dy = 1 / dy
+    _dy2 = 1 / dy^2
+
+    # update ψ arrays
+    update_ψ_x!(ψ_x_l, ψ_x_r, pcur, halo, _dx, nx, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
+
+    update_ψ_y!(ψ_y_l, ψ_y_r, pcur, halo, _dy, ny, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
+
+    # update pressure and ξ arrays
+    update_p_CPML!(pold, pcur, pnew, halo, fact,
+        _dx, _dx2, _dy, _dy2, nx, ny,
+        ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
+        ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,
+        a_x_l, a_x_r, b_x_l, b_x_r,
+        a_y_l, a_y_r, b_y_l, b_y_r)
+
+    # inject sources
+    inject_sources!(pnew, dt2srctf, possrcs, it)
+
+    # Exchange pressures in grid
+    grid.fields["adjold"] = grid.fields["adjcur"]
+    grid.fields["adjcur"] = grid.fields["adjnew"]
+    grid.fields["adjnew"] = grid.fields["adjold"]
+    return nothing
 end
 
 #########################################

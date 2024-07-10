@@ -142,19 +142,24 @@ end
 end
 
 @views function forward_onestep_CPML!(
-    pold, pcur, pnew, fact, dx, dy, dz, halo,
-    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r, ψ_z_l, ψ_z_r,
-    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r, ξ_z_l, ξ_z_r,
-    a_x_l, a_x_r, a_x_hl, a_x_hr,
-    a_y_l, a_y_r, a_y_hl, a_y_hr,
-    a_z_l, a_z_r, a_z_hl, a_z_hr,
-    b_x_l, b_x_r, b_x_hl, b_x_hr,
-    b_y_l, b_y_r, b_y_hl, b_y_hr,
-    b_z_l, b_z_r, b_z_hl, b_z_hr,
-    possrcs, dt2srctf, posrecs, traces, it;
+    grid, possrcs, dt2srctf, posrecs, traces, it;
     save_trace=true
 )
-    nx, ny, nz = size(pcur)
+    # Extract info from grid
+    nx, ny, nz = grid.size
+    dx, dy, dz = grid.spacing
+    pold, pcur, pnew = grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value
+    fact = grid.fields["fact"].value
+    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r, ψ_z_l, ψ_z_r = grid.fields["ψ"].value
+    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r, ξ_z_l, ξ_z_r = grid.fields["ξ"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr,
+    a_y_l, a_y_r, a_y_hl, a_y_hr,
+    a_z_l, a_z_r, a_z_hl, a_z_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr,
+    b_y_l, b_y_r, b_y_hl, b_y_hr,
+    b_z_l, b_z_r, b_z_hl, b_z_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
+    # Precompute divisions
     _dx = 1 / dx
     _dx2 = 1 / dx^2
     _dy = 1 / dy
@@ -200,5 +205,75 @@ end
         @parallel (1:size(posrecs, 1)) record_receivers!(pnew, traces, posrecs, it)
     end
 
-    return pcur, pnew, pold
+    # Exchange pressures in grid
+    grid.fields["pold"] = grid.fields["pcur"]
+    grid.fields["pcur"] = grid.fields["pnew"]
+    grid.fields["pnew"] = grid.fields["pold"]
+
+    return nothing
+end
+
+@views function adjoint_onestep_CPML!(grid, possrcs, dt2srctf, it)
+    # Extract info from grid
+    nx, ny, nz = grid.size
+    dx, dy, dz = grid.spacing
+    pold, pcur, pnew = grid.fields["adjold"].value, grid.fields["adjcur"].value, grid.fields["adjnew"].value
+    fact = grid.fields["fact"].value
+    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r, ψ_z_l, ψ_z_r = grid.fields["ψ_adj"].value
+    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r, ξ_z_l, ξ_z_r = grid.fields["ξ_adj"].value
+    a_x_l, a_x_r, a_x_hl, a_x_hr,
+    a_y_l, a_y_r, a_y_hl, a_y_hr,
+    a_z_l, a_z_r, a_z_hl, a_z_hr = grid.fields["a_pml"].value
+    b_x_l, b_x_r, b_x_hl, b_x_hr,
+    b_y_l, b_y_r, b_y_hl, b_y_hr,
+    b_z_l, b_z_r, b_z_hl, b_z_hr = grid.fields["b_pml"].value
+    halo = length(a_x_r)
+    # Precompute divisions
+    _dx = 1 / dx
+    _dx2 = 1 / dx^2
+    _dy = 1 / dy
+    _dy2 = 1 / dy^2
+    _dz = 1 / dz
+    _dz2 = 1 / dz^2
+
+    # update ψ arrays
+    @parallel_async (1:(halo+1), 1:ny, 1:nz) update_ψ_x!(ψ_x_l, ψ_x_r, pcur,
+        halo, _dx, nx,
+        a_x_hl, a_x_hr,
+        b_x_hl, b_x_hr)
+    @parallel_async (1:nx, 1:(halo+1), 1:nz) update_ψ_y!(ψ_y_l, ψ_y_r, pcur,
+        halo, _dy, ny,
+        a_y_hl, a_y_hr,
+        b_y_hl, b_y_hr)
+    @parallel_async (1:nx, 1:ny, 1:(halo+1)) update_ψ_z!(ψ_z_l, ψ_z_r, pcur,
+        halo, _dz, nz,
+        a_z_hl, a_z_hr,
+        b_z_hl, b_z_hr)
+    @synchronize
+
+    # update presure and ξ arrays
+    @parallel (2:(nx-1), 2:(ny-1), 2:(nz-1)) update_p_CPML!(pold, pcur, pnew, halo,
+        fact,
+        _dx, _dx2, _dy, _dy2, _dz,
+        _dz2, nx, ny, nz,
+        ψ_x_l, ψ_x_r, ψ_y_l,
+        ψ_y_r, ψ_z_l, ψ_z_r,
+        ξ_x_l, ξ_x_r, ξ_y_l,
+        ξ_y_r, ξ_z_l, ξ_z_r,
+        a_x_l, a_x_r, b_x_l,
+        b_x_r,
+        a_y_l, a_y_r, b_y_l,
+        b_y_r,
+        a_z_l, a_z_r, b_z_l,
+        b_z_r)
+
+    # inject sources
+    @parallel (1:size(possrcs, 1)) inject_sources!(pnew, dt2srctf, possrcs, it)
+
+    # Exchange pressures in grid
+    grid.fields["adjold"] = grid.fields["adjcur"]
+    grid.fields["adjcur"] = grid.fields["adjnew"]
+    grid.fields["adjnew"] = grid.fields["adjold"]
+
+    return nothing
 end

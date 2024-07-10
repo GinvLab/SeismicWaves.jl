@@ -17,5 +17,5 @@ struct DistributedShooting <: ShootingTrait end
 ShootingTrait(x) = ShootingTrait(typeof(x))
 ShootingTrait(::Type) = error("ShootingTrait not implemented for type $(x)")
 
-# Default constructor for a WaveSimul
-ShootingTrait(::Type{<:WaveSimul}) = SequentialShooting()
+# Default constructor for a WaveSimulation
+ShootingTrait(::Type{<:WaveSimulation}) = SequentialShooting()

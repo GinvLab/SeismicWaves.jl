@@ -24,9 +24,9 @@ end
 function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx - 1) * dx
-    vel = VpAcousticCDMaterialProperty(c0 .* ones(nx))
+    vel = VpAcousticCDMaterialProperties(c0 .* ones(nx))
     # input parameters
-    params = InputParametersAcoustic(nt, dt, [nx], [dx],
+    params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     t0 = 2 / f0
@@ -40,16 +40,16 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     posrecs[1, :] = [lx / 3]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, vel
 end
 
 function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx - 1) * dx
-    matprop = VpRhoAcousticVDMaterialProperty(c0 .* ones(nx), ρ0 .* ones(nx))
+    matprop = VpRhoAcousticVDMaterialProperties(c0 .* ones(nx), ρ0 .* ones(nx))
     # input parameters
-    params = InputParametersAcousticVariableDensity(nt, dt, [nx], [dx],
+    params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     times = collect(range(0.0; step=dt, length=nt))
@@ -63,7 +63,7 @@ function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, r
     posrecs[1, :] = [lx / 3]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, matprop, refsrctf
 end
 
@@ -71,9 +71,9 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
-    vel = VpAcousticCDMaterialProperty(c0 .* ones(nx, ny))
+    vel = VpAcousticCDMaterialProperties(c0 .* ones(nx, ny))
     # input parameters
-    params = InputParametersAcoustic(nt, dt, [nx, ny], [dx, dy],
+    params = InputParametersAcoustic(nt, dt, (nx, ny), (dx, dy),
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     t0 = 2 / f0
@@ -87,7 +87,7 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     posrecs[1, :] = [lx / 3, ly / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, vel
 end
 
@@ -95,9 +95,9 @@ function setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0,
     # constant velocity setup
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
-    matprop = VpRhoAcousticVDMaterialProperty(c0 .* ones(nx, ny), ρ0 .* ones(nx, ny))
+    matprop = VpRhoAcousticVDMaterialProperties(c0 .* ones(nx, ny), ρ0 .* ones(nx, ny))
     # input parameters
-    params = InputParametersAcousticVariableDensity(nt, dt, [nx, ny], [dx, dy],
+    params = InputParametersAcoustic(nt, dt, (nx, ny), (dx, dy),
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     times = collect(range(0.0; step=dt, length=nt))
@@ -110,7 +110,7 @@ function setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0,
     posrecs[1, :] = [lx / 3, ly / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, matprop
 end
 
@@ -119,9 +119,9 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
     lz = (nz - 1) * dz
-    vel = VpAcousticCDMaterialProperty(c0 .* ones(nx, ny, nz))
+    vel = VpAcousticCDMaterialProperties(c0 .* ones(nx, ny, nz))
     # input parameters
-    params = InputParametersAcoustic(nt, dt, [nx, ny, nz], [dx, dy, dz],
+    params = InputParametersAcoustic(nt, dt, (nx, ny, nz), (dx, dy, dz),
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
     t0 = 2 / f0
@@ -135,7 +135,7 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     posrecs[1, :] = [lx / 3, ly / 2, lz / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
-    shots = [Shot(; srcs=srcs, recs=recs)]
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, vel
 end
 
@@ -161,7 +161,7 @@ end
 
 function analytical_solution_constant_vel_constant_density_1D(c0, rho, dt, nt, t0, f0, srcs, recs)
     # analytical solution
-    times = collect(range(dt/2; step=dt, length=nt))
+    times = collect(range(dt / 2; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
     src = (c0^2 * rho) .* rickerstf.(times, t0, f0)
     # Calculate Green's function
@@ -201,7 +201,7 @@ end
 
 function analytical_solution_constant_vel_constant_density_2D(c0, rho, dt, nt, t0, f0, srcs, recs)
     # analytical solution
-    times = collect(range(dt/2; step=dt, length=nt))
+    times = collect(range(dt / 2; step=dt, length=nt))
     dist = norm(srcs.positions[1, :] .- recs.positions[1, :])
     src = (c0^2 * rho) .* rickerstf.(times, t0, f0)
     # Calculate Green's function
@@ -238,4 +238,27 @@ function analytical_solution_constant_vel_3D(c0, dt, nt, srcs, recs)
     Gc = Gc[1:nt]
 
     return times, Gc
+end
+
+function setup_constant_vel_1D_CPML_Float32(nt, dt, nx, dx, c0, f0, halo, rcoef)
+    # constant velocity setup
+    lx = (nx - 1) * dx
+    vel = VpAcousticCDMaterialProperties(c0 .* ones(Float32, nx))
+    # input parameters
+    params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
+        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
+    # sources
+    t0 = 2f0 / f0
+    times = convert.(Float32, collect(range(0.0; step=dt, length=nt)))
+    possrcs = zeros(Float32, 1, 1)
+    srctf = zeros(Float32, nt, 1)
+    srctf[:, 1] .= rickerstf.(times, t0, f0)
+    possrcs[1, :] = [lx / 2f0]
+    # receivers
+    posrecs = zeros(Float32, 1, 1)
+    posrecs[1, :] = [lx / 3f0]
+    srcs = ScalarSources(possrcs, srctf, f0)
+    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(Float32, nt)))
+    shots = [ScalarShot(; srcs=srcs, recs=recs)]
+    return params, shots, vel
 end

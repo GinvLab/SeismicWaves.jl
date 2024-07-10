@@ -17,11 +17,11 @@ function forward_example()
             velmod[i, j] = 2000.0 + 12.0 * (j - 1)
         end
     end
-    matprop = VpAcousticCDMaterialProperty(velmod)
+    matprop = VpAcousticCDMaterialProperties(velmod)
     ##========================================
     # shots definition
     nshots = 6
-    shots = Vector{Shot}()  #Pair{Sources, Receivers}}()
+    shots = Vector{ScalarShot{Float64}}()  #Pair{Sources, Receivers}}()
     # sources x-position (in grid points) (different for every shot)
     ixsrc = round.(Int, LinRange(32, nx - 31, nshots))
     for i in 1:nshots
@@ -47,7 +47,7 @@ function forward_example()
         recs = ScalarReceivers(posrecs, nt)
 
         # add pair as shot
-        push!(shots, Shot(; srcs=srcs, recs=recs)) # srcs => recs)
+        push!(shots, ScalarShot(; srcs=srcs, recs=recs)) # srcs => recs)
     end
     ##============================================
     ## Input parameters for acoustic simulation
@@ -55,7 +55,7 @@ function forward_example()
     snapevery = 50
     infoevery = 500
     boundcond = CPMLBoundaryConditionParameters(; halo=20, rcoef=0.0001, freeboundtop=true)
-    params = InputParametersAcoustic(nt, dt, [nx, nz], [dh, dh], boundcond)
+    params = InputParametersAcoustic(nt, dt, (nx, nz), (dh, dh), boundcond)
     ## Show parameters
     dump(params)
     ##===============================================

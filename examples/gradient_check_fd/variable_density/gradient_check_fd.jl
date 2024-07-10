@@ -27,9 +27,9 @@ function setup(nt, c0, c0max, rho0, rho0max, r, dx, dy, dt, halo, rcoef, nx, ny,
     # create constant and gaussian velocity model
     lx = (nx - 1) * dx
     ly = (ny - 1) * dy
-    matprop_const = VpRhoAcousticVDMaterialProperty(c0 .* ones(nx, ny), rho0 .* ones(nx, ny))
+    matprop_const = VpRhoAcousticVDMaterialProperties(c0 .* ones(nx, ny), rho0 .* ones(nx, ny))
     # gaussian perturbed model
-    matprop_gauss = VpRhoAcousticVDMaterialProperty(gaussian_vel_2D(nx, ny, c0, c0max, r), gaussian_vel_2D(nx, ny, rho0, rho0max, r))
+    matprop_gauss = VpRhoAcousticVDMaterialProperties(gaussian_vel_2D(nx, ny, c0, c0max, r), gaussian_vel_2D(nx, ny, rho0, rho0max, r))
 
     ##========================================
     # shots definition
@@ -72,10 +72,10 @@ function setup(nt, c0, c0max, rho0, rho0max, r, dx, dy, dt, halo, rcoef, nx, ny,
     ##============================================
     ## Input parameters for acoustic simulation
     boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false)
-    params = InputParametersAcousticVariableDensity(nt, dt, [nx, ny], [dx, dy], boundcond)
+    params = InputParametersAcoustic(nt, dt, (nx, ny), (dx, dy), boundcond)
 
     # Wave simulation builder
-    wavesim = build_wavesim(params; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)), smooth_radius=0)
+    wavesim = build_wavesim(params, matprop_const; gradient=true, parall=parall, check_freq=ceil(Int, sqrt(nt)), smooth_radius=0)
 
     return wavesim, shots, matprop_const, matprop_gauss
 end
@@ -89,7 +89,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
     end
 
     # new receivers with observed seismograms
-    shots_obs = Vector{Shot}()  #Pair{ScalarSources, ScalarReceivers}}()
+    shots_obs = Vector{ScalarShot{Float64}}()  #Pair{ScalarSources, ScalarReceivers}}()
     for i in eachindex(shots)
         # receivers definition
         recs = ScalarReceivers(
@@ -99,7 +99,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
             invcov=Diagonal(ones(nt))
         )
         # add pair as shot
-        push!(shots_obs, Shot(; srcs=shots[i].srcs, recs=recs)) # srcs => recs)
+        push!(shots_obs, ScalarShot(; srcs=shots[i].srcs, recs=recs)) # srcs => recs)
     end
 
     println("Computing gradients")
@@ -109,7 +109,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
         swgradient!(wavesim, matprop_const, shots_obs; compute_misfit=true)
     end
     # save gradient
-    serialize("grad.dat", gradient)
+    serialize("grad.dat", reshape(hcat(gradient["vp"], gradient["rho"]), nx, ny, 2))
 
     println("Initial misfit: $misfit")
 
@@ -121,7 +121,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
             println("Computing ($i, $j) gradient wrt vp with FD")
             vp_perturbed = copy(matprop_const.vp)
             vp_perturbed[i, j] += dm_vp
-            matprop_perturbed = VpRhoAcousticVDMaterialProperty(vp_perturbed, matprop_const.rho)
+            matprop_perturbed = VpRhoAcousticVDMaterialProperties(vp_perturbed, matprop_const.rho)
             @time new_misfit = with_logger(error_logger) do
                 swmisfit!(wavesim, matprop_perturbed, shots_obs)
             end
@@ -136,7 +136,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
             println("Computing ($i, $j) gradient wrt rho with FD")
             rho_perturbed = copy(matprop_const.rho)
             rho_perturbed[i, j] += dm_rho
-            matprop_perturbed = VpRhoAcousticVDMaterialProperty(matprop_const.vp, rho_perturbed)
+            matprop_perturbed = VpRhoAcousticVDMaterialProperties(matprop_const.vp, rho_perturbed)
             @time new_misfit = with_logger(error_logger) do
                 swmisfit!(wavesim, matprop_perturbed, shots_obs)
             end
@@ -163,7 +163,7 @@ end
 ########################################################################
 
 # Backend selection
-parall = :GPU
+parall = :CUDA
 device!(4)
 run = true
 
@@ -175,7 +175,7 @@ rho0 = 1500
 rho0max = 3000
 r = 35
 dh = dx = dy = 5.0
-dt = dh / sqrt(2) / c0max * 6/7
+dt = dh / sqrt(2) / c0max * 6 / 7
 halo = 20
 rcoef = 0.0001
 nx = 201

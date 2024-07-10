@@ -22,23 +22,24 @@ l = @layout([A B C])
 
 # Get gradient
 gradients = deserialize("grad.dat")
-adjgrad_vp = gradients[:,:,1]
-adjgrad_rho = gradients[:,:,2]
+adjgrad_vp = gradients[:, :, 1]
+adjgrad_rho = gradients[:, :, 2]
 fd_gradients = deserialize("fdgrad.dat")
-fdgrad_vp = fd_gradients[:,:,1]
-fdgrad_rho = fd_gradients[:,:,2]
+fdgrad_vp = fd_gradients[:, :, 1]
+fdgrad_rho = fd_gradients[:, :, 2]
 
-@show adjgrad_vp[100,100]
-@show adjgrad_rho[100,100]
-@show abs(adjgrad_vp[100,100] - fdgrad_vp[100,100])
-@show abs(adjgrad_rho[100,100] - fdgrad_rho[100,100])
-@show abs((adjgrad_vp[100,100] - fdgrad_vp[100,100]) / adjgrad_vp[100,100])
-@show abs((adjgrad_rho[100,100] - fdgrad_rho[100,100]) / adjgrad_rho[100,100])
-
+@show adjgrad_vp[100, 100]
+@show adjgrad_rho[100, 100]
+@show abs(adjgrad_vp[100, 100] - fdgrad_vp[100, 100])
+@show abs(adjgrad_rho[100, 100] - fdgrad_rho[100, 100])
+@show abs((adjgrad_vp[100, 100] - fdgrad_vp[100, 100]) / adjgrad_vp[100, 100])
+@show abs((adjgrad_rho[100, 100] - fdgrad_rho[100, 100]) / adjgrad_rho[100, 100])
 
 for i in 1:201
     for j in 1:201
-        if isnan(adjgrad_vp[i,j]) @show i, j end
+        if isnan(adjgrad_vp[i, j])
+            @show i, j
+        end
     end
 end
 
@@ -165,7 +166,6 @@ p = plot(
     plot_title="Adjoint gradient w.r.t. model densities"
 )
 savefig("fdgrad_rho.png")
-
 
 grad_diff_vp = fdgrad_vp - adjgrad_vp
 # Plot relative difference between adjoint and FD grad and zoom in

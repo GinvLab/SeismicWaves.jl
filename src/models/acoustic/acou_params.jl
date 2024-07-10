@@ -6,69 +6,30 @@ Parameters for acoustic wave simulations.
 
 $(TYPEDFIELDS)
 """
-struct InputParametersAcoustic{N} <: InputParameters{N}
+struct InputParametersAcoustic{T, N} <: InputParameters{T, N}
     "Number of time steps"
     ntimesteps::Int
     "Time step"
-    dt::Real
+    dt::T
     "Grid size for each dimension"
-    gridsize::NTuple{N, <:Int}
+    gridsize::NTuple{N, Int}
     "Grid spacing in each direction"
-    gridspacing::NTuple{N, <:Real}
+    gridspacing::NTuple{N, T}
     "Kind of boundary conditions"
-    boundcond::InputBoundaryConditionParameters
+    boundcond::InputBoundaryConditionParameters{T}
+
+    function InputParametersAcoustic(
+        ntimesteps::Int,
+        dt::T,
+        gridsize::NTuple{N, Int},
+        gridspacing::NTuple{N, T},
+        boundcond::InputBoundaryConditionParameters{T}
+    ) where {T, N}
+        @assert N <= 3 "Dimensionality must be less than or equal to 3!"
+        @assert all(gridsize .> 0) "All numbers of grid points must be positive!"
+        @assert all(gridspacing .> 0) "All grid spacings must be positive!"
+        @assert ntimesteps > 0 "Number of timesteps must be positive!"
+        @assert dt > 0 "Timestep size must be positive!"
+        new{T, N}(ntimesteps, dt, gridsize, gridspacing, boundcond)
+    end
 end
-
-function InputParametersAcoustic(
-    ntimesteps::Int,
-    dt::Real,
-    gridsize::AbstractVector{<:Int},
-    gridspacing::AbstractVector{<:Real},
-    boundcond::InputBoundaryConditionParameters
-)
-    # Check dimensionality
-    N = length(gridsize)
-    @assert N == length(gridspacing) "Dimensionality mismatch between number of grid points and grid step sizes!"
-    @assert N > 0 "Dimensionality must positive!"
-    @assert N <= 3 "Dimensionality must be less than or equal to 3!"
-
-    return InputParametersAcoustic{N}(ntimesteps, dt, tuple(gridsize...), tuple(gridspacing...), boundcond)
-end
-
-@doc """
-$(TYPEDEF)
-
-Parameters for variable-density acoustic wave simulations.
-
-$(TYPEDFIELDS)
-"""
-struct InputParametersAcousticVariableDensity{N} <: InputParameters{N}
-    "Number of time steps"
-    ntimesteps::Int
-    "Time step"
-    dt::Real
-     "Grid size for each dimension"
-    gridsize::NTuple{N, <:Int}
-     "Grid spacing in each direction"
-    gridspacing::NTuple{N, <:Real}
-    "Kind of boundary conditions"
-    boundcond::InputBoundaryConditionParameters
-end
-
-function InputParametersAcousticVariableDensity(
-    ntimesteps::Int,
-    dt::Real,
-    gridsize::AbstractVector{<:Int},
-    gridspacing::AbstractVector{<:Real},
-    boundcond::InputBoundaryConditionParameters
-)
-    # Check dimensionality
-    N = length(gridsize)
-    @assert N == length(gridspacing) "Dimensionality mismatch between number of grid points and grid step sizes!"
-    @assert N > 0 "Dimensionality must positive!"
-    @assert N <= 3 "Dimensionality must be less than or equal to 3!"
-
-    return InputParametersAcousticVariableDensity{N}(ntimesteps, dt, tuple(gridsize...), tuple(gridspacing...), boundcond)
-end
-
-
