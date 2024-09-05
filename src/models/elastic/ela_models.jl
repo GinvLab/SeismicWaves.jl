@@ -68,7 +68,7 @@ function precomp_elaprop!(model::ElasticIsoWaveSimulation{T, 2}; harmonicaver_μ
     #-------------------------------------------------------------
     # ρ_ihalf_jhalf (nx-1,nz-1) ??
     # arithmetic mean for ρ
-    @. ρ_ihalf_jhalf = (ρ[2:end,2:end] .+ ρ[2:end, 1:end-1] .+ ρ[1:end-1, 2:end] .+ ρ[1:end-1, 1:end-1]) ./ 4.0
+    copyto!(ρ_ihalf_jhalf, interp(model.matprop.interp_method_ρ, model.matprop.ρ, [1, 2]))
     # μ_ihalf (nx-1,nz) ??
     # μ_ihalf (nx,nz-1) ??
     if harmonicaver_μ == true
@@ -193,17 +193,62 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             addfield!(grid, "ψ_∂v∂z" => MultiVariableField(
                 [backend.zeros(T, gs2...) for _ in 1:2]
             ))
+            # Initialize gradient arrays if needed
+            if gradient
+                error("Gradient for elastic calculations not yet implemented!")
+
+                # Stress and velocity
+                addfield!(grid, "adjσ" => MultiVariableField(
+                    [backend.zeros(T, gridsize...) for _ in 1:3]
+                ))
+                addfield!(grid, "adjv" => MultiVariableField(
+                    [backend.zeros(T, gridsize...) for _ in 1:2]
+                ))
+                # CPML memory variables
+                addfield!(grid, "adjψ_∂σ∂x" => MultiVariableField(
+                    [backend.zeros(T, gs1...) for _ in 1:2]
+                ))
+                addfield!(grid, "adjψ_∂σ∂z" => MultiVariableField(
+                    [backend.zeros(T, gs2...) for _ in 1:2]
+                ))
+                addfield!(grid, "adjψ_∂v∂x" => MultiVariableField(
+                    [backend.zeros(T, gs1...) for _ in 1:2]
+                ))
+                addfield!(grid, "adjψ_∂v∂z" => MultiVariableField(
+                    [backend.zeros(T, gs2...) for _ in 1:2]
+                ))
+                # Gradient arrays
+                addfield!(grid, "grad_ρ" => ScalarVariableField(
+                    backend.zeros(T, gridsize...)
+                ))
+                addfield!(grid, "grad_ρ_ihalf_jhalf" => ScalarVariableField(
+                    backend.zeros(T, gridsize...)
+                ))
+                # TODO add other gradient fields
+
+                # Initialize checkpointer
+                checkpointer = LinearCheckpointer(
+                    nt,
+                    check_freq === nothing ? 1 : check_freq,
+                    filter(p -> p.first in ["σ", "v", "ψ_∂σ∂x", "ψ_∂σ∂z", "ψ_∂v∂x", "ψ_∂v∂z"], grid.fields),
+                    ["v"];
+                    widths=Dict("v" => 2)
+                )
+                # Save first two timesteps
+                savecheckpoint!(checkpointer, "σ" => grid.fields["σ"], 0)
+                savecheckpoint!(checkpointer, "v" => grid.fields["v"], -1)
+                savecheckpoint!(checkpointer, "v" => grid.fields["v"], 0)
+                savecheckpoint!(checkpointer, "ψ_∂σ∂x" => grid.fields["ψ_∂σ∂x"], 0)
+                savecheckpoint!(checkpointer, "ψ_∂σ∂z" => grid.fields["ψ_∂σ∂z"], 0)
+                savecheckpoint!(checkpointer, "ψ_∂v∂x" => grid.fields["ψ_∂v∂x"], 0)
+                savecheckpoint!(checkpointer, "ψ_∂v∂z" => grid.fields["ψ_∂v∂z"], 0)
+            end
         else
             error("Only elastic 2D is currently implemented.")
         end
 
         # Initialize CPML coefficients
         cpmlcoeffs = tuple([CPMLCoefficientsAxis{T, V}(halo, backend) for _ in 1:N]...)
-
-        # Initialize gradient arrays if needed
-        if gradient
-            error("Gradient for elastic calculations not yet implemented!")
-        end
 
         if snapevery !== nothing
             # Initialize snapshotter

@@ -68,7 +68,7 @@ include("models/elastic/ela_params.jl")
 include("models/elastic/ela_material_properties.jl")
 include("models/elastic/ela_models.jl")
 include("models/elastic/ela_forward.jl")
-#include("models/elastic/ela_gradient.jl")
+include("models/elastic/ela_gradient.jl")
 include("models/elastic/ela_init_bc.jl")
 
 # Backend selection

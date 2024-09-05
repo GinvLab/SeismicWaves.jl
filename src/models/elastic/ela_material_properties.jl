@@ -13,4 +13,6 @@ Base.@kwdef struct ElasticIsoMaterialProperties{T, N} <: AbstrElasticIsoMaterial
     μ::Array{T, N}
     "Density"
     ρ::Array{T, N}
+    "Interpolation method for density"
+    interp_method_ρ::InterpolationMethod = ArithmeticAverageInterpolation(2)
 end

@@ -490,6 +490,74 @@ function forward_onestep_CPML!(
     return
 end
 
+function adjoint_onestep_CPML!(
+    model,
+    srccoeij_bk,
+    srccoeval_bk,
+    residuals_bk,
+    it
+)
+    # Extract info from grid
+    freetop = model.cpmlparams.freeboundtop
+    cpmlcoeffs = model.cpmlcoeffs
+    dx = model.grid.spacing[1]
+    dz = model.grid.spacing[2]
+    dt = model.dt
+    nx, nz = model.grid.size[1:2]
+    halo = model.cpmlparams.halo
+    grid = model.grid
+
+    vx, vz = grid.fields["adjv"].value
+    σxx, σzz, σxz = grid.fields["adjσ"].value
+
+    ψ_∂σxx∂x, ψ_∂σxz∂x = grid.fields["adjψ_∂σ∂x"].value
+    ψ_∂σzz∂z, ψ_∂σxz∂z = grid.fields["adjψ_∂σ∂z"].value
+    ψ_∂vx∂x, ψ_∂vz∂x = grid.fields["adjψ_∂v∂x"].value
+    ψ_∂vx∂z, ψ_∂vz∂z = grid.fields["adjψ_∂v∂z"].value
+
+    a_x = cpmlcoeffs[1].a
+    a_x_half = cpmlcoeffs[1].a_h
+    b_x = cpmlcoeffs[1].b
+    b_x_half = cpmlcoeffs[1].b_h
+
+    a_z = cpmlcoeffs[2].a
+    a_z_half = cpmlcoeffs[2].a_h
+    b_z = cpmlcoeffs[2].b
+    b_z_half = cpmlcoeffs[2].b_h
+
+    ρ = grid.fields["ρ"].value
+    ρ_ihalf_jhalf = grid.fields["ρ_ihalf_jhalf"].value
+    λ_ihalf = grid.fields["λ_ihalf"].value
+    μ_ihalf = grid.fields["μ_ihalf"].value
+    μ_jhalf = grid.fields["μ_jhalf"].value
+
+    # Precomputing divisions
+    factx = 1.0 / (24.0 * dx)
+    factz = 1.0 / (24.0 * dz)
+
+    # update velocity vx 
+    update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z,
+        b_x, b_z, a_x, a_z, freetop)
+    # update velocity vz
+    update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, ψ_∂σxz∂x,
+        ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+
+    # inject sources (external body force)
+    inject_vel_sources2D!(vx, vz, residuals_bk, srccoeij_bk, srccoeval_bk, ρ, ρ_ihalf_jhalf, it)
+
+    # update stresses σxx and σzz 
+    update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
+        vx, vz, dt, λ_ihalf, μ_ihalf,
+        ψ_∂vx∂x, ψ_∂vz∂z,
+        b_x_half, b_z, a_x_half, a_z, freetop)
+    # update stress σxz
+    update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
+        μ_jhalf, b_x, b_z_half,
+        ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
+
+    return
+end
+
 function inject_momten_sources2D!(σxx, σzz, σxz, Mxx, Mzz, Mxz, srctf_bk, dt, srccoeij_bk, srccoeval_bk, it)
     #function inject_momten_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk, it)
 
@@ -522,6 +590,16 @@ function inject_momten_sources2D!(σxx, σzz, σxz, Mxx, Mzz, Mxz, srctf_bk, dt,
     return
 end
 
+function inject_vel_sources2D!(vx, vz, f, srccoeij_bk, srccoeval_bk, ρ, ρ_ihalf_jhalf, it)
+    nsrcpts = size(srccoeij_bk, 1)
+    for p in 1:nsrcpts
+        s, isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2], srccoeij_bk[p, 3]
+        vx[isrc, jsrc] += srccoeval_bk[s] * f[it, 1, s] * dt / ρ[isrc, jsrc]
+        vz[isrc, jsrc] += srccoeval_bk[s] * f[it, 2, s] * dt / ρ_ihalf_jhalf[isrc, jsrc]
+    end
+    return nothing
+end
+
 function record_receivers2D!(vx, vz, traces_bk, reccoeij_bk, reccoeval_bk, it)
 
     # total number of interpolation points
@@ -532,8 +610,8 @@ function record_receivers2D!(vx, vz, traces_bk, reccoeij_bk, reccoeval_bk, it)
         # [src_id, i, j]
         r, irec, jrec = reccoeij_bk[p, :]
         # update traces by summing up values from all sinc interpolation points
-        traces_bk[it, 1, r] += vx[irec, jrec]
-        traces_bk[it, 2, r] += vz[irec, jrec]
+        traces_bk[it, 1, r] += reccoeval_bk[r] * vx[irec, jrec]
+        traces_bk[it, 2, r] += reccoeval_bk[r] * vz[irec, jrec]
     end
 
     # for ir in axes(posrecs, 1)
@@ -546,16 +624,28 @@ function record_receivers2D!(vx, vz, traces_bk, reccoeij_bk, reccoeval_bk, it)
     return
 end
 
-#function correlate_gradient!(  )
-# _dt2 = 1 / dt^2
-# nx, nz = size(curgrad)
-# for j in 1:nz
-#     for i in 1:nx
-#         curgrad[i, j] = curgrad[i, j] + (adjcur[i, j] * (pcur[i, j] - 2.0 * pold[i, j] + pveryold[i, j]) * _dt2)
-#     end
-# end
-# return 
-#end
+function correlate_gradient_ρ_kernel!(curgrad_ρ, adjv, v_curr, v_old, v_veryold, _dt2)
+    @. curgrad_ρ += adjv * (v_curr - 2 * v_old + v_veryold) * _dt2
+    return nothing
+end
+
+function correlate_gradient_ρ!(curgrad_ρ, adjv, v_curr, v_old, v_veryold, dt)
+    _dt2 = 1 / dt^2
+    adjvx = adjv[1]
+    vx_curr = v_curr[1]
+    vx_old = v_old[1]
+    vx_veryold = v_veryold[1]
+    correlate_gradient_ρ_kernel!(curgrad_ρ, adjvx, vx_curr, vx_old, vx_veryold, _dt2)
+end
+
+function correlate_gradient_ρ_ihalf_jhalf!(curgrad_ρ_ihalf_jhalf, adjv, v_curr, v_old, v_veryold, dt)
+    _dt2 = 1 / dt^2
+    adjvz = adjv[2]
+    vz_curr = v_curr[2]
+    vz_old = v_old[2]
+    vz_veryold = v_veryold[2]
+    correlate_gradient_ρ_kernel!(curgrad_ρ_ihalf_jhalf, adjvz, vz_curr, vz_old, vz_veryold, _dt2)
+end
 
 #########################################
 end  # end module
