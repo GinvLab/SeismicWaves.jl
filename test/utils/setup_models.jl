@@ -39,7 +39,7 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     posrecs = zeros(1, 1)
     posrecs[1, :] = [lx / 3]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=1.0 * I(nt))
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, vel
 end
@@ -62,7 +62,7 @@ function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, r
     posrecs = zeros(1, 1)
     posrecs[1, :] = [lx / 3]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=1.0 * I(nt))
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, matprop, refsrctf
 end
@@ -86,7 +86,7 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     posrecs = zeros(1, 2)
     posrecs[1, :] = [lx / 3, ly / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=1.0 * I(nt))
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, vel
 end
@@ -109,8 +109,36 @@ function setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0,
     posrecs = zeros(1, 2)
     posrecs[1, :] = [lx / 3, ly / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=1.0 * I(nt))
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
+    return params, shots, matprop
+end
+
+function setup_constant_elastic_2D_CPML(nt, dt, nx, ny, dx, dy, ρ0, λ0, μ0, halo, rcoef, f0)
+    # constant velocity setup
+    lx = (nx - 1) * dx
+    ly = (ny - 1) * dy
+    matprop = ElasticIsoMaterialProperties(; ρ=ρ0 .* ones(nx, ny), λ=λ0 .* ones(nx, ny), μ=μ0 .* ones(nx, ny))
+    # input parameters
+    params = InputParametersElastic(nt, dt, (nx, ny), (dx, dy),
+        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
+    # sources
+    t0 = 2 / f0
+    times = collect(range(0.0; step=dt, length=nt))
+    possrcs = zeros(1, 2)
+    possrcs[1, :] = [lx / 2, ly / 2]
+    srctf = zeros(nt, 1)
+    srctf[:, 1] .= rickerstf.(times, t0, f0)
+    # receivers
+    posrecs = zeros(1, 2)
+    posrecs[1, :] = [lx / 3, ly / 2]
+
+    srcs = MomentTensorSources(possrcs, srctf, [MomentTensor2D(; Mxx=5e10, Mzz=5e10, Mxz=0.98e10)], f0)
+    observed = zeros(nt, 2, 1)
+    observed[:,1,1] .= srctf[:,1]
+    observed[:,2,1] .= srctf[:,1]
+    recs = VectorReceivers(posrecs, nt, 2; observed=observed, invcov=1.0 * I(nt))
+    shots = [MomentTensorShot(; srcs=srcs, recs=recs)]
     return params, shots, matprop
 end
 
@@ -134,7 +162,7 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     posrecs = zeros(1, 3)
     posrecs[1, :] = [lx / 3, ly / 2, lz / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=1.0 * I(nt))
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, vel
 end
@@ -248,15 +276,15 @@ function setup_constant_vel_1D_CPML_Float32(nt, dt, nx, dx, c0, f0, halo, rcoef)
     params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
         CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
     # sources
-    t0 = 2f0 / f0
+    t0 = 2.0f0 / f0
     times = convert.(Float32, collect(range(0.0; step=dt, length=nt)))
     possrcs = zeros(Float32, 1, 1)
     srctf = zeros(Float32, nt, 1)
     srctf[:, 1] .= rickerstf.(times, t0, f0)
-    possrcs[1, :] = [lx / 2f0]
+    possrcs[1, :] = [lx / 2.0f0]
     # receivers
     posrecs = zeros(Float32, 1, 1)
-    posrecs[1, :] = [lx / 3f0]
+    posrecs[1, :] = [lx / 3.0f0]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(Float32, nt)))
     shots = [ScalarShot(; srcs=srcs, recs=recs)]

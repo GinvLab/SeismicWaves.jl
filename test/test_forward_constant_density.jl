@@ -11,7 +11,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :CUDA)
     end
     if @isdefined(AMDGPU) && AMDGPU.functional()
-            push!(test_backends, :AMDGPU)
+        push!(test_backends, :AMDGPU)
     end
 
     for parall in test_backends
@@ -38,7 +38,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             # test integral of absolute difference over time is less then a constant 1% error relative to the peak analytical solution
             @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
         end
-        
+
         @testset "Test 1D $(parall) single-source multiple-receivers CPML" begin
             #  velocity setup
             c0 = 1000.0

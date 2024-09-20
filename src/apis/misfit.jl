@@ -64,7 +64,7 @@ Receivers traces are stored in the receivers for each shot. See also [`build_wav
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 See also [`swforward!`](@ref) and [`swgradient!`](@ref) and [`Shot`](@ref).
 """
-function swmisfit!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}};
+function swmisfit!(wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::T where {T, N}
     if logger === nothing
         logger = current_logger()

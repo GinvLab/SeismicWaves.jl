@@ -30,11 +30,11 @@ function build_wavesim(params::InputParameters{T, N}, matprop::MaterialPropertie
 end
 
 build_concrete_wavesim(
-    params::InputParametersAcoustic{T,N},
-    matprop::VpAcousticCDMaterialProperties{T,N},
+    params::InputParametersAcoustic{T, N},
+    matprop::VpAcousticCDMaterialProperties{T, N},
     cpmlparams::CPMLBoundaryConditionParameters{T};
     kwargs...
-) where {T,N} = AcousticCDCPMLWaveSimulation(
+) where {T, N} = AcousticCDCPMLWaveSimulation(
     params,
     matprop,
     cpmlparams;
@@ -42,11 +42,11 @@ build_concrete_wavesim(
 )
 
 build_concrete_wavesim(
-    params::InputParametersAcoustic{T,N},
-    matprop::VpRhoAcousticVDMaterialProperties{T,N},
+    params::InputParametersAcoustic{T, N},
+    matprop::VpRhoAcousticVDMaterialProperties{T, N},
     cpmlparams::CPMLBoundaryConditionParameters;
     kwargs...
-) where {T,N} = AcousticVDStaggeredCPMLWaveSimulation(
+) where {T, N} = AcousticVDStaggeredCPMLWaveSimulation(
     params,
     matprop,
     cpmlparams;
@@ -54,11 +54,11 @@ build_concrete_wavesim(
 )
 
 build_concrete_wavesim(
-    params::InputParametersElastic{T,N},
-    matprop::ElasticIsoMaterialProperties{T,N},
+    params::InputParametersElastic{T, N},
+    matprop::ElasticIsoMaterialProperties{T, N},
     cpmlparams::CPMLBoundaryConditionParameters{T};
     kwargs...
-) where {T,N} = ElasticIsoCPMLWaveSimulation(
+) where {T, N} = ElasticIsoCPMLWaveSimulation(
     params,
     matprop,
     cpmlparams;

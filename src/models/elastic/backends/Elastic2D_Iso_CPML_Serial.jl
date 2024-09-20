@@ -259,10 +259,10 @@ function update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
             # vx derivative only in x so no problem
             ∂vx∂x_fwd = factx * (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j])
             # using boundary condition to calculate ∂vz∂z_bkd from ∂vx∂x_fwd
-            ∂vz∂z_bkd = -(1.0 - 2.0 * μ_ihalf[i, j] / λ_ihalf[i, j]) * ∂vx∂x_fwd
+            ∂vz∂z_bkd = -(λ_ihalf[i, j] / (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j])) * ∂vx∂x_fwd
             # σxx
-            # σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd + λ_ihalf[i,j] * dt * ∂vz∂z_bkd
-            σxx[i, j] = σxx[i, j] + (λ_ihalf[i, j] - λ_ihalf[i, j] / (λ_ihalf[i, j] + 2 + μ_ihalf[i, j]) + 2 * μ_ihalf[i, j]) * dt * ∂vx∂x_fwd
+            σxx[i, j] = σxx[i, j] + (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j]) * dt * ∂vx∂x_fwd +
+                        λ_ihalf[i, j] * dt * ∂vz∂z_bkd
             # σzz
             σzz[i, j] = 0.0 # we are on the free surface!
         end
@@ -535,6 +535,16 @@ function adjoint_onestep_CPML!(
     factx = 1.0 / (24.0 * dx)
     factz = 1.0 / (24.0 * dz)
 
+    # update stresses σxx and σzz 
+    update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
+        vx, vz, dt, λ_ihalf, μ_ihalf,
+        ψ_∂vx∂x, ψ_∂vz∂z,
+        b_x_half, b_z, a_x_half, a_z, freetop)
+    # update stress σxz
+    update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
+        μ_jhalf, b_x, b_z_half,
+        ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
+    
     # update velocity vx 
     update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z,
         b_x, b_z, a_x, a_z, freetop)
@@ -545,15 +555,6 @@ function adjoint_onestep_CPML!(
     # inject sources (external body force)
     inject_vel_sources2D!(vx, vz, residuals_bk, srccoeij_bk, srccoeval_bk, ρ, ρ_ihalf_jhalf, it)
 
-    # update stresses σxx and σzz 
-    update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
-        vx, vz, dt, λ_ihalf, μ_ihalf,
-        ψ_∂vx∂x, ψ_∂vz∂z,
-        b_x_half, b_z, a_x_half, a_z, freetop)
-    # update stress σxz
-    update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
-        μ_jhalf, b_x, b_z_half,
-        ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
 
     return
 end
@@ -574,9 +575,9 @@ function inject_momten_sources2D!(σxx, σzz, σxz, Mxx, Mzz, Mxz, srctf_bk, dt,
             s, isrc, jsrc = srccoeij_bk[p, :]
             # update stresses on points computed from sinc interpolation 
             #     scaled with the coefficients' values
-            σxx[isrc, jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it] * dt
-            σzz[isrc, jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it] * dt
-            σxz[isrc, jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it] * dt
+            σxx[isrc, jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it]
+            σzz[isrc, jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it]
+            σxz[isrc, jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it]
         end
 
         # for s in axes(possrcs_bk, 1)
@@ -594,8 +595,8 @@ function inject_vel_sources2D!(vx, vz, f, srccoeij_bk, srccoeval_bk, ρ, ρ_ihal
     nsrcpts = size(srccoeij_bk, 1)
     for p in 1:nsrcpts
         s, isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2], srccoeij_bk[p, 3]
-        vx[isrc, jsrc] += srccoeval_bk[s] * f[it, 1, s] * dt / ρ[isrc, jsrc]
-        vz[isrc, jsrc] += srccoeval_bk[s] * f[it, 2, s] * dt / ρ_ihalf_jhalf[isrc, jsrc]
+        vx[isrc, jsrc] += srccoeval_bk[p] * f[it, 1, s] * dt / ρ[isrc, jsrc]
+        vz[isrc, jsrc] += srccoeval_bk[p] * f[it, 2, s] * dt / ρ_ihalf_jhalf[isrc, jsrc]
     end
     return nothing
 end
@@ -624,27 +625,87 @@ function record_receivers2D!(vx, vz, traces_bk, reccoeij_bk, reccoeval_bk, it)
     return
 end
 
-function correlate_gradient_ρ_kernel!(curgrad_ρ, adjv, v_curr, v_old, v_veryold, _dt2)
-    @. curgrad_ρ += adjv * (v_curr - 2 * v_old + v_veryold) * _dt2
+function correlate_gradient_ρ_kernel!(grad_ρ, adjv, v_curr, v_old, _dt)
+    @. grad_ρ = grad_ρ + adjv * (v_old - v_curr) * _dt
+
     return nothing
 end
 
-function correlate_gradient_ρ!(curgrad_ρ, adjv, v_curr, v_old, v_veryold, dt)
-    _dt2 = 1 / dt^2
-    adjvx = adjv[1]
-    vx_curr = v_curr[1]
-    vx_old = v_old[1]
-    vx_veryold = v_veryold[1]
-    correlate_gradient_ρ_kernel!(curgrad_ρ, adjvx, vx_curr, vx_old, vx_veryold, _dt2)
+function correlate_gradient_ihalf_kernel!(grad_λ_ihalf, grad_μ_ihalf, adjσxx, adjσzz, vx, vz, λ_ihalf, μ_ihalf, factx, factz, freetop, nx, nz)
+    for j in 1:nz-1
+        for i in 2:nx-2
+            ∂vx∂x_fwd = ∂vz∂z_bkd = 0
+            if freetop == true
+                # j=1: we are on the free surface!
+                if j == 1
+                    # vx derivative only in x so no problem
+                    ∂vx∂x_fwd = (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j]) * factx
+                    # using boundary condition to calculate ∂vz∂z_bkd from ∂vx∂x_fwd
+                    ∂vz∂z_bkd = -(λ_ihalf[i, j] / (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j])) * ∂vx∂x_fwd
+                end
+                # j=2: we are just below the surface (1/2)
+                if j == 2
+                    # vx derivative only in x so no problem
+                    ∂vx∂x_fwd = (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j]) * factx
+                    # zero velocity above the free surface
+                    ∂vz∂z_bkd = (0.0 - 27.0 * vz[i, j-1] + 27.0 * vz[i, j] - vz[i, j+1]) * factz
+                end
+            end
+            if j >= 3
+                ∂vx∂x_fwd = (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j]) * factx
+                ∂vz∂z_bkd = (vz[i, j-2] - 27.0 * vz[i, j-1] + 27.0 * vz[i, j] - vz[i, j+1]) * factz
+            end
+            # correlate
+            grad_λ_ihalf[i, j] += -((∂vx∂x_fwd + ∂vz∂z_bkd) * (adjσxx[i, j] + adjσzz[i, j]))
+            grad_μ_ihalf[i, j] += (-2 * ∂vx∂x_fwd * adjσxx[i, j]) + (-2 * ∂vz∂z_bkd * adjσzz[i, j])
+        end
+    end
+
+    return nothing
 end
 
-function correlate_gradient_ρ_ihalf_jhalf!(curgrad_ρ_ihalf_jhalf, adjv, v_curr, v_old, v_veryold, dt)
-    _dt2 = 1 / dt^2
-    adjvz = adjv[2]
-    vz_curr = v_curr[2]
-    vz_old = v_old[2]
-    vz_veryold = v_veryold[2]
-    correlate_gradient_ρ_kernel!(curgrad_ρ_ihalf_jhalf, adjvz, vz_curr, vz_old, vz_veryold, _dt2)
+function correlate_gradient_jhalf_kernel!(grad_μ_jhalf, adjσxz, vx, vz, factx, factz, freetop, nx, nz)
+    for j in 1:nz-2
+        for i in 3:nx-1
+            ∂vx∂z_fwd = ∂vz∂x_bkd = 0
+            if freetop
+                if j == 1
+                    # zero velocity above the free surface
+                    ∂vx∂z_fwd = factz * (0.0 - 27.0 * vx[i, j] + 27.0 * vx[i, j+1] - vx[i, j+2])
+                    # vz derivative only in x so no problem
+                    ∂vz∂x_bkd = factx * (vz[i-2, j] - 27.0 * vz[i-1, j] + 27.0 * vz[i, j] - vz[i+1, j])
+                end
+            end
+            if j >= 2
+                ∂vx∂z_fwd = factz * (vx[i, j-1] - 27.0 * vx[i, j] + 27.0 * vx[i, j+1] - vx[i, j+2])
+                ∂vz∂x_bkd = factx * (vz[i-2, j] - 27.0 * vz[i-1, j] + 27.0 * vz[i, j] - vz[i+1, j])
+            end
+            # correlate
+            grad_μ_jhalf[i, j] += (-∂vx∂z_fwd-∂vz∂x_bkd) * adjσxz[i, j]
+        end
+    end
+
+    return nothing
+end
+
+@views function correlate_gradients!(grid, vcurr, vold, dt, freetop)
+    nx, nz = grid.size
+    correlate_gradient_ρ_kernel!(grid.fields["grad_ρ"].value, grid.fields["adjv"].value[1], vcurr[1], vold[1], 1 / dt)
+    correlate_gradient_ρ_kernel!(grid.fields["grad_ρ_ihalf_jhalf"].value, grid.fields["adjv"].value[2], vcurr[2], vold[2], 1 / dt)
+    correlate_gradient_ihalf_kernel!(
+        grid.fields["grad_λ_ihalf"].value,
+        grid.fields["grad_μ_ihalf"].value,
+        grid.fields["adjσ"].value[1], grid.fields["adjσ"].value[2], vcurr...,
+        grid.fields["λ_ihalf"].value, grid.fields["μ_ihalf"].value,
+        (1.0 ./ (24.0 .* grid.spacing))...,
+        freetop, nx, nz
+    )
+    correlate_gradient_jhalf_kernel!(
+        grid.fields["grad_μ_jhalf"].value,
+        grid.fields["adjσ"].value[3], vcurr...,
+        (1.0 ./ (24.0 .* grid.spacing))...,
+        freetop, nx, nz
+    )
 end
 
 #########################################

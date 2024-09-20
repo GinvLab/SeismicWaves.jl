@@ -19,44 +19,6 @@ Gaussian source time function for current time `t`, activation time `t0` and dom
 """
 gaussstf(t::Real, t0::Real, f0::Real)::Real = -exp(-(pi * f0 * (t - t0))^2) / (2 * (pi * f0)^2)
 
-struct ArithmeticAverageInterpolation <: InterpolationMethod
-    width::Int
-end
-
-interpolate(a::Array{T, N}, interp_method) where {T, N} = collect(interp(interp_method, a, i) for i in 1:N)
-
-@views function interp(method::ArithmeticAverageInterpolation, a::Array{<:Real, N}, dim::Int) where {N}
-    return sum(
-        a[CartesianIndices(Tuple(i == dim ? (j:size(a, i)+j-method.width) : (1:size(a, i)) for i in 1:N))] for j in 1:method.width
-    ) ./ method.width
-end
-
-@views function interp(method::ArithmeticAverageInterpolation, a::Array{<:Real, N}, dims::Vector{Int}) where {N}
-    return sum(
-        a[CartesianIndices(Tuple(i in dims ? (j:size(a, i)+j-method.width) : (1:size(a, i)) for i in 1:N))] for j in 1:method.width
-    ) ./ method.width
-end
-
-@views function back_interp(method::ArithmeticAverageInterpolation, a::Array{T, N}, dim::Int) where {T, N}
-    res = zeros(T, size(a) .+ [i == dim ? 1 : 0 for i in 1:N])
-    for k in 1:method.width
-        res[CartesianIndices(Tuple(
-            i == dim ? (k:size(res, i)*k-method.width) : (1:size(res, i)) for i in 1:N
-        ))] .+= a
-    end
-    return res ./ method.width
-end
-
-@views function back_interp(method::ArithmeticAverageInterpolation, a::Array{T, N}, dims::Vector{Int}) where {T, N}
-    res = zeros(T, size(a) .+ [i in dim ? 1 : 0 for i in 1:N])
-    for k in 1:method.width
-        res[CartesianIndices(Tuple(
-            i in dims ? (k:size(res, i)*k-method.width) : (1:size(res, i)) for i in 1:N
-        ))] .+= a
-    end
-    return res ./ method.width
-end
-
 """
 $(TYPEDSIGNATURES) 
 
@@ -94,7 +56,6 @@ end
     end
     return idx_positions
 end
-
 
 ####################################################################
 

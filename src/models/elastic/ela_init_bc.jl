@@ -14,7 +14,7 @@ init_bdc!(::ReflectiveBoundaryCondition, model::ElasticWaveSimulation, srcs::Sou
         #@show n,typeof(model.cpmlcoeffs[n])
         compute_CPML_coefficientsAxis!(
             model.cpmlcoeffs[n],
-            get_maximum_func(model)(sqrt.((model.matprop.λ + 2.0 * model.matprop.μ) ./ model.matprop.ρ)),
+            get_maximum_func(model)(sqrt.((model.matprop.λ .+ 2.0 .* model.matprop.μ) ./ model.matprop.ρ)),
             model.dt,
             model.cpmlparams.halo,
             model.cpmlparams.rcoef,

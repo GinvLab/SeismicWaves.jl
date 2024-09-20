@@ -37,6 +37,7 @@ include("traits/snappable.jl")
 include("traits/grid.jl")
 
 # Utils
+include("utils/interpolations.jl")
 include("utils/utils.jl")
 include("utils/checks.jl")
 include("utils/fields.jl")
@@ -84,7 +85,6 @@ include("apis/utils.jl")
 include("apis/forward.jl")
 include("apis/misfit.jl")
 include("apis/gradient.jl")
-
 
 # Acoustic serial backend
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Serial.jl")

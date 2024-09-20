@@ -181,9 +181,10 @@ end
     # Get gradients
     copyto!(gradient_m0, grid.fields["grad_m0"].value)
     for i in eachindex(grid.fields["grad_m1_stag"].value)
-        # Accumulate and interpolate staggered gradients
-        gradient_m1[CartesianIndices(Tuple(j == i ? (2:grid.size[j]-1) : (1:grid.size[j]) for j in 1:N))] .+=
-            interp(model.matprop.interp_method, Array(grid.fields["grad_m1_stag"].value[i]), i)
+        # Accumulate and back interpolate staggered gradients
+        gradient_m1 .+= back_interp(model.matprop.interp_method, 1 ./ model.matprop.rho, Array(grid.fields["grad_m1_stag"].value[i]), i)
+        # gradient_m1[CartesianIndices(Tuple(j == i ? (2:grid.size[j]-1) : (1:grid.size[j]) for j in 1:N))] .+=
+        # interp(model.matprop.interp_method, Array(grid.fields["grad_m1_stag"].value[i]), i)
     end
     # Smooth gradients
     backend.smooth_gradient!(gradient_m0, possrcs, model.smooth_radius)

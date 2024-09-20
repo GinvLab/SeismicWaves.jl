@@ -1,21 +1,14 @@
+swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
+    swgradient_1shot!(BoundaryConditionTrait(model), model, args...; kwargs...)
+
 @views function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::ElasticIsoCPMLWaveSimulation{T, 2},
     shot::MomentTensorShot{T, 2, MomentTensor2D{T}},
-    misfit
+    misfit::AbstractMisfit
 )::Dict{String, Array{T, 2}} where {T}
-
-    # interpolation coefficients for sources
-    srccoeij, srccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
-        shot.srcs.positions;
-        nptssinc=4, xstart=0.0, zstart=0.0)
-    # interpolation coefficients for receivers
-    reccoeij, reccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
-        shot.recs.positions;
-        nptssinc=4, xstart=0.0, zstart=0.0)
-
-    # source time function
-    srctf = shot.srcs.tf
+    # scale source time function
+    srccoeij, srccoeval, reccoeij, reccoeval, srctf = possrcrec_scaletf(model, shot)
     # moment tensors
     momtens = shot.srcs.momtens
 
@@ -31,9 +24,9 @@
     srccoeval_bk = backend.Data.Array(srccoeval)
     reccoeij_bk = backend.Data.Array(reccoeij)
     reccoeval_bk = backend.Data.Array(reccoeval)
-    
+
     srctf_bk = backend.Data.Array(srctf)
-    traces_bk = backend.Data.Array(shot.recs.seismograms)
+    traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
     ## ONLY 2D for now!!!
     nsrcs = length(momtens)
@@ -48,15 +41,15 @@
     for it in 1:nt
         # Compute one forward step
         backend.forward_onestep_CPML!(model,
-                srccoeij_bk,
-                srccoeval_bk,
-                reccoeij_bk,
-                reccoeval_bk,
-                srctf_bk,
-                traces_bk,
-                it,
-                Mxx_bk, Mzz_bk, Mxz_bk;
-                save_trace=true)
+            srccoeij_bk,
+            srccoeval_bk,
+            reccoeij_bk,
+            reccoeval_bk,
+            srctf_bk,
+            traces_bk,
+            it,
+            Mxx_bk, Mzz_bk, Mxz_bk;
+            save_trace=true)
 
         # Print timestep info
         if it % model.infoevery == 0
@@ -89,17 +82,19 @@
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        backend.adjoint_onestep_CPML!(model,
-                reccoeij_bk,
-                reccoeval_bk,
-                residuals_bk,
-                it)
+        backend.adjoint_onestep_CPML!(
+            model,
+            reccoeij_bk,
+            reccoeval_bk,
+            residuals_bk,
+            it
+        )
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Backward iteration: %d", it)
         end
         # Check if out of save buffer
-        if !issaved(checkpointer, "v", it - 2)
+        if !issaved(checkpointer, "v", it - 1)
             @debug @sprintf("Out of save buffer at iteration: %d", it)
             initrecover!(checkpointer)
             copyto!(grid.fields["σ"], getsaved(checkpointer, "σ", checkpointer.curr_checkpoint))
@@ -111,16 +106,16 @@
             recover!(
                 checkpointer,
                 recit -> begin
-                backend.forward_onestep_CPML!(model,
-                                              srccoeij_bk,
-                                              srccoeval_bk,
-                                              reccoeij_bk,
-                                              reccoeval_bk,
-                                              srctf_bk,
-                                              nothing,
-                                              it,
-                                              Mxx_bk, Mzz_bk, Mxz_bk;
-                                              save_trace=false)
+                    backend.forward_onestep_CPML!(model,
+                        srccoeij_bk,
+                        srccoeval_bk,
+                        reccoeij_bk,
+                        reccoeval_bk,
+                        srctf_bk,
+                        nothing,
+                        it,
+                        Mxx_bk, Mzz_bk, Mxz_bk;
+                        save_trace=false)
                     return ["v" => grid.fields["v"]]
                 end
             )
@@ -128,11 +123,8 @@
         # Get velocity fields from saved buffer
         v_curr = getsaved(checkpointer, "v", it).value
         v_old = getsaved(checkpointer, "v", it - 1).value
-        v_veryold = getsaved(checkpointer, "v", it - 2).value
         # Correlate for gradient computation
-        backend.correlate_gradient_ρ!(grid.fields["grad_ρ"].value, grid.fields["adjv"].value, v_curr, v_old, v_veryold, dt)
-        backend.correlate_gradient_ρ_ihalf_jhalf!(grid.fields["grad_ρ_ihalf_jhalf"].value, grid.fields["adjv"].value, v_curr, v_old, v_veryold, dt)
-        # TODO add other correlations
+        backend.correlate_gradients!(grid, v_curr, v_old, model.dt, model.cpmlparams.freeboundtop)
     end
     # Allocate gradients
     gradient_ρ = zeros(T, grid.size...)
@@ -140,15 +132,20 @@
     gradient_μ = zeros(T, grid.size...)
     # Get gradients
     copyto!(gradient_ρ, grid.fields["grad_ρ"].value)
-    # TODO compute chain rule for ρ_ihalf_jhalf to ρ
-    gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, Array(grid.fields["grad_ρ_ihalf_jhalf"].value), [1, 2])
+    # Compute chain rules for back interpolations
+    gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf_jhalf"].value), [1, 2])
+    gradient_λ .+= back_interp(model.matprop.interp_method_λ, model.matprop.λ, Array(grid.fields["grad_λ_ihalf"].value), 1)
+    gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf"].value), 1) .+
+                   back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_jhalf"].value), 2)
+
+    @show maximum(gradient_ρ), maximum(gradient_λ), maximum(gradient_μ)
     # TODO smooth gradients
     # Compute regularization if needed
-    ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
+    ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
     # Return gradients
     return Dict(
         "rho" => gradient_ρ .+ ∂χ_∂ρ,
         "lambda" => gradient_λ .+ ∂χ_∂λ,
-        "mu" => gradient_μ .+ ∂χ_∂μ,
+        "mu" => gradient_μ .+ ∂χ_∂μ
     )
 end

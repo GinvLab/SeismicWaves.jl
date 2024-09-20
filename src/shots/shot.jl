@@ -27,8 +27,6 @@ Base.@kwdef struct MomentTensorShot{T, N, M <: MomentTensor{T, N}} <: Shot{T}
     recs::VectorReceivers{T, N}
 end
 
-
-
 ##################################################
 
 function init_shot!(model::WaveSimulation{T}, shot::Shot{T}; kwargs...) where {T}

@@ -11,7 +11,6 @@ Currently implemented concrete parameters are [`InputParametersAcoustic`](@ref) 
 """
 abstract type InputParameters{T, N} end
 
-
 @doc """
 
 $(TYPEDEF)

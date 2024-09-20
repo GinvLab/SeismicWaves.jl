@@ -76,13 +76,16 @@ struct VectorReceivers{T, N} <: Receivers{T}
     observed::Array{T, 3}
     "Inverse of the covariance matrix"
     invcov::AbstractMatrix{T}
+    "Windows of data used for misfit calculations"
+    windows::Vector{Pair{Int, Int}}
 
     function VectorReceivers(
         positions::Matrix{T},
         nt::Int,
         ndim::Int=2;
         observed::Union{Array{T}, Nothing}=nothing,
-        invcov::Union{AbstractMatrix{T}, Nothing}=nothing
+        invcov::Union{AbstractMatrix{T}, Nothing}=nothing,
+        windows::Union{Vector{Pair{Int,Int}}, Nothing}=nothing
     ) where {T}
         @assert size(positions, 1) > 0 "There must be at least one receiver!"
         seismograms = zeros(T, nt, ndim, size(positions, 1))  ## N+1 !!!  <<<<<<<<--------------<<<<
@@ -96,6 +99,13 @@ struct VectorReceivers{T, N} <: Receivers{T}
         else
             invcov = zeros(T, 0, 0)
         end
-        return new{T, ndim}(positions, seismograms, observed, invcov)
+        if windows !== nothing
+            for wnd in windows
+                @assert 1 <= wnd.first <= wnd.second <= nt "Window $(wnd) is not consistent!"
+            end
+        else
+            windows = []
+        end
+        return new{T, ndim}(positions, seismograms, observed, invcov, windows)
     end
 end

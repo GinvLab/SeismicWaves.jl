@@ -47,7 +47,7 @@ end
 
 precompute_fact!(model::AcousticCDWaveSimulation) = copyto!(model.grid.fields["fact"].value, (model.dt^2) .* (model.matprop.vp .^ 2))
 
-init_gradient(model::AcousticCDWaveSimulation{N, T}) where {N, T}  = Dict("vp" => zero(model.matprop.vp))
+init_gradient(model::AcousticCDWaveSimulation) = Dict("vp" => zero(model.matprop.vp))
 
 accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticCDWaveSimulation{T, N}) where {T, N, D <: Dict{String, Array{T, N}}} = totgrad["vp"] .+= curgrad["vp"]
 
@@ -137,7 +137,10 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         addfield!(
             grid,
             "ψ" => MultiVariableField(
-                cat([[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat(
+                    [[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...;
+                    dims=1
+                )
             )
         )
         addfield!(
@@ -150,13 +153,21 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             addfield!(
                 grid,
                 "ψ_adj" => MultiVariableField(
-                    cat([[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat(
+                        [
+                            [backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N
+                        ]...;
+                        dims=1
+                    )
                 )
             )
             addfield!(
                 grid,
                 "ξ_adj" => MultiVariableField(
-                    cat([[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat(
+                        [[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...;
+                        dims=1
+                    )
                 )
             )
         end
@@ -293,7 +304,7 @@ end
     end
 end
 
-init_gradient(model::AcousticVDStaggeredWaveSimulation{N, T}) where {N, T} = Dict("vp" => zero(model.matprop.vp), "rho" => zero(model.matprop.rho))
+init_gradient(model::AcousticVDStaggeredWaveSimulation) = Dict("vp" => zero(model.matprop.vp), "rho" => zero(model.matprop.rho))
 
 function accumulate_gradient!(totgrad::D, curgrad::D, ::AcousticVDStaggeredWaveSimulation{T, N}) where {T, N, D <: Dict{String, Array{T, N}}}
     totgrad["vp"] .+= curgrad["vp"]
@@ -394,7 +405,10 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         addfield!(
             grid,
             "ψ" => MultiVariableField(
-                cat([[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                cat(
+                    [[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...;
+                    dims=1
+                )
             )
         )
         addfield!(
@@ -407,13 +421,21 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             addfield!(
                 grid,
                 "ψ_adj" => MultiVariableField(
-                    cat([[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat(
+                        [
+                            [backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N
+                        ]...;
+                        dims=1
+                    )
                 )
             )
             addfield!(
                 grid,
                 "ξ_adj" => MultiVariableField(
-                    cat([[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+                    cat(
+                        [[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...;
+                        dims=1
+                    )
                 )
             )
         end

@@ -69,7 +69,7 @@ Return a vector of `Dict` containing for each shot the snapshots of the fields c
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 """
 function swforward!(
-    wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}},
+    wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
     logger::Union{Nothing, AbstractLogger}=nothing,

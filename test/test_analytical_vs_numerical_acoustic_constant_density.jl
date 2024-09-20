@@ -5,7 +5,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :CUDA)
     end
     if @isdefined(AMDGPU) && AMDGPU.functional()
-            push!(test_backends, :AMDGPU)
+        push!(test_backends, :AMDGPU)
     end
 
     for parall in test_backends

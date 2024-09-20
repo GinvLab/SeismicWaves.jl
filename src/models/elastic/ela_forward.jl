@@ -6,23 +6,8 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     model::ElasticIsoCPMLWaveSimulation{T, 2},
     shot::MomentTensorShot{T, 2, MomentTensor2D{T}}
 ) where {T}
-
-    # scale source time function, etc.
-    # find nearest grid points indexes for both sources and receivers
-    # possrcs = find_nearest_grid_points(model, shot.srcs.positions)
-    # posrecs = find_nearest_grid_points(model, shot.recs.positions)
-
-    # interpolation coefficients for sources
-    srccoeij, srccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
-        shot.srcs.positions;
-        nptssinc=4, xstart=0.0, zstart=0.0)
-    # interpolation coefficients for receivers
-    reccoeij, reccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
-        shot.recs.positions;
-        nptssinc=4, xstart=0.0, zstart=0.0)
-
-    # source time function
-    srctf = shot.srcs.tf
+    # scale source time function
+    srccoeij, srccoeval, reccoeij, reccoeval, srctf = possrcrec_scaletf(model, shot)
     # moment tensors
     momtens = shot.srcs.momtens
 
@@ -37,9 +22,9 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     srccoeval_bk = backend.Data.Array(srccoeval)
     reccoeij_bk = backend.Data.Array(reccoeij)
     reccoeval_bk = backend.Data.Array(reccoeval)
-    
+
     srctf_bk = backend.Data.Array(srctf)
-    traces_bk = backend.Data.Array(shot.recs.seismograms)
+    traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
     ## ONLY 2D for now!!!
     nsrcs = length(momtens)
@@ -53,15 +38,15 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     # Time loop
     for it in 1:nt
         backend.forward_onestep_CPML!(model,
-                srccoeij_bk,
-                srccoeval_bk,
-                reccoeij_bk,
-                reccoeval_bk,
-                srctf_bk,
-                traces_bk,
-                it,
-                Mxx_bk, Mzz_bk, Mxz_bk;
-                save_trace=true)
+            srccoeij_bk,
+            srccoeval_bk,
+            reccoeij_bk,
+            reccoeval_bk,
+            srctf_bk,
+            traces_bk,
+            it,
+            Mxx_bk, Mzz_bk, Mxz_bk;
+            save_trace=true)
 
         # Print timestep info
         if it % model.infoevery == 0

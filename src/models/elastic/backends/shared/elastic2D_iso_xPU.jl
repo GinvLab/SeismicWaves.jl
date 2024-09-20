@@ -48,7 +48,25 @@
     return nothing
 end
 
-@parallel_indices (i, j) function update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, ψ_∂σxz∂x, ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+@parallel_indices (i, j) function update_4thord_vz!(
+    nx,
+    nz,
+    halo,
+    vz,
+    factx,
+    factz,
+    σxz,
+    σzz,
+    dt,
+    ρ_ihalf_jhalf,
+    ψ_∂σxz∂x,
+    ψ_∂σzz∂z,
+    b_x_half,
+    b_z_half,
+    a_x_half,
+    a_z_half,
+    freetop
+)
     if freetop && j <= 2
         # σxz derivative only in x so no problem
         ∂σxz∂x_fwd = factx * (σxz[i-1, j] - 27.0 * σxz[i, j] + 27.0 * σxz[i+1, j] - σxz[i+2, j])
@@ -116,10 +134,10 @@ end
             # vx derivative only in x so no problem
             ∂vx∂x_fwd = factx * (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j])
             # using boundary condition to calculate ∂vz∂z_bkd from ∂vx∂x_fwd
-            ∂vz∂z_bkd = -(1.0 - 2.0 * μ_ihalf[i, j] / λ_ihalf[i, j]) * ∂vx∂x_fwd
+            ∂vz∂z_bkd = -(λ_ihalf[i, j] / (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j])) * ∂vx∂x_fwd
             # σxx
-            # σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd + λ_ihalf[i,j] * dt * ∂vz∂z_bkd
-            σxx[i, j] = σxx[i, j] + (λ_ihalf[i, j] - λ_ihalf[i, j] / (λ_ihalf[i, j] + 2 + μ_ihalf[i, j]) + 2 * μ_ihalf[i, j]) * dt * ∂vx∂x_fwd
+            σxx[i, j] = σxx[i, j] + (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j]) * dt * ∂vx∂x_fwd +
+                        λ_ihalf[i, j] * dt * ∂vz∂z_bkd
             # σzz
             σzz[i, j] = 0.0 # we are on the free surface!
         end
@@ -243,29 +261,27 @@ end
 
 @parallel_indices (p) function inject_momten_sources2D!(σxx, σzz, σxz, Mxx, Mzz, Mxz, srctf_bk, dt, srccoeij_bk, srccoeval_bk, it)
     s, isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2], srccoeij_bk[p, 3]
-    σxx[isrc, jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it] * dt
-    σzz[isrc, jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it] * dt
-    σxz[isrc, jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it] * dt
+    σxx[isrc, jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it]
+    σzz[isrc, jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it]
+    σxz[isrc, jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it]
 
     return nothing
 end
 
-@parallel_indices (p) function inject_vel_sources2D!(vx, vz, f, srccoeij_bk, srccoeval_bk, ρ, ρ_ihalf_jhalf, it)
+@parallel_indices (p) function inject_vel_sources2D!(vx, vz, f, srccoeij_bk, srccoeval_bk, ρ, ρ_ihalf_jhalf, dt, it)
     s, isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2], srccoeij_bk[p, 3]
-    vx[isrc, jsrc] += srccoeval_bk[s] * f[it, 1, s] * dt / ρ[isrc, jsrc]
-    vz[isrc, jsrc] += srccoeval_bk[s] * f[it, 2, s] * dt / ρ_ihalf_jhalf[isrc, jsrc]
+    vx[isrc, jsrc] += srccoeval_bk[p] * f[it, 1, s] * dt / ρ[isrc, jsrc]
+    vz[isrc, jsrc] += srccoeval_bk[p] * f[it, 2, s] * dt / ρ_ihalf_jhalf[isrc, jsrc]
     return nothing
 end
-
 
 @parallel_indices (p) function record_receivers2D!(vx, vz, traces_bk, reccoeij_bk, reccoeval_bk, it)
-    r, irec, jrec = reccoeij_bk[p, 1], reccoeij_bk[p, 2], reccoeij_bk[p, 3] 
+    r, irec, jrec = reccoeij_bk[p, 1], reccoeij_bk[p, 2], reccoeij_bk[p, 3]
     traces_bk[it, 1, r] += reccoeval_bk[p] * vx[irec, jrec]
     traces_bk[it, 2, r] += reccoeval_bk[p] * vz[irec, jrec]
-    
+
     return nothing
 end
-
 
 function forward_onestep_CPML!(
     model,
@@ -393,17 +409,6 @@ function adjoint_onestep_CPML!(
     # Precomputing divisions
     factx = 1.0 / (24.0 * dx)
     factz = 1.0 / (24.0 * dz)
-
-    # update velocity vx 
-    @parallel (3:nx-1, 1:nz-1) update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z,
-        b_x, b_z, a_x, a_z, freetop)
-    # update velocity vz
-    @parallel (2:nx-2, 1:nz-2) update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, ψ_∂σxz∂x,
-        ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
-        
-    # inject sources (residuals as velocities)
-    nsrcpts = size(srccoeij_bk, 1)
-    @parallel (1:nsrcpts) inject_vel_sources2D!(vx, vz, residuals_bk, srccoeij_bk, srccoeval_bk, ρ, ρ_ihalf_jhalf, it)
     
     # update stresses σxx and σzz 
     @parallel (2:nx-2, 1:nz-1) update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
@@ -414,6 +419,18 @@ function adjoint_onestep_CPML!(
     @parallel (3:nx-1, 1:nz-2) update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
         μ_jhalf, b_x, b_z_half,
         ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
+
+    # update velocity vx 
+    @parallel (3:nx-1, 1:nz-1) update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z,
+        b_x, b_z, a_x, a_z, freetop)
+    # update velocity vz
+    @parallel (2:nx-2, 1:nz-2) update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, ψ_∂σxz∂x,
+        ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+
+    # inject sources (residuals as velocities)
+    nsrcpts = size(srccoeij_bk, 1)
+    @parallel (1:nsrcpts) inject_vel_sources2D!(vx, vz, residuals_bk, srccoeij_bk, srccoeval_bk, ρ, ρ_ihalf_jhalf, dt, it)
+
 
     return
 end
