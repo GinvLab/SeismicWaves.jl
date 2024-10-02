@@ -199,6 +199,9 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
+        # Deep copy material properties
+        matprop = deepcopy(matprop)
+
         new{T, N, A, V}(
             params,
             cpmlparams,
@@ -467,6 +470,9 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         else
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
+
+        # Deep copy material properties
+        matprop = deepcopy(matprop)
 
         return new{T, N, A, V}(
             params,

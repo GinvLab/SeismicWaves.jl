@@ -7,7 +7,9 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     shot::MomentTensorShot{T, 2, MomentTensor2D{T}}
 ) where {T}
     # scale source time function
-    srccoeij, srccoeval, reccoeij, reccoeval, srctf = possrcrec_scaletf(model, shot)
+    srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz,
+    reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz,
+    scal_srctf = possrcrec_scaletf(model, shot)
     # moment tensors
     momtens = shot.srcs.momtens
 
@@ -18,12 +20,16 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     nt = model.nt
 
     # Wrap sources and receivers arrays
-    srccoeij_bk = backend.Data.Array(srccoeij)
-    srccoeval_bk = backend.Data.Array(srccoeval)
-    reccoeij_bk = backend.Data.Array(reccoeij)
-    reccoeval_bk = backend.Data.Array(reccoeval)
+    srccoeij_xx = backend.Data.Array(srccoeij_xx)
+    srccoeval_xx = backend.Data.Array(srccoeval_xx)
+    srccoeij_xz = backend.Data.Array(srccoeij_xz)
+    srccoeval_xz = backend.Data.Array(srccoeval_xz)
+    reccoeij_vx = backend.Data.Array(reccoeij_vx)
+    reccoeval_vx = backend.Data.Array(reccoeval_vx)
+    reccoeij_vz = backend.Data.Array(reccoeij_vz)
+    reccoeval_vz = backend.Data.Array(reccoeval_vz)
 
-    srctf_bk = backend.Data.Array(srctf)
+    srctf_bk = backend.Data.Array(scal_srctf)
     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
     ## ONLY 2D for now!!!
@@ -38,10 +44,14 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     # Time loop
     for it in 1:nt
         backend.forward_onestep_CPML!(model,
-            srccoeij_bk,
-            srccoeval_bk,
-            reccoeij_bk,
-            reccoeval_bk,
+            srccoeij_xx,
+            srccoeval_xx,
+            srccoeij_xz,
+            srccoeval_xz,
+            reccoeij_vx,
+            reccoeval_vx,
+            reccoeij_vz,
+            reccoeval_vz,
             srctf_bk,
             traces_bk,
             it,
@@ -72,44 +82,76 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     return
 end
 
-function spreadsrcrecinterp2D(
-    gridspacing::NTuple{N, T},
-    gridsize::NTuple{N, Int},
-    positions::Matrix{T};
-    nptssinc::Int=4, xstart::T=0.0, zstart::T=0.0
-) where {T, N}
-    nloc = size(positions, 1)
-    Ndim = size(positions, 2)
-    @assert Ndim == 2
-    @assert N == Ndim
+@views function swforward_1shot!(
+    ::CPMLBoundaryCondition,
+    model::ElasticIsoCPMLWaveSimulation{T, 2},
+    shot::ExternalForceShot{T, 2}
+) where {T}
+    # scale source time function
+    srccoeij_vx, srccoeval_vx,
+    srccoeij_vz, srccoeval_vz,
+    reccoeij_vx, reccoeval_vx,
+    reccoeij_vz, reccoeval_vz,
+    scal_srctf = possrcrec_scaletf(model, shot)
 
-    Δx = gridspacing[1]
-    Δz = gridspacing[2]
-    nx, nz = gridsize[1:2]
+    # Get computational grid and backend
+    backend = select_backend(typeof(model), model.parall)
 
-    maxnumcoeff = nloc * (2 * nptssinc + 1)^Ndim
-    coeij_tmp = zeros(Int, maxnumcoeff, Ndim + 1)
-    coeval_tmp = zeros(T, maxnumcoeff)
-    l = 0
-    for p in 1:nloc
-        # extract x and z position for source or receiver p
-        xpos, zpos = positions[p, :]
-        # compute grid indices and values of sinc coefficients
-        xidx, zidx, xzcoeff = coeffsinc2D(xstart, zstart, Δx, Δz, xpos, zpos,
-            nx, nz, [:monopole, :monopole]; npts=nptssinc)
-        for j in eachindex(zidx)
-            for i in eachindex(xidx)
-                l += 1
-                # id, i, j indices
-                coeij_tmp[l, :] .= (p, xidx[i], zidx[j])
-                # coefficients value
-                coeval_tmp[l] = xzcoeff[i, j]
-            end
+    # Numerics
+    nt = model.nt
+
+    # Wrap sources and receivers arrays
+    srccoeij_vx = backend.Data.Array(srccoeij_vx)
+    srccoeval_vx = backend.Data.Array(srccoeval_vx)
+    srccoeij_vz = backend.Data.Array(srccoeij_vz)
+    srccoeval_vz = backend.Data.Array(srccoeval_vz)
+    reccoeij_vx = backend.Data.Array(reccoeij_vx)
+    reccoeval_vx = backend.Data.Array(reccoeval_vx)
+    reccoeij_vz = backend.Data.Array(reccoeij_vz)
+    reccoeval_vz = backend.Data.Array(reccoeval_vz)
+    srctf_bk = backend.Data.Array(scal_srctf)
+    traces_bk = backend.zeros(T, size(shot.recs.seismograms))
+
+    # Reset wavesim
+    reset!(model)
+
+    # Time loop
+    for it in 1:nt
+        backend.forward_onestep_CPML!(
+            model,
+            srccoeij_vx,
+            srccoeval_vx,
+            srccoeij_vz,
+            srccoeval_vz,
+            reccoeij_vx,
+            reccoeval_vx,
+            reccoeij_vz,
+            reccoeval_vz,
+            srctf_bk,
+            traces_bk,
+            it;
+            save_trace=true)
+
+        # Print timestep info
+        if it % model.infoevery == 0
+            # Move the cursor to the beginning to overwrite last line
+            # ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+            # REPL.Terminals.clear_line(ter)
+            # REPL.Terminals.cmove_line_up(ter)
+            @info @sprintf(
+                "Iteration: %d/%d, simulation time: %g s",
+                it, nt,
+                model.dt * (it - 1)
+            )
+        end
+
+        # Save snapshot
+        if snapenabled(model)
+            savesnapshot!(model.snapshotter, "v" => model.grid.fields["v"], it)
         end
     end
-    # keep only the valid part of the arrays
-    coeij = coeij_tmp[1:l, :]
-    coeval = coeval_tmp[1:l]
 
-    return coeij, coeval
+    # Save traces
+    copyto!(shot.recs.seismograms, traces_bk)
+    return
 end

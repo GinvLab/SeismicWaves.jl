@@ -14,9 +14,9 @@ Base.@kwdef mutable struct ElasticIsoMaterialProperties{T, N} <: AbstrElasticIso
     "Density"
     ρ::Array{T, N}
     "Interpolation method for density"
-    interp_method_ρ::InterpolationMethod = ArithmeticAverageInterpolation(2)
+    interp_method_ρ::AbstractInterpolationMethod = ArithmeticAverageInterpolation()
     "Interpolation method for density"
-    interp_method_λ::InterpolationMethod = ArithmeticAverageInterpolation(2)
+    interp_method_λ::AbstractInterpolationMethod = HarmonicAverageInterpolation()
     "Interpolation method for density"
-    interp_method_μ::InterpolationMethod = ArithmeticAverageInterpolation(2)
+    interp_method_μ::AbstractInterpolationMethod = ArithmeticAverageInterpolation()
 end

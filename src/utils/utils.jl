@@ -79,8 +79,7 @@ function kaiser(x::Vector, x0::T, b::T, r::T) where {T}
     for i in 1:length(x)
         xcur = x[i] - x0
         if -r <= xcur <= r
-            den = 1.0 / besseli(0, b)
-            w[i] = den * besseli(0, b * (sqrt.(1 - (xcur / r)^2)))
+            w[i] = besseli(0, b * (sqrt(1 - (xcur / r)^2))) / besseli(0, b)
         else
             w[i] = 0.0
         end

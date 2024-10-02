@@ -2,26 +2,102 @@
 
 # Functions for all ElasticIsoWaveSimulation subtypes
 
+function spreadsrcrecinterp2D(
+    gridspacing::NTuple{N, T},
+    gridsize::NTuple{N, Int},
+    positions::Matrix{T};
+    nptssinc::Int=4, xstart::T=0.0, zstart::T=0.0
+) where {T, N}
+    nloc = size(positions, 1)
+    Ndim = size(positions, 2)
+    @assert Ndim == 2
+    @assert N == Ndim
+
+    Δx = gridspacing[1]
+    Δz = gridspacing[2]
+    nx, nz = gridsize[1:2]
+
+    maxnumcoeff = nloc * (2 * nptssinc + 1)^Ndim
+    coeij_tmp = zeros(Int, maxnumcoeff, Ndim + 1)
+    coeval_tmp = zeros(T, maxnumcoeff)
+    l = 0
+    for p in 1:nloc
+        # extract x and z position for source or receiver p
+        xpos, zpos = positions[p, :]
+        # compute grid indices and values of sinc coefficients
+        xidx, zidx, xzcoeff = coeffsinc2D(xstart, zstart, Δx, Δz, xpos, zpos,
+            nx, nz, [:monopole, :monopole]; npts=nptssinc)
+        for j in eachindex(zidx)
+            for i in eachindex(xidx)
+                l += 1
+                # id, i, j indices
+                coeij_tmp[l, :] .= (p, xidx[i], zidx[j])
+                # coefficients value
+                coeval_tmp[l] = xzcoeff[i, j]
+            end
+        end
+    end
+    # keep only the valid part of the arrays
+    coeij = coeij_tmp[1:l, :]
+    coeval = coeval_tmp[1:l]
+
+    return coeij, coeval
+end
+
 # Scaling for ElasticIsoWaveSimulation
-@views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T}) where {T}
-    # interpolation coefficients for sources
-    srccoeij, srccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
-        shot.srcs.positions;
+@views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}) where {T}
+    # interpolation coefficients for sources in vx
+    srccoeij_vx, srccoeval_vx = spreadsrcrecinterp2D(
+        model.grid.spacing, model.grid.size, shot.srcs.positions;
         nptssinc=4, xstart=0.0, zstart=0.0)
-    # interpolation coefficients for receivers
-    reccoeij, reccoeval = spreadsrcrecinterp2D(model.grid.spacing, model.grid.size,
-        shot.recs.positions;
-        nptssinc=4, xstart=0.0, zstart=0.0) 
+    # interpolation coefficients for sources in vz
+    srccoeij_vz, srccoeval_vz = spreadsrcrecinterp2D(
+        model.grid.spacing, model.grid.size, shot.srcs.positions;
+        nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+    # interpolation coefficients for receivers in vx
+    reccoeij_vx, reccoeval_vx = spreadsrcrecinterp2D(
+        model.grid.spacing, model.grid.size, shot.recs.positions;
+        nptssinc=4, xstart=0.0, zstart=0.0)
+    # interpolation coefficients for receivers in vz
+    reccoeij_vz, reccoeval_vz = spreadsrcrecinterp2D(
+        model.grid.spacing, model.grid.size, shot.recs.positions;
+        nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
     # scale source time function with boxcar and timestep size
     scal_srctf = shot.srcs.tf ./ prod(model.grid.spacing) .* model.dt
 
-    return srccoeij, srccoeval, reccoeij, reccoeval, scal_srctf
+    return srccoeij_vx, srccoeval_vx, srccoeij_vz, srccoeval_vz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, scal_srctf
 end
+
+@views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}) where {T}
+    # interpolation coefficients for sources in σxx and σzz
+    srccoeij_xx, srccoeval_xx = spreadsrcrecinterp2D(
+        model.grid.spacing, model.grid.size, shot.srcs.positions;
+        nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=0.0)
+    # interpolation coefficients for sources in σxz
+    srccoeij_xz, srccoeval_xz = spreadsrcrecinterp2D(
+        model.grid.spacing, model.grid.size, shot.srcs.positions;
+        nptssinc=4, xstart=0.0, zstart=model.grid.spacing[2]/2)
+    # interpolation coefficients for receivers in vx
+    reccoeij_vx, reccoeval_vx = spreadsrcrecinterp2D(
+        model.grid.spacing, model.grid.size, shot.recs.positions;
+        nptssinc=4, xstart=0.0, zstart=0.0)
+    # interpolation coefficients for receivers in vz
+    reccoeij_vz, reccoeval_vz = spreadsrcrecinterp2D(
+        model.grid.spacing, model.grid.size, shot.recs.positions;
+        nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+
+    # scale source time function with boxcar and timestep size
+    scal_srctf = shot.srcs.tf ./ prod(model.grid.spacing) .* model.dt
+
+    return srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, scal_srctf
+end
+
+
 
 @views function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
     # Checks
-    @assert all(matprop.λ .> 0) "Lamè coefficient λ must be positive!"
-    @assert all(matprop.μ .> 0) "Lamè coefficient μ must be positive!"
+    @assert all(matprop.λ .>= 0) "Lamè coefficient λ must be positive!"
+    @assert all(matprop.μ .>= 0) "Lamè coefficient μ must be positive!"
     @assert all(matprop.ρ .> 0) "Density must be positive!"
     vp = sqrt.((matprop.λ .+ 2.0 .* matprop.μ) ./ matprop.ρ)
     @assert ndims(vp) == N "Material property dimensionality must be the same as the wavesim!"
@@ -41,12 +117,16 @@ end
 
 function check_numerics(
     model::ElasticIsoWaveSimulation{T},
-    shot::MomentTensorShot{T};
+    shot::Union{MomentTensorShot{T}, ExternalForceShot{T}};
     min_ppw::Int=10
 ) where {T}
     # Check points per wavelengh
     # min Vs
     vel_min = get_minimum_func(model)(sqrt.(model.matprop.μ ./ model.matprop.ρ))
+    if vel_min == 0
+        # compute minimum vp
+        vel_min = get_minimum_func(model)(sqrt.((model.matprop.λ .+ 2.0 .* model.matprop.μ) ./ model.matprop.ρ))
+    end
     h_max = maximum(model.grid.spacing)
     fmax = shot.srcs.domfreq * 2.0
     ppw = vel_min / (fmax * h_max)
@@ -273,6 +353,9 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         else
             @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
+
+        # Deep copy the material properties
+        matprop = deepcopy(matprop)
 
         return new{T, N, A, V}(
             params,

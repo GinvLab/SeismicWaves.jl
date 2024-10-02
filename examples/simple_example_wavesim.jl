@@ -131,7 +131,7 @@ function exacouprob_wavsim(parall=:serial)
         seis = shots[i].recs.seismograms
         nt = size(seis, 1)
         recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
-            invcov=Diagonal(ones(nt)))
+            invcov=1.0 * I(nt))
         push!(shots_grad, ScalarShot(; srcs=shots[i].srcs, recs=recs_grad))
     end
 

@@ -27,6 +27,21 @@ Base.@kwdef struct MomentTensorShot{T, N, M <: MomentTensor{T, N}} <: Shot{T}
     recs::VectorReceivers{T, N}
 end
 
+
+"""
+$(TYPEDEF)
+
+Type representing a shot with external force sources and multi-component receivers.
+
+$(TYPEDFIELDS)
+"""
+Base.@kwdef struct ExternalForceShot{T, N} <: Shot{T}
+    "Structure containing the ExternalForcesSources for a given simulation."
+    srcs::ExternalForceSources{T, N}
+    "Structure containing the VectorReceivers for a given simulation."
+    recs::VectorReceivers{T, N}
+end
+
 ##################################################
 
 function init_shot!(model::WaveSimulation{T}, shot::Shot{T}; kwargs...) where {T}

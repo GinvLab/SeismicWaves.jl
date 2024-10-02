@@ -54,7 +54,6 @@ with_logger(ConsoleLogger(stderr, Logging.Info)) do
             @test !(misfit ≈ 0.0)
             @test !(misfit_check ≈ 0.0)
             # Check that misfits are equivalent
-            @show misfit, misfit_check
             @test misfit ≈ misfit_check
         end
     end

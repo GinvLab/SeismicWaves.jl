@@ -6,6 +6,7 @@ using Printf
 using ParallelStencil
 using Logging
 using DocStringExtensions
+using Interpolations
 
 # main struct for wave simulation
 export WaveSimulation
@@ -19,8 +20,8 @@ export MaterialProperties
 export VpAcousticCDMaterialProperties, VpRhoAcousticVDMaterialProperties
 export ElasticIsoMaterialProperties
 # export sources, receivers and shots
-export Shot, ScalarShot, MomentTensorShot
-export Sources, ScalarSources, MomentTensorSources
+export Shot, ScalarShot, MomentTensorShot, ExternalForceShot
+export Sources, ScalarSources, MomentTensorSources, ExternalForceSources
 export MomentTensor2D, MomentTensor3D
 export Receivers, ScalarReceivers, VectorReceivers
 # forward, misfit and gradient functions

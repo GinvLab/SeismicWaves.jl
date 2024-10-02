@@ -77,7 +77,7 @@ abstract type Receivers{T} end
 
 abstract type MomentTensor{T, N} end
 
-abstract type InterpolationMethod end
+abstract type AbstractInterpolationMethod end
 
 abstract type AbstractMisfit end
 

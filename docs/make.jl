@@ -1,14 +1,14 @@
 
 using SeismicWaves
 
-import Literate
+using Literate: Literate
 using Documenter
 
 println("Converting examples...")
 
 Literate.markdown(
     joinpath(@__DIR__, "src", "examples.jl"), joinpath(@__DIR__, "src");
-    credit = false
+    credit=false
 )
 
 println("Building documentation...")
