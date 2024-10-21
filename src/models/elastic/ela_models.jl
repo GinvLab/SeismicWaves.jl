@@ -2,45 +2,48 @@
 
 # Functions for all ElasticIsoWaveSimulation subtypes
 
-function spreadsrcrecinterp2D(
-    gridspacing::NTuple{N, T},
-    gridsize::NTuple{N, Int},
-    positions::Matrix{T};
-    nptssinc::Int=4, xstart::T=0.0, zstart::T=0.0
-) where {T, N}
-    nloc = size(positions, 1)
-    Ndim = size(positions, 2)
-    @assert Ndim == 2
-    @assert N == Ndim
+function modd_2D_grid(x0::T, y0::T, dx::T, dy::T, nx::Int, ny::Int, r::Int=4, β::Int=10, xstart::T=0, ystart::T=0) where {T}
+    xs = range(xstart, length=nx, step=dx)
+    ys = range(ystart, length=ny, step=dy)
+    dd_coeffs = Vector{Tuple{Int, Int, T}}()
 
-    Δx = gridspacing[1]
-    Δz = gridspacing[2]
-    nx, nz = gridsize[1:2]
+    kaiser(x, r, β) = (-r <= x <= r ? besseli(0, β * sqrt(1 - (x / r)^2)) / besseli(0, β) : 0.0)
+    modd_(x, x0, r, β, Δx) = 1/Δx * kaiser(x - x0, r, β) * sinc((x - x0)/Δx)
+    modd(x, x0, r, β, Δx) = begin
+        res = modd_(x, x0, r * Δx, β, Δx)
+        return res ≈ 0 ? 0.0 : res
+    end
+    modd_2D(x, y, x0, y0, r, β, Δx, Δy) = modd(x, x0, r, β, Δx) * modd(y, y0, r, β, Δy)
+    findnearest(x, xs) = argmin(abs.(x .- xs))
 
-    maxnumcoeff = nloc * (2 * nptssinc + 1)^Ndim
-    coeij_tmp = zeros(Int, maxnumcoeff, Ndim + 1)
-    coeval_tmp = zeros(T, maxnumcoeff)
-    l = 0
-    for p in 1:nloc
-        # extract x and z position for source or receiver p
-        xpos, zpos = positions[p, :]
-        # compute grid indices and values of sinc coefficients
-        xidx, zidx, xzcoeff = coeffsinc2D(xstart, zstart, Δx, Δz, xpos, zpos,
-            nx, nz, [:monopole, :monopole]; npts=nptssinc)
-        for j in eachindex(zidx)
-            for i in eachindex(xidx)
-                l += 1
-                # id, i, j indices
-                coeij_tmp[l, :] .= (p, xidx[i], zidx[j])
-                # coefficients value
-                coeval_tmp[l] = xzcoeff[i, j]
-            end
+    i0 = findnearest(x0, xs)
+    j0 = findnearest(y0, ys)
+    for i in i0-r-1:i0+r+1, j in j0-r-1:j0+r+1
+        if i < 1 || i > nx || j < 1 || j > ny
+            continue
+        end
+        ddij = modd_2D(xs[i], ys[j], x0, y0, r, β, dx, dy)
+        if ddij != 0.0
+            push!(dd_coeffs, (i, j, ddij))
         end
     end
-    # keep only the valid part of the arrays
-    coeij = coeij_tmp[1:l, :]
-    coeval = coeval_tmp[1:l]
 
+    return dd_coeffs
+end
+
+function spread2D(spacing::NTuple{2, T}, size::NTuple{2, Int}, positions::Matrix{T}, npositions; r::Int=4, β::Int=10, xstart::T=0, zstart::T=0) where {T}
+    coeij = Vector{Matrix{Int}}(undef, npositions)
+    coeval = Vector{Vector{T}}(undef, npositions)
+    for p in 1:npositions
+        x0, y0 = positions[p, 1], positions[p, 2]
+        dd_coeffs = modd_2D_grid(x0, y0, spacing[1], spacing[2], size[1], size[2], r, β, xstart, zstart)
+        coeij[p] = zeros(Int, length(dd_coeffs), 2)
+        coeval[p] = zeros(T, length(dd_coeffs))
+        for (idx, (i, j, val)) in enumerate(dd_coeffs)
+            coeij[p][idx, :] .= (i, j)
+            coeval[p][idx] = val
+        end
+    end
     return coeij, coeval
 end
 
@@ -48,46 +51,28 @@ end
 @views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
         # interpolation coefficients for sources in vx
-        srccoeij_vx, srccoeval_vx = spreadsrcrecinterp2D(
-            model.grid.spacing, model.grid.size, shot.srcs.positions;
-            nptssinc=4, xstart=0.0, zstart=0.0)
+        nsrcs = size(shot.srcs.positions, 1)
+        srccoeij_vx, srccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=0.0, zstart=0.0)
         # interpolation coefficients for sources in vz
-        srccoeij_vz, srccoeval_vz = spreadsrcrecinterp2D(
-            model.grid.spacing, model.grid.size, shot.srcs.positions;
-            nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+        srccoeij_vz, srccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+        nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_vx, reccoeval_vx = spreadsrcrecinterp2D(
-            model.grid.spacing, model.grid.size, shot.recs.positions;
-            nptssinc=4, xstart=0.0, zstart=0.0)
+        reccoeij_vx, reccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=0.0, zstart=0.0)
         # interpolation coefficients for receivers in vz
-        reccoeij_vz, reccoeval_vz = spreadsrcrecinterp2D(
-            model.grid.spacing, model.grid.size, shot.recs.positions;
-            nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+        reccoeij_vz, reccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
         nsrcs = size(shot.srcs.positions, 1)
         nrecs = size(shot.recs.positions, 1)
-        srccoeij_vx = zeros(Int, nsrcs, 3)
-        srccoeval_vx = ones(T, nsrcs)
-        srccoeij_vz = zeros(Int, nsrcs, 3)
-        srccoeval_vz = ones(T, nsrcs)
-        reccoeij_vx = zeros(Int, nrecs, 3)
-        reccoeval_vx = ones(T, nrecs)
-        reccoeij_vz = zeros(Int, nrecs, 3)
-        reccoeval_vz = ones(T, nrecs)
-        for p in 1:nsrcs
-            srccoeij_vx[p, :] .= (p, src_idx_positions[p, 1], src_idx_positions[p, 2])
-            srccoeij_vz[p, :] .= (p, src_idx_positions[p, 1], src_idx_positions[p, 2])
-        end
-        for p in 1:nrecs
-            reccoeij_vx[p, :] .= (p, rec_idx_positions[p, 1], rec_idx_positions[p, 2])
-            reccoeij_vz[p, :] .= (p, rec_idx_positions[p, 1], rec_idx_positions[p, 2])
-        end
-        @show srccoeij_vx, srccoeval_vx
-        @show srccoeij_vz, srccoeval_vz
-        @show reccoeij_vx, reccoeval_vx
-        @show reccoeij_vz, reccoeval_vz
+        srccoeij_vx = [[src_idx_positions[s, 1] src_idx_positions[s, 2]] for s in 1:nsrcs]
+        srccoeval_vx = [ones(T, 1) for _ in 1:nsrcs]
+        srccoeij_vz = [[src_idx_positions[s, 1] src_idx_positions[s, 2]] for s in 1:nsrcs]
+        srccoeval_vz = [ones(T, 1) for _ in 1:nsrcs]
+        reccoeij_vx = [[rec_idx_positions[r, 1] rec_idx_positions[r, 2]] for r in 1:nrecs]
+        reccoeval_vx = [ones(T, 1) for _ in 1:nrecs]
+        reccoeij_vz = [[rec_idx_positions[r, 1] rec_idx_positions[r, 2]] for r in 1:nrecs]
+        reccoeval_vz = [ones(T, 1) for _ in 1:nrecs]
     end
 
     # scale source time function with boxcar and timestep size
@@ -98,43 +83,29 @@ end
 
 @views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
+        nsrcs = size(shot.srcs.positions, 1)
         # interpolation coefficients for sources in σxx and σzz
-        srccoeij_xx, srccoeval_xx = spreadsrcrecinterp2D(
-            model.grid.spacing, model.grid.size, shot.srcs.positions;
-            nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=0.0)
+        srccoeij_xx, srccoeval_xx = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=model.grid.spacing[1]/2, zstart=0.0)
         # interpolation coefficients for sources in σxz
-        srccoeij_xz, srccoeval_xz = spreadsrcrecinterp2D(
-            model.grid.spacing, model.grid.size, shot.srcs.positions;
-            nptssinc=4, xstart=0.0, zstart=model.grid.spacing[2]/2)
+        srccoeij_xz, srccoeval_xz = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=0.0, zstart=model.grid.spacing[2]/2)
+        nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_vx, reccoeval_vx = spreadsrcrecinterp2D(
-            model.grid.spacing, model.grid.size, shot.recs.positions;
-            nptssinc=4, xstart=0.0, zstart=0.0)
+        reccoeij_vx, reccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=0.0, zstart=0.0)
         # interpolation coefficients for receivers in vz
-        reccoeij_vz, reccoeval_vz = spreadsrcrecinterp2D(
-            model.grid.spacing, model.grid.size, shot.recs.positions;
-            nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+        reccoeij_vz, reccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
         nsrcs = size(shot.srcs.positions, 1)
         nrecs = size(shot.recs.positions, 1)
-        srccoeij_xx = zeros(Int, nsrcs, 3)
-        srccoeval_xx = ones(T, nsrcs)
-        srccoeij_xz = zeros(Int, nsrcs, 3)
-        srccoeval_xz = ones(T, nsrcs)
-        reccoeij_vx = zeros(Int, nrecs, 3)
-        reccoeval_vx = ones(T, nrecs)
-        reccoeij_vz = zeros(Int, nrecs, 3)
-        reccoeval_vz = ones(T, nrecs)
-        for p in 1:nsrcs
-            srccoeij_xx[p, :] .= (p, src_idx_positions[p, 1], src_idx_positions[p, 2])
-            srccoeij_xz[p, :] .= (p, src_idx_positions[p, 1], src_idx_positions[p, 2])
-        end
-        for p in 1:nrecs
-            reccoeij_vx[p, :] .= (p, rec_idx_positions[p, 1], rec_idx_positions[p, 2])
-            reccoeij_vz[p, :] .= (p, rec_idx_positions[p, 1], rec_idx_positions[p, 2])
-        end
+        srccoeij_xx = [[src_idx_positions[s, 1] src_idx_positions[s, 2]] for s in 1:nsrcs]
+        srccoeval_xx = [ones(T, 1) for _ in 1:nsrcs]
+        srccoeij_xz = [[src_idx_positions[s, 1] src_idx_positions[s, 2]] for s in 1:nsrcs]
+        srccoeval_xz = [ones(T, 1) for _ in 1:nsrcs]
+        reccoeij_vx = [[rec_idx_positions[r, 1] rec_idx_positions[r, 2]] for r in 1:nrecs]
+        reccoeval_vx = [ones(T, 1) for _ in 1:nrecs]
+        reccoeij_vz = [[rec_idx_positions[r, 1] rec_idx_positions[r, 2]] for r in 1:nrecs]
+        reccoeval_vz = [ones(T, 1) for _ in 1:nrecs]
     end
 
     # scale source time function with boxcar and timestep size
@@ -261,7 +232,7 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         snapevery::Union{Int, Nothing}=nothing,
         infoevery::Union{Int, Nothing}=nothing,
         smooth_radius::Int=5,
-        sincinterp::Bool=false
+        sincinterp::Bool=true
     ) where {T, N}
         # Extract params
         nt = params.ntimesteps

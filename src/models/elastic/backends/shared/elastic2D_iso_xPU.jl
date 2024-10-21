@@ -259,41 +259,41 @@ end
     return nothing
 end
 
-@parallel_indices (p) function inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx, Mzz, srctf_bk, srccoeij_bk, srccoeval_bk, it)
-    s, isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2], srccoeij_bk[p, 3]
+@parallel_indices (p) function inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx, Mzz, srctf_bk, srccoeij_bk, srccoeval_bk, it, s)
+    isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
     σxx[isrc, jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it, s]
     σzz[isrc, jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it, s]
 
     return nothing
 end
 
-@parallel_indices (p) function inject_momten_sources2D_σxz!(σxz, Mxz, srctf_bk, srccoeij_bk, srccoeval_bk, it)
-    s, isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2], srccoeij_bk[p, 3]
+@parallel_indices (p) function inject_momten_sources2D_σxz!(σxz, Mxz, srctf_bk, srccoeij_bk, srccoeval_bk, it, s)
+    isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
     σxz[isrc, jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it, s]
 
     return nothing
 end
 
-@parallel_indices (p) function inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_bk, srccoeval_bk, ρ, it)
-    s, isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2], srccoeij_bk[p, 3]
+@parallel_indices (p) function inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_bk, srccoeval_bk, ρ, it, s)
+    isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
     vx[isrc, jsrc] += srccoeval_bk[p] * srctf_bk[it, 1, s] / ρ[isrc, jsrc]
     return nothing
 end
 
-@parallel_indices (p) function inject_external_sources2D_vz!(vz, srctf_bk, srccoeij_bk, srccoeval_bk, ρ_ihalf_jhalf, it)
-    s, isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2], srccoeij_bk[p, 3]
+@parallel_indices (p) function inject_external_sources2D_vz!(vz, srctf_bk, srccoeij_bk, srccoeval_bk, ρ_ihalf_jhalf, it, s)
+    isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
     vz[isrc, jsrc] += srccoeval_bk[p] * srctf_bk[it, 2, s] / ρ_ihalf_jhalf[isrc, jsrc]
     return nothing
 end
 
-@parallel_indices (p) function record_receivers2D_vx!(vx, traces_bk, reccoeij_vx, reccoeval_vx, it)
-    r, irec, jrec = reccoeij_vx[p, 1], reccoeij_vx[p, 2], reccoeij_vx[p, 3]
+@parallel_indices (p) function record_receivers2D_vx!(vx, traces_bk, reccoeij_vx, reccoeval_vx, it, r)
+    irec, jrec = reccoeij_vx[p, 1], reccoeij_vx[p, 2]
     traces_bk[it, 1, r] += reccoeval_vx[p] * vx[irec, jrec]
     return nothing
 end
 
-@parallel_indices (p) function record_receivers2D_vz!(vz, traces_bk, reccoeij_vz, reccoeval_vz, it)
-    r, irec, jrec = reccoeij_vz[p, 1], reccoeij_vz[p, 2], reccoeij_vz[p, 3]
+@parallel_indices (p) function record_receivers2D_vz!(vz, traces_bk, reccoeij_vz, reccoeval_vz, it, r)
+    irec, jrec = reccoeij_vz[p, 1], reccoeij_vz[p, 2]
     traces_bk[it, 2, r] += reccoeval_vz[p] * vz[irec, jrec]
     return nothing
 end
@@ -363,10 +363,16 @@ function forward_onestep_CPML!(
 
     # record receivers
     if save_trace
-        nrecpts_vx = size(reccoeij_vx, 1)
-        nrecpts_vz = size(reccoeij_vz, 1)
-        @parallel (1:nrecpts_vx) record_receivers2D_vx!(vx, traces_bk, reccoeij_vx, reccoeval_vx, it)
-        @parallel (1:nrecpts_vz) record_receivers2D_vz!(vz, traces_bk, reccoeij_vz, reccoeval_vz, it)
+        nrecs_vx = size(reccoeij_vx, 1)
+        nrecs_vz = size(reccoeij_vz, 1)
+        for r in 1:nrecs_vx
+            nrecspts_vx = size(reccoeij_vx[r], 1)
+            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_bk, reccoeij_vx[r], reccoeval_vx[r], it, r)
+        end
+        for r in 1:nrecs_vz
+            nrecspts_vz = size(reccoeij_vz[r], 1)
+            @parallel (1:nrecspts_vz) record_receivers2D_vz!(vz, traces_bk, reccoeij_vz[r], reccoeval_vz[r], it, r)
+        end
     end
 
     # update stresses σxx and σzz 
@@ -380,10 +386,16 @@ function forward_onestep_CPML!(
         ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
 
     # inject sources (moment tensor type of internal force)
-    nsrcpts_xx = size(srccoeij_xx, 1)
-    nsrcpts_xz = size(srccoeij_xz, 1)
-    @parallel (1:nsrcpts_xx) inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx_bk, Mzz_bk, srctf_bk, srccoeij_xx, srccoeval_xx, it)
-    @parallel (1:nsrcpts_xz) inject_momten_sources2D_σxz!(σxz, Mxz_bk, srctf_bk, srccoeij_xz, srccoeval_xz, it)
+    nrecs_xx = size(srccoeij_xx, 1)
+    nrecs_xz = size(srccoeij_xz, 1)
+    for s in 1:nrecs_xx
+        nsrcpts_xx = size(srccoeij_xx[s], 1)
+        @parallel (1:nsrcpts_xx) inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx_bk, Mzz_bk, srctf_bk, srccoeij_xx[s], srccoeval_xx[s], it, s)
+    end
+    for s in 1:nrecs_xz
+        nsrcpts_xz = size(srccoeij_xz[s], 1)
+        @parallel (1:nsrcpts_xz) inject_momten_sources2D_σxz!(σxz, Mxz_bk, srctf_bk, srccoeij_xz[s], srccoeval_xz[s], it, s)
+    end
 
     return
 end
@@ -449,17 +461,29 @@ function forward_onestep_CPML!(
         ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
 
     # inject sources (residuals as velocities)
-    nsrcpts_vx = size(srccoeij_vx, 1)
-    nsrcpts_vz = size(srccoeij_vz, 1)
-    @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_vx, srccoeval_vx, ρ, it)
-    @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(vz, srctf_bk, srccoeij_vz, srccoeval_vz, ρ_ihalf_jhalf, it)
+    nsrcs_vx = size(srccoeij_vx, 1)
+    nsrcs_vz = size(srccoeij_vz, 1)
+    for s in 1:nsrcs_vx
+        nsrcpts_vx = size(srccoeij_vx[s], 1)
+        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_vx[s], srccoeval_vx[s], ρ, it, s)
+    end
+    for s in 1:nsrcs_vz
+        nsrcpts_vz = size(srccoeij_vz[s], 1)
+        @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(vz, srctf_bk, srccoeij_vz[s], srccoeval_vz[s], ρ_ihalf_jhalf, it, s)
+    end
 
     # record receivers
     if save_trace
-        nrecpts_vx = size(reccoeij_vx, 1)
-        nrecpts_vz = size(reccoeij_vz, 1)
-        @parallel (1:nrecpts_vx) record_receivers2D_vx!(vx, traces_bk, reccoeij_vx, reccoeval_vx, it)
-        @parallel (1:nrecpts_vz) record_receivers2D_vz!(vz, traces_bk, reccoeij_vz, reccoeval_vz, it)
+        nrecs_vx = size(reccoeij_vx, 1)
+        nrecs_vz = size(reccoeij_vz, 1)
+        for r in 1:nrecs_vx
+            nrecspts_vx = size(reccoeij_vx[r], 1)
+            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_bk, reccoeij_vx[r], reccoeval_vx[r], it, r)
+        end
+        for r in 1:nrecs_vz
+            nrecspts_vz = size(reccoeij_vz[r], 1)
+            @parallel (1:nrecspts_vz) record_receivers2D_vz!(vz, traces_bk, reccoeij_vz[r], reccoeval_vz[r], it, r)
+        end
     end
 
     # update stresses σxx and σzz 
