@@ -45,49 +45,100 @@ function spreadsrcrecinterp2D(
 end
 
 # Scaling for ElasticIsoWaveSimulation
-@views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}) where {T}
-    # interpolation coefficients for sources in vx
-    srccoeij_vx, srccoeval_vx = spreadsrcrecinterp2D(
-        model.grid.spacing, model.grid.size, shot.srcs.positions;
-        nptssinc=4, xstart=0.0, zstart=0.0)
-    # interpolation coefficients for sources in vz
-    srccoeij_vz, srccoeval_vz = spreadsrcrecinterp2D(
-        model.grid.spacing, model.grid.size, shot.srcs.positions;
-        nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
-    # interpolation coefficients for receivers in vx
-    reccoeij_vx, reccoeval_vx = spreadsrcrecinterp2D(
-        model.grid.spacing, model.grid.size, shot.recs.positions;
-        nptssinc=4, xstart=0.0, zstart=0.0)
-    # interpolation coefficients for receivers in vz
-    reccoeij_vz, reccoeval_vz = spreadsrcrecinterp2D(
-        model.grid.spacing, model.grid.size, shot.recs.positions;
-        nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+@views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}; sincinterp=false) where {T}
+    if sincinterp
+        # interpolation coefficients for sources in vx
+        srccoeij_vx, srccoeval_vx = spreadsrcrecinterp2D(
+            model.grid.spacing, model.grid.size, shot.srcs.positions;
+            nptssinc=4, xstart=0.0, zstart=0.0)
+        # interpolation coefficients for sources in vz
+        srccoeij_vz, srccoeval_vz = spreadsrcrecinterp2D(
+            model.grid.spacing, model.grid.size, shot.srcs.positions;
+            nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+        # interpolation coefficients for receivers in vx
+        reccoeij_vx, reccoeval_vx = spreadsrcrecinterp2D(
+            model.grid.spacing, model.grid.size, shot.recs.positions;
+            nptssinc=4, xstart=0.0, zstart=0.0)
+        # interpolation coefficients for receivers in vz
+        reccoeij_vz, reccoeval_vz = spreadsrcrecinterp2D(
+            model.grid.spacing, model.grid.size, shot.recs.positions;
+            nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+    else
+        src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
+        rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
+        nsrcs = size(shot.srcs.positions, 1)
+        nrecs = size(shot.recs.positions, 1)
+        srccoeij_vx = zeros(Int, nsrcs, 3)
+        srccoeval_vx = ones(T, nsrcs)
+        srccoeij_vz = zeros(Int, nsrcs, 3)
+        srccoeval_vz = ones(T, nsrcs)
+        reccoeij_vx = zeros(Int, nrecs, 3)
+        reccoeval_vx = ones(T, nrecs)
+        reccoeij_vz = zeros(Int, nrecs, 3)
+        reccoeval_vz = ones(T, nrecs)
+        for p in 1:nsrcs
+            srccoeij_vx[p, :] .= (p, src_idx_positions[p, 1], src_idx_positions[p, 2])
+            srccoeij_vz[p, :] .= (p, src_idx_positions[p, 1], src_idx_positions[p, 2])
+        end
+        for p in 1:nrecs
+            reccoeij_vx[p, :] .= (p, rec_idx_positions[p, 1], rec_idx_positions[p, 2])
+            reccoeij_vz[p, :] .= (p, rec_idx_positions[p, 1], rec_idx_positions[p, 2])
+        end
+        @show srccoeij_vx, srccoeval_vx
+        @show srccoeij_vz, srccoeval_vz
+        @show reccoeij_vx, reccoeval_vx
+        @show reccoeij_vz, reccoeval_vz
+    end
+
     # scale source time function with boxcar and timestep size
-    scal_srctf = shot.srcs.tf ./ prod(model.grid.spacing) .* model.dt
+    scal_srctf = shot.srcs.tf .* model.dt
 
     return srccoeij_vx, srccoeval_vx, srccoeij_vz, srccoeval_vz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, scal_srctf
 end
 
-@views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}) where {T}
-    # interpolation coefficients for sources in σxx and σzz
-    srccoeij_xx, srccoeval_xx = spreadsrcrecinterp2D(
-        model.grid.spacing, model.grid.size, shot.srcs.positions;
-        nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=0.0)
-    # interpolation coefficients for sources in σxz
-    srccoeij_xz, srccoeval_xz = spreadsrcrecinterp2D(
-        model.grid.spacing, model.grid.size, shot.srcs.positions;
-        nptssinc=4, xstart=0.0, zstart=model.grid.spacing[2]/2)
-    # interpolation coefficients for receivers in vx
-    reccoeij_vx, reccoeval_vx = spreadsrcrecinterp2D(
-        model.grid.spacing, model.grid.size, shot.recs.positions;
-        nptssinc=4, xstart=0.0, zstart=0.0)
-    # interpolation coefficients for receivers in vz
-    reccoeij_vz, reccoeval_vz = spreadsrcrecinterp2D(
-        model.grid.spacing, model.grid.size, shot.recs.positions;
-        nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+@views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
+    if sincinterp
+        # interpolation coefficients for sources in σxx and σzz
+        srccoeij_xx, srccoeval_xx = spreadsrcrecinterp2D(
+            model.grid.spacing, model.grid.size, shot.srcs.positions;
+            nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=0.0)
+        # interpolation coefficients for sources in σxz
+        srccoeij_xz, srccoeval_xz = spreadsrcrecinterp2D(
+            model.grid.spacing, model.grid.size, shot.srcs.positions;
+            nptssinc=4, xstart=0.0, zstart=model.grid.spacing[2]/2)
+        # interpolation coefficients for receivers in vx
+        reccoeij_vx, reccoeval_vx = spreadsrcrecinterp2D(
+            model.grid.spacing, model.grid.size, shot.recs.positions;
+            nptssinc=4, xstart=0.0, zstart=0.0)
+        # interpolation coefficients for receivers in vz
+        reccoeij_vz, reccoeval_vz = spreadsrcrecinterp2D(
+            model.grid.spacing, model.grid.size, shot.recs.positions;
+            nptssinc=4, xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+    else
+        src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
+        rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
+        nsrcs = size(shot.srcs.positions, 1)
+        nrecs = size(shot.recs.positions, 1)
+        srccoeij_xx = zeros(Int, nsrcs, 3)
+        srccoeval_xx = ones(T, nsrcs)
+        srccoeij_xz = zeros(Int, nsrcs, 3)
+        srccoeval_xz = ones(T, nsrcs)
+        reccoeij_vx = zeros(Int, nrecs, 3)
+        reccoeval_vx = ones(T, nrecs)
+        reccoeij_vz = zeros(Int, nrecs, 3)
+        reccoeval_vz = ones(T, nrecs)
+        for p in 1:nsrcs
+            srccoeij_xx[p, :] .= (p, src_idx_positions[p, 1], src_idx_positions[p, 2])
+            srccoeij_xz[p, :] .= (p, src_idx_positions[p, 1], src_idx_positions[p, 2])
+        end
+        for p in 1:nrecs
+            reccoeij_vx[p, :] .= (p, rec_idx_positions[p, 1], rec_idx_positions[p, 2])
+            reccoeij_vz[p, :] .= (p, rec_idx_positions[p, 1], rec_idx_positions[p, 2])
+        end
+    end
 
     # scale source time function with boxcar and timestep size
-    scal_srctf = shot.srcs.tf ./ prod(model.grid.spacing) .* model.dt
+    scal_srctf = shot.srcs.tf .* model.dt
 
     return srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, scal_srctf
 end
@@ -193,6 +244,8 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     checkpointer::Union{Nothing, LinearCheckpointer{T}}
     # Smooth radius for gradient
     smooth_radius::Int
+    # Sinc source receiver interpolation
+    sincinterp::Bool
     # Snapshotter setup
     snapshotter::Union{Nothing, LinearSnapshotter{T, N, Array{T, N}}}
     # Parallelization type
@@ -207,7 +260,8 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         check_freq::Union{Int, Nothing}=nothing,
         snapevery::Union{Int, Nothing}=nothing,
         infoevery::Union{Int, Nothing}=nothing,
-        smooth_radius::Int=5
+        smooth_radius::Int=5,
+        sincinterp::Bool=false
     ) where {T, N}
         # Extract params
         nt = params.ntimesteps
@@ -368,6 +422,7 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             cpmlcoeffs,
             gradient ? checkpointer : nothing,
             smooth_radius,
+            sincinterp,
             snapevery === nothing ? nothing : snapshotter,
             parall
         )

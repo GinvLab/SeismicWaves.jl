@@ -9,7 +9,7 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     # scale source time function
     srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz,
     reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz,
-    scal_srctf = possrcrec_scaletf(model, shot)
+    scal_srctf = possrcrec_scaletf(model, shot; sincinterp=model.sincinterp)
     # moment tensors
     momtens = shot.srcs.momtens
 
@@ -92,7 +92,7 @@ end
     srccoeij_vz, srccoeval_vz,
     reccoeij_vx, reccoeval_vx,
     reccoeij_vz, reccoeval_vz,
-    scal_srctf = possrcrec_scaletf(model, shot)
+    scal_srctf = possrcrec_scaletf(model, shot; sincinterp=model.sincinterp)
 
     # Get computational grid and backend
     backend = select_backend(typeof(model), model.parall)
