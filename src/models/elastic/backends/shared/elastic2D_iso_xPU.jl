@@ -1,49 +1,51 @@
-@parallel_indices (i, j) function update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z, b_x, b_z, a_x, a_z, freetop)
-    if freetop && j <= 2
-        # σxx derivative only in x so no problem
-        ∂σxx∂x_bkw = factx * (σxx[i-2, j] - 27.0 * σxx[i-1, j] + 27.0 * σxx[i, j] - σxx[i+1, j])
-        # image, mirroring σxz[i,j-2] = -σxz[i,j+1], etc.
-        #∂σxz∂z_bkw = factz * ( -σxz[i,j+1] +27.0*σxz[i,j] +27.0*σxz[i,j] -σxz[i,j+1] )
-        if j == 1
-            # j bwd-> -2 -1|0 1 (mirror -2 and -1)
-            ∂σxz∂z_bkw = factz * (-σxz[i, j+1] + 27.0 * σxz[i, j] + 27.0 * σxz[i, j] - σxz[i, j+1])
-        elseif j == 2
-            # j bwd-> -2|-1 0 1 (mirror only -2)
-            ∂σxz∂z_bkw = factz * (-σxz[i, j] - 27.0 * σxz[i, j-1] + 27.0 * σxz[i, j] - σxz[i, j+1])
-        end
-        # update velocity
-        vx[i, j] = vx[i, j] + (dt / ρ[i, j]) * (∂σxx∂x_bkw + ∂σxz∂z_bkw)
+@parallel_indices (i, j) function update_4thord_vx!(
+    nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ_ihalf,
+    ψ_∂σxx∂x, ψ_∂σxz∂z, b_x_half, b_z, a_x_half, a_z, freetop)
+    if freetop && j == 1
+        # on the free surface
+        ∂σxx∂x = (-σxx[i+2, j] + 27 * σxx[i+1, j] - 27 * σxx[i, j] + σxx[i-1, j]) * factx
+        # mirroring stresses at the top boundary
+        σxz_top = -σxz[i, j]
+        σxz_toptop = -σxz[i, j+1]
+        ∂σxz∂z = (-σxz[i, j+1] + 27 * σxz[i, j] - 27 * σxz_top + σxz_toptop) * factz
+    elseif freetop && j == 2
+        # just below the free surface
+        ∂σxx∂x = (-σxx[i+2, j] + 27 * σxx[i+1, j] - 27 * σxx[i, j] + σxx[i-1, j]) * factx
+        # mirroring stress at the top boundary
+        σxz_top = -σxz[i, j+1]
+        ∂σxz∂z = (-σxz[i, j+1] + 27 * σxz[i, j] - 27 * σxz[i, j-1] + σxz_top) * factz
+    elseif j >= 3
+        ∂σxx∂x = (-σxx[i+2, j] + 27 * σxx[i+1, j] - 27 * σxx[i, j  ] + σxx[i-1, j]) * factx
+        ∂σxz∂z = (-σxz[i, j+1] + 27 * σxz[i, j  ] - 27 * σxz[i, j-1] + σxz[i, j-2]) * factz
+    else
+        ∂σxx∂x = 0.0
+        ∂σxz∂z = 0.0
     end
 
-    if j >= 3
-        ∂σxx∂x_bkw = factx * (σxx[i-2, j] - 27.0 * σxx[i-1, j] + 27.0 * σxx[i, j] - σxx[i+1, j])
-        ∂σxz∂z_bkw = factz * (σxz[i, j-2] - 27.0 * σxz[i, j-1] + 27.0 * σxz[i, j] - σxz[i, j+1])
-
-        if i <= halo  # 
-            # left boundary
-            ψ_∂σxx∂x[i, j] = b_x[i] * ψ_∂σxx∂x[i, j] + a_x[i] * ∂σxx∂x_bkw
-            ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[i, j]
-        elseif i >= nx - halo + 1
-            # right boundary
-            ii = i - (nx - 2 * halo)
-            ψ_∂σxx∂x[ii, j] = b_x[ii] * ψ_∂σxx∂x[ii, j] + a_x[ii] * ∂σxx∂x_bkw
-            ∂σxx∂x_bkw = ∂σxx∂x_bkw + ψ_∂σxx∂x[ii, j]
-        end
-        # y boundaries
-        if j <= halo && freetop == false
-            # top boundary
-            ψ_∂σxz∂z[i, j] = b_z[j] * ψ_∂σxz∂z[i, j] + a_z[j] * ∂σxz∂z_bkw
-            ∂σxz∂z_bkw = ∂σxz∂z_bkw + ψ_∂σxz∂z[i, j]
-        elseif j >= nz - halo + 1
-            # bottom boundary
-            jj = j - (nz - 2 * halo)
-            ψ_∂σxz∂z[i, jj] = b_z[jj] * ψ_∂σxz∂z[i, jj] + a_z[jj] * ∂σxz∂z_bkw
-            ∂σxz∂z_bkw = ∂σxz∂z_bkw + ψ_∂σxz∂z[i, jj]
-        end
-
-        # update velocity
-        vx[i, j] = vx[i, j] + (dt / ρ[i, j]) * (∂σxx∂x_bkw + ∂σxz∂z_bkw)
+    ### CPML ###
+    if i <= halo + 1
+        # left boundary
+        ψ_∂σxx∂x[i, j] = b_x_half[i] * ψ_∂σxx∂x[i, j] + a_x_half[i] * ∂σxx∂x
+        ∂σxx∂x += ψ_∂σxx∂x[i, j]
+    elseif i >= nx - halo - 1
+        # right boundary
+        ii = i - (nx - halo - 1) + 1 + (halo + 1)
+        ψ_∂σxx∂x[ii, j] = b_x_half[ii] * ψ_∂σxx∂x[ii, j] + a_x_half[ii] * ∂σxx∂x
+        ∂σxx∂x += ψ_∂σxx∂x[ii, j]
     end
+    if j >= 2 && j <= halo + 1 && freetop == false
+        # top boundary
+        ψ_∂σxz∂z[i, j-1] = b_z[j-1] * ψ_∂σxz∂z[i, j-1] + a_z[j-1] * ∂σxz∂z
+        ∂σxz∂z += ψ_∂σxz∂z[i, j-1]
+    elseif j >= nz - halo
+        # bottom boundary
+        jj = j - (nz - halo) + 2 + (halo)
+        ψ_∂σxz∂z[i, jj-1] = b_z[jj-1] * ψ_∂σxz∂z[i, jj-1] + a_z[jj-1] * ∂σxz∂z
+        ∂σxz∂z += ψ_∂σxz∂z[i, jj-1]
+    end
+    ############
+
+    vx[i, j] += dt * (∂σxx∂x + ∂σxz∂z) / ρ_ihalf[i, j]
 
     return nothing
 end
@@ -58,231 +60,178 @@ end
     σxz,
     σzz,
     dt,
-    ρ_ihalf_jhalf,
+    ρ_jhalf,
     ψ_∂σxz∂x,
     ψ_∂σzz∂z,
-    b_x_half,
+    b_x,
     b_z_half,
-    a_x_half,
+    a_x,
     a_z_half,
-    freetop
-)
-    if freetop && j <= 2
-        # σxz derivative only in x so no problem
-        ∂σxz∂x_fwd = factx * (σxz[i-1, j] - 27.0 * σxz[i, j] + 27.0 * σxz[i+1, j] - σxz[i+2, j])
-        # image, mirroring σzz[i,j-1] = -σxz[i,j+2], etc.
-        #∂σzz∂z_fwd = factz * ( -σzz[i,j+2] +27.0*σzz[i,j+1] +27.0*σzz[i,j+1] -σzz[i,j+2] )
-        if j == 1
-            # j fwd-> -1 0| 1 2 (mirror -2 and -1)
-            ∂σzz∂z_fwd = factz * (-σzz[i, j+2] + 27.0 * σzz[i, j+1] + 27.0 * σzz[i, j+1] - σzz[i, j+2])
-        elseif j == 2
-            # j fwd-> -1|0 1 2 (mirror only -1)
-            ∂σzz∂z_fwd = factz * (-σzz[i, j+2] - 27.0 * σzz[i, j] + 27.0 * σzz[i, j+1] - σzz[i, j+2])
-        end
-        # update velocity (ρ has been interpolated in advance)
-        vz[i, j] = vz[i, j] + (dt / ρ_ihalf_jhalf[i, j]) * (∂σxz∂x_fwd + ∂σzz∂z_fwd)
-    end
-
-    #  vz       
-    if j >= 3
-        # Vz
-        ∂σxz∂x_fwd = factx * (σxz[i-1, j] - 27.0 * σxz[i, j] + 27.0 * σxz[i+1, j] - σxz[i+2, j])
-        ∂σzz∂z_fwd = factz * (σzz[i, j-1] - 27.0 * σzz[i, j] + 27.0 * σzz[i, j+1] - σzz[i, j+2])
-
-        ##=======================
-        # C-PML stuff
-        ##=======================
-        # x boundaries
-        if i <= halo
-            # left boundary
-            ψ_∂σxz∂x[i, j] = b_x_half[i] * ψ_∂σxz∂x[i, j] + a_x_half[i] * ∂σxz∂x_fwd
-            ∂σxz∂x_fwd = ∂σxz∂x_fwd + ψ_∂σxz∂x[i, j]
-        elseif i >= nx - halo + 1
-            # right boundary
-            ii = i - (nx - 2 * halo)
-            ψ_∂σxz∂x[ii, j] = b_x_half[ii] * ψ_∂σxz∂x[ii, j] + a_x_half[ii] * ∂σxz∂x_fwd
-            ∂σxz∂x_fwd = ∂σxz∂x_fwd + ψ_∂σxz∂x[ii, j]
-        end
-        # y boundaries
-        if j <= halo && freetop == false # + 1
-            # top boundary
-            ψ_∂σzz∂z[i, j] = b_z_half[j] * ψ_∂σzz∂z[i, j] + a_z_half[j] * ∂σzz∂z_fwd
-            ∂σzz∂z_fwd = ∂σzz∂z_fwd + ψ_∂σzz∂z[i, j]
-        elseif j >= nz - halo + 1
-            # bottom boundary
-            jj = j - (nz - 2 * halo)
-            ψ_∂σzz∂z[i, jj] = b_z_half[jj] * ψ_∂σzz∂z[i, jj] + a_z_half[jj] * ∂σzz∂z_fwd
-            ∂σzz∂z_fwd = ∂σzz∂z_fwd + ψ_∂σzz∂z[i, jj]
-        end
-        ##=======================
-
-        # update velocity (ρ has been interpolated in advance)
-        vz[i, j] = vz[i, j] + (dt / ρ_ihalf_jhalf[i, j]) * (∂σxz∂x_fwd + ∂σzz∂z_fwd)
-    end
-
-    return nothing
-end
-
-@parallel_indices (i, j) function update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
-    vx, vz, dt, λ_ihalf, μ_ihalf, ψ_∂vx∂x, ψ_∂vz∂z,
-    b_x_half, b_z, a_x_half, a_z, freetop)
-    if freetop == true
-        # σxx, σzz
-        # j=1: we are on the free surface!
-        if j == 1
-            # σxx
-            # vx derivative only in x so no problem
-            ∂vx∂x_fwd = factx * (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j])
-            # using boundary condition to calculate ∂vz∂z_bkd from ∂vx∂x_fwd
-            ∂vz∂z_bkd = -(λ_ihalf[i, j] / (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j])) * ∂vx∂x_fwd
-            # σxx
-            σxx[i, j] = σxx[i, j] + (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j]) * dt * ∂vx∂x_fwd +
-                        λ_ihalf[i, j] * dt * ∂vz∂z_bkd
-            # σzz
-            σzz[i, j] = 0.0 # we are on the free surface!
-        end
-
-        # j=2: we are just below the surface (1/2)
-        if j == 2
-            # σxx
-            # vx derivative only in x so no problem
-            ∂vx∂x_fwd = factx * (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j])
-            # zero velocity above the free surface
-            ∂vz∂z_bkd = factz * (0.0 - 27.0 * vz[i, j-1] + 27.0 * vz[i, j] - vz[i, j+1])
-            # σxx
-            σxx[i, j] = σxx[i, j] + (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j]) * dt * ∂vx∂x_fwd +
-                        λ_ihalf[i, j] * dt * ∂vz∂z_bkd
-            # σzz
-            σzz[i, j] = σzz[i, j] + (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j]) * dt * ∂vz∂z_bkd +
-                        λ_ihalf[i, j] * dt * ∂vx∂x_fwd
-        end
-    end
-
-    #  σxx, σzz 
-    if j >= 3
-        # σxx,σzz
-        ∂vx∂x_fwd = factx * (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j])
-        ∂vz∂z_bkd = factz * (vz[i, j-2] - 27.0 * vz[i, j-1] + 27.0 * vz[i, j] - vz[i, j+1])
-
-        ##=======================
-        # C-PML stuff
-        ##=======================
-        # x boundaries
-        if i <= halo
-            # left boundary
-            ψ_∂vx∂x[i, j] = b_x_half[i] * ψ_∂vx∂x[i, j] + a_x_half[i] * ∂vx∂x_fwd
-            ∂vx∂x_fwd = ∂vx∂x_fwd + ψ_∂vx∂x[i, j]
-        elseif i >= nx - halo + 1
-            # right boundary
-            ii = i - (nx - 2 * halo)
-            ψ_∂vx∂x[ii, j] = b_x_half[ii] * ψ_∂vx∂x[ii, j] + a_x_half[ii] * ∂vx∂x_fwd
-            ∂vx∂x_fwd = ∂vx∂x_fwd + ψ_∂vx∂x[ii, j]
-        end
-        # y boundaries
-        if j <= halo && freetop == false
-            # top boundary
-            ψ_∂vz∂z[i, j] = b_z[j] * ψ_∂vz∂z[i, j] + a_z[j] * ∂vz∂z_bkd
-            ∂vz∂z_bkd = ∂vz∂z_bkd + ψ_∂vz∂z[i, j]
-        elseif j >= nz - halo + 1
-            # bottom boundary
-            jj = j - (nz - 2 * halo)
-            ψ_∂vz∂z[i, jj] = b_z[jj] * ψ_∂vz∂z[i, jj] + a_z[jj] * ∂vz∂z_bkd
-            ∂vz∂z_bkd = ∂vz∂z_bkd + ψ_∂vz∂z[i, jj]
-        end
-        ##=======================
-        # σxx
-        σxx[i, j] = σxx[i, j] + (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j]) * dt * ∂vx∂x_fwd +
-                    λ_ihalf[i, j] * dt * ∂vz∂z_bkd
-
-        ## derivatives are the same than for σxx 
-        # σzz
-        σzz[i, j] = σzz[i, j] + (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j]) * dt * ∂vz∂z_bkd +
-                    λ_ihalf[i, j] * dt * ∂vx∂x_fwd
-    end
-
-    return nothing
-end
-
-@parallel_indices (i, j) function update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
-    μ_jhalf, b_x, b_z_half,
-    ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half,
     freetop)
-    if freetop
-        # σxz
-        if j == 1
-            # zero velocity above the free surface
-            ∂vx∂z_fwd = factz * (0.0 - 27.0 * vx[i, j] + 27.0 * vx[i, j+1] - vx[i, j+2])
-            # vz derivative only in x so no problem
-            ∂vz∂x_bkd = factx * (vz[i-2, j] - 27.0 * vz[i-1, j] + 27.0 * vz[i, j] - vz[i+1, j])
-            # σxz
-            σxz[i, j] = σxz[i, j] + μ_jhalf[i, j] * dt * (∂vx∂z_fwd + ∂vz∂x_bkd)
-        end
+    if freetop && j == 1
+        # just half step below the free surface
+        # mirroring stress at the top boundary
+        σzz_top = -σzz[i, j+2]
+        ∂σzz∂z = (-σzz[i, j+2] + 27 * σzz[i, j+1] - 27 * σzz[i, j] + σzz_top) * factz
+        ∂σxz∂x = (-σxz[i+1, j] + 27 * σxz[i, j] - 27 * σxz[i-1, j] + σxz[i-2, j]) * factx
+    elseif j >= 2
+        ∂σzz∂z = (-σzz[i, j+2] + 27 * σzz[i, j+1] - 27 * σzz[i, j] + σzz[i, j-1]) * factz
+        ∂σxz∂x = (-σxz[i+1, j] + 27 * σxz[i, j] - 27 * σxz[i-1, j] + σxz[i-2, j]) * factx
+    else
+        ∂σzz∂z = 0.0
+        ∂σxz∂x = 0.0
     end
 
-    #  σxz
-    if j >= 2
-        # σxz
-        ∂vx∂z_fwd = factz * (vx[i, j-1] - 27.0 * vx[i, j] + 27.0 * vx[i, j+1] - vx[i, j+2])
-        ∂vz∂x_bkd = factx * (vz[i-2, j] - 27.0 * vz[i-1, j] + 27.0 * vz[i, j] - vz[i+1, j])
+    ### CPML ###
+    if i <= halo + 1
+        # left boundary
+        ψ_∂σxz∂x[i-1, j] = b_x[i-1] * ψ_∂σxz∂x[i-1, j] + a_x[i-1] * ∂σxz∂x
+        ∂σxz∂x += ψ_∂σxz∂x[i-1, j]
+    elseif i >= nx - halo
+        # right boundary
+        ii = i - (nx - halo) + 2 + (halo)
+        ψ_∂σxz∂x[ii-1, j] = b_x[ii-1] * ψ_∂σxz∂x[ii-1, j] + a_x[ii-1] * ∂σxz∂x
+        ∂σxz∂x += ψ_∂σxz∂x[ii-1, j]
+    end
+    if j <= halo + 1 && freetop == false
+        # top boundary
+        ψ_∂σzz∂z[i, j] = b_z_half[j] * ψ_∂σzz∂z[i, j] + a_z_half[j] * ∂σzz∂z
+        ∂σzz∂z += ψ_∂σzz∂z[i, j]
+    elseif j >= nz - halo
+        # bottom boundary
+        jj = j - (nz - halo) + 2 + (halo + 1)
+        ψ_∂σzz∂z[i, jj] = b_z_half[jj] * ψ_∂σzz∂z[i, jj] + a_z_half[jj] * ∂σzz∂z
+        ∂σzz∂z += ψ_∂σzz∂z[i, jj]
+    end
+    ############
 
-        ##=======================
-        # C-PML stuff
-        ##=======================
-        # x boundaries
-        if i <= halo
+    vz[i, j] += dt * (∂σzz∂z + ∂σxz∂x) / ρ_jhalf[i, j]
+
+    return nothing
+end
+
+@parallel_indices (i, j) function update_4thord_σxxσzz!(
+    nx, nz, halo, σxx, σzz, factx, factz,
+    vx, vz, dt, λ, μ, ψ_∂vx∂x, ψ_∂vz∂z,
+    b_x, b_z, a_x, a_z, freetop)
+    if freetop && j == 1
+        # on the free surface, σzz = 0
+        ∂vx∂x = (-vx[i+1, j] + 27 * vx[i, j] - 27 * vx[i-1, j] + vx[i-2, j]) * factx
+        # using boundary condition to calculate ∂vz∂z
+        ∂vz∂z = -(λ[i, j] / (λ[i, j] + 2*μ[i, j])) * ∂vx∂x
+        # update stresses
+        σxx[i, j] += dt * ((λ[i, j] + 2*μ[i, j]) * ∂vx∂x + λ[i, j] * ∂vz∂z)
+        σzz[i, j] = 0.0
+    elseif freetop && j == 2
+        # just below the free surface
+        ∂vx∂x = (-vx[i+1, j] + 27 * vx[i, j] - 27 * vx[i-1, j] + vx[i-2, j]) * factx
+        # zero velocity above the free surface
+        ∂vz∂z = (-vz[i, j+1] + 27 * vz[i, j] - 27 * vz[i, j-1] + 0.0) * factz
+        # update stresses
+        σxx[i, j] += dt * ((λ[i, j] + 2*μ[i, j]) * ∂vx∂x + λ[i, j] * ∂vz∂z)
+        σzz[i, j] += dt * ((λ[i, j] + 2*μ[i, j]) * ∂vz∂z + λ[i, j] * ∂vx∂x)
+    elseif j >= 3
+        ∂vx∂x = (-vx[i+1, j] + 27 * vx[i, j] - 27 * vx[i-1, j] + vx[i-2, j]) * factx
+        ∂vz∂z = (-vz[i, j+1] + 27 * vz[i, j] - 27 * vz[i, j-1] + vz[i, j-2]) * factz
+
+        ### CPML ###
+        if i <= halo + 1
             # left boundary
-            ψ_∂vz∂x[i, j] = b_x[i] * ψ_∂vz∂x[i, j] + a_x[i] * ∂vz∂x_bkd
-            ∂vz∂x_bkd = ∂vz∂x_bkd + ψ_∂vz∂x[i, j]
-        elseif i >= nx - halo + 1
+            ψ_∂vx∂x[i-1, j] = b_x[i-1] * ψ_∂vx∂x[i-1, j] + a_x[i-1] * ∂vx∂x
+            ∂vx∂x += ψ_∂vx∂x[i-1, j]
+        elseif i >= nx - halo
             # right boundary
-            ii = i - (nx - 2 * halo)
-            ψ_∂vz∂x[ii, j] = b_x[ii] * ψ_∂vz∂x[ii, j] + a_x[ii] * ∂vz∂x_bkd
-            ∂vz∂x_bkd = ∂vz∂x_bkd + ψ_∂vz∂x[ii, j]
+            ii = i - (nx - halo) + 2 + (halo)
+            ψ_∂vx∂x[ii-1, j] = b_x[ii-1] * ψ_∂vx∂x[ii-1, j] + a_x[ii-1] * ∂vx∂x
+            ∂vx∂x += ψ_∂vx∂x[ii-1, j]
         end
-        # y boundaries
-        if j <= halo && freetop == false
+        if j <= halo + 1 && freetop == false
             # top boundary
-            ψ_∂vx∂z[i, j] = b_z_half[j] * ψ_∂vx∂z[i, j] + a_z_half[j] * ∂vx∂z_fwd
-            ∂vx∂z_fwd = ∂vx∂z_fwd + ψ_∂vx∂z[i, j]
-        elseif j >= nz - halo + 1
+            ψ_∂vz∂z[i, j-1] = b_z[j-1] * ψ_∂vz∂z[i, j-1] + a_z[j-1] * ∂vz∂z
+            ∂vz∂z += ψ_∂vz∂z[i, j-1]
+        elseif j >= nz - halo
             # bottom boundary
-            jj = j - (nz - 2 * halo)
-            ψ_∂vx∂z[i, jj] = b_z_half[jj] * ψ_∂vx∂z[i, jj] + a_z_half[jj] * ∂vx∂z_fwd
-            ∂vx∂z_fwd = ∂vx∂z_fwd + ψ_∂vx∂z[i, jj]
+            jj = j - (nz - halo) + 2 + (halo)
+            ψ_∂vz∂z[i, jj-1] = b_z[jj-1] * ψ_∂vz∂z[i, jj-1] + a_z[jj-1] * ∂vz∂z
+            ∂vz∂z += ψ_∂vz∂z[i, jj-1]
         end
-        ##=======================
+        ############
 
-        # σxz
-        σxz[i, j] = σxz[i, j] + μ_jhalf[i, j] * dt * (∂vx∂z_fwd + ∂vz∂x_bkd)
+        # update stresses
+        σxx[i, j] += dt * ((λ[i, j] + 2*μ[i, j]) * ∂vx∂x +  λ[i, j]              * ∂vz∂z)
+        σzz[i, j] += dt * ( λ[i, j]              * ∂vx∂x + (λ[i, j] + 2*μ[i, j]) * ∂vz∂z)
     end
 
     return nothing
 end
 
-@parallel_indices (p) function inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx, Mzz, srctf_bk, srccoeij_bk, srccoeval_bk, it, s)
-    isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
-    σxx[isrc, jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it, s]
-    σzz[isrc, jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it, s]
+@parallel_indices (i, j) function update_4thord_σxz!(
+    nx, nz, halo, σxz, factx, factz, vx, vz, dt, μ_ihalf_jhalf,
+    ψ_∂vx∂z, ψ_∂vz∂x, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+    if freetop && j == 1
+        # zero velocity above the free surface
+        ∂vx∂z = (-vx[i, j+2] + 27 * vx[i, j+1] - 27 * vx[i, j] + 0.0       ) * factz
+        ∂vz∂x = (-vz[i+2, j] + 27 * vz[i+1, j] - 27 * vz[i, j] + vz[i-1, j]) * factx
+    elseif j >= 2
+        ∂vx∂z = (-vx[i, j+2] + 27 * vx[i, j+1] - 27 * vx[i, j] + vx[i, j-1]) * factz
+        ∂vz∂x = (-vz[i+2, j] + 27 * vz[i+1, j] - 27 * vz[i, j] + vz[i-1, j]) * factx
+    else
+        ∂vx∂z = 0.0
+        ∂vz∂x = 0.0
+    end
+
+    ### CPML ###
+    if i <= halo + 1
+        # left boundary
+        ψ_∂vz∂x[i, j] = b_x_half[i] * ψ_∂vz∂x[i, j] + a_x_half[i] * ∂vz∂x
+        ∂vz∂x += ψ_∂vz∂x[i, j]
+    elseif i >= nx - halo - 1
+        # right boundary
+        ii = i - (nx - halo - 1) + 1 + (halo + 1)
+        ψ_∂vz∂x[ii, j] = b_x_half[ii] * ψ_∂vz∂x[ii, j] + a_x_half[ii] * ∂vz∂x
+        ∂vz∂x += ψ_∂vz∂x[ii, j]
+    end
+    if j <= halo + 1 && freetop == false
+        # top boundary
+        ψ_∂vx∂z[i, j] = b_z_half[j] * ψ_∂vx∂z[i, j] + a_z_half[j] * ∂vx∂z
+        ∂vx∂z += ψ_∂vx∂z[i, j]
+    elseif j >= nz - halo - 1
+        # bottom boundary
+        jj = j - (nz - halo - 1) + 1 + (halo + 1)
+        ψ_∂vx∂z[i, jj] = b_z_half[jj] * ψ_∂vx∂z[i, jj] + a_z_half[jj] * ∂vx∂z
+        ∂vx∂z += ψ_∂vx∂z[i, jj]
+    end
+    ############
+
+    σxz[i, j] += dt * μ_ihalf_jhalf[i, j] * (∂vx∂z + ∂vz∂x)
 
     return nothing
 end
 
-@parallel_indices (p) function inject_momten_sources2D_σxz!(σxz, Mxz, srctf_bk, srccoeij_bk, srccoeval_bk, it, s)
+@parallel_indices (p) function inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx, Mzz, srctf_bk, srccoeij_bk, srccoeval_bk, it, s, dt)
     isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
-    σxz[isrc, jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it, s]
+    σxx[isrc, jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it, s] * dt
+    σzz[isrc, jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it, s] * dt
 
     return nothing
 end
 
-@parallel_indices (p) function inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_bk, srccoeval_bk, ρ, it, s)
+@parallel_indices (p) function inject_momten_sources2D_σxz!(σxz, Mxz, srctf_bk, srccoeij_bk, srccoeval_bk, it, s, dt)
     isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
-    vx[isrc, jsrc] += srccoeval_bk[p] * srctf_bk[it, 1, s] / ρ[isrc, jsrc]
+    σxz[isrc, jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it, s] * dt
+
     return nothing
 end
 
-@parallel_indices (p) function inject_external_sources2D_vz!(vz, srctf_bk, srccoeij_bk, srccoeval_bk, ρ_ihalf_jhalf, it, s)
+@parallel_indices (p) function inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_bk, srccoeval_bk, ρ_ihalf, it, s, dt)
     isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
-    vz[isrc, jsrc] += srccoeval_bk[p] * srctf_bk[it, 2, s] / ρ_ihalf_jhalf[isrc, jsrc]
+    vx[isrc, jsrc] += srccoeval_bk[p] * srctf_bk[it, 1, s] / ρ_ihalf[isrc, jsrc] * dt
+    return nothing
+end
+
+@parallel_indices (p) function inject_external_sources2D_vz!(vz, srctf_bk, srccoeij_bk, srccoeval_bk, ρ_jhalf, it, s, dt)
+    isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
+    vz[isrc, jsrc] += srccoeval_bk[p] * srctf_bk[it, 2, s] / ρ_jhalf[isrc, jsrc] * dt
     return nothing
 end
 
@@ -344,22 +293,22 @@ function forward_onestep_CPML!(
     b_z = cpmlcoeffs[2].b
     b_z_half = cpmlcoeffs[2].b_h
 
-    ρ = grid.fields["ρ"].value
-    ρ_ihalf_jhalf = grid.fields["ρ_ihalf_jhalf"].value
-    λ_ihalf = grid.fields["λ_ihalf"].value
-    μ_ihalf = grid.fields["μ_ihalf"].value
-    μ_jhalf = grid.fields["μ_jhalf"].value
+    λ = grid.fields["λ"].value
+    μ = grid.fields["μ"].value
+    ρ_ihalf = grid.fields["ρ_ihalf"].value
+    ρ_jhalf = grid.fields["ρ_jhalf"].value
+    μ_ihalf_jhalf = grid.fields["μ_ihalf_jhalf"].value
 
     # Precomputing divisions
     factx = 1.0 / (24.0 * dx)
     factz = 1.0 / (24.0 * dz)
 
-    # update velocity vx 
-    @parallel (3:nx-1, 1:nz-1) update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z,
-        b_x, b_z, a_x, a_z, freetop)
+    # update velocity vx
+    @parallel (2:nx-2, 1:nz-2) update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ_ihalf,
+                                                 ψ_∂σxx∂x, ψ_∂σxz∂z, b_x_half, b_z, a_x_half, a_z, freetop)
     # update velocity vz
-    @parallel (2:nx-2, 1:nz-2) update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, ψ_∂σxz∂x,
-        ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+    @parallel (3:nx-2, 1:nz-2) update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_jhalf,
+                                                 ψ_∂σxz∂x, ψ_∂σzz∂z, b_x, b_z_half, a_x, a_z_half, freetop)
 
     # record receivers
     if save_trace
@@ -376,25 +325,22 @@ function forward_onestep_CPML!(
     end
 
     # update stresses σxx and σzz 
-    @parallel (2:nx-2, 1:nz-1) update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
-        vx, vz, dt, λ_ihalf, μ_ihalf,
-        ψ_∂vx∂x, ψ_∂vz∂z,
-        b_x_half, b_z, a_x_half, a_z, freetop)
+    @parallel (3:nx-2, 1:nz-2) update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz, vx, vz, dt, λ, μ,
+                                                     ψ_∂vx∂x, ψ_∂vz∂z, b_x, b_z, a_x, a_z, freetop)
     # update stress σxz
-    @parallel (3:nx-1, 1:nz-2) update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
-        μ_jhalf, b_x, b_z_half,
-        ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
+    @parallel (2:nx-2, 1:nz-2) update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt, μ_ihalf_jhalf,
+                                                  ψ_∂vx∂z, ψ_∂vz∂x, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
 
     # inject sources (moment tensor type of internal force)
     nrecs_xx = size(srccoeij_xx, 1)
     nrecs_xz = size(srccoeij_xz, 1)
     for s in 1:nrecs_xx
         nsrcpts_xx = size(srccoeij_xx[s], 1)
-        @parallel (1:nsrcpts_xx) inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx_bk, Mzz_bk, srctf_bk, srccoeij_xx[s], srccoeval_xx[s], it, s)
+        @parallel (1:nsrcpts_xx) inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx_bk, Mzz_bk, srctf_bk, srccoeij_xx[s], srccoeval_xx[s], it, s, dt)
     end
     for s in 1:nrecs_xz
         nsrcpts_xz = size(srccoeij_xz[s], 1)
-        @parallel (1:nsrcpts_xz) inject_momten_sources2D_σxz!(σxz, Mxz_bk, srctf_bk, srccoeij_xz[s], srccoeval_xz[s], it, s)
+        @parallel (1:nsrcpts_xz) inject_momten_sources2D_σxz!(σxz, Mxz_bk, srctf_bk, srccoeij_xz[s], srccoeval_xz[s], it, s, dt)
     end
 
     return
@@ -443,33 +389,33 @@ function forward_onestep_CPML!(
     b_z = cpmlcoeffs[2].b
     b_z_half = cpmlcoeffs[2].b_h
 
-    ρ = grid.fields["ρ"].value
-    ρ_ihalf_jhalf = grid.fields["ρ_ihalf_jhalf"].value
-    λ_ihalf = grid.fields["λ_ihalf"].value
-    μ_ihalf = grid.fields["μ_ihalf"].value
-    μ_jhalf = grid.fields["μ_jhalf"].value
+    λ = grid.fields["λ"].value
+    μ = grid.fields["μ"].value
+    ρ_ihalf = grid.fields["ρ_ihalf"].value
+    ρ_jhalf = grid.fields["ρ_jhalf"].value
+    μ_ihalf_jhalf = grid.fields["μ_ihalf_jhalf"].value
 
     # Precomputing divisions
     factx = 1.0 / (24.0 * dx)
     factz = 1.0 / (24.0 * dz)
 
-    # update velocity vx 
-    @parallel (3:nx-1, 1:nz-1) update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z,
-        b_x, b_z, a_x, a_z, freetop)
+    # update velocity vx
+    @parallel (2:nx-2, 1:nz-2) update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ_ihalf,
+                                                 ψ_∂σxx∂x, ψ_∂σxz∂z, b_x_half, b_z, a_x_half, a_z, freetop)
     # update velocity vz
-    @parallel (2:nx-2, 1:nz-2) update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, ψ_∂σxz∂x,
-        ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+    @parallel (3:nx-2, 1:nz-2) update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_jhalf,
+                                                 ψ_∂σxz∂x, ψ_∂σzz∂z, b_x, b_z_half, a_x, a_z_half, freetop)
 
-    # inject sources (residuals as velocities)
+    # inject sources
     nsrcs_vx = size(srccoeij_vx, 1)
     nsrcs_vz = size(srccoeij_vz, 1)
     for s in 1:nsrcs_vx
         nsrcpts_vx = size(srccoeij_vx[s], 1)
-        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_vx[s], srccoeval_vx[s], ρ, it, s)
+        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_vx[s], srccoeval_vx[s], ρ_ihalf, it, s, dt)
     end
     for s in 1:nsrcs_vz
         nsrcpts_vz = size(srccoeij_vz[s], 1)
-        @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(vz, srctf_bk, srccoeij_vz[s], srccoeval_vz[s], ρ_ihalf_jhalf, it, s)
+        @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(vz, srctf_bk, srccoeij_vz[s], srccoeval_vz[s], ρ_jhalf, it, s, dt)
     end
 
     # record receivers
@@ -487,14 +433,11 @@ function forward_onestep_CPML!(
     end
 
     # update stresses σxx and σzz 
-    @parallel (2:nx-2, 1:nz-1) update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
-        vx, vz, dt, λ_ihalf, μ_ihalf,
-        ψ_∂vx∂x, ψ_∂vz∂z,
-        b_x_half, b_z, a_x_half, a_z, freetop)
+    @parallel (3:nx-2, 1:nz-2) update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz, vx, vz, dt, λ, μ,
+                                                     ψ_∂vx∂x, ψ_∂vz∂z, b_x, b_z, a_x, a_z, freetop)
     # update stress σxz
-    @parallel (3:nx-1, 1:nz-2) update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
-        μ_jhalf, b_x, b_z_half,
-        ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
+    @parallel (2:nx-2, 1:nz-2) update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt, μ_ihalf_jhalf,
+                                                  ψ_∂vx∂z, ψ_∂vz∂x, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
 
     return
 end
@@ -536,38 +479,41 @@ function adjoint_onestep_CPML!(
     b_z = cpmlcoeffs[2].b
     b_z_half = cpmlcoeffs[2].b_h
 
-    ρ = grid.fields["ρ"].value
-    ρ_ihalf_jhalf = grid.fields["ρ_ihalf_jhalf"].value
-    λ_ihalf = grid.fields["λ_ihalf"].value
-    μ_ihalf = grid.fields["μ_ihalf"].value
-    μ_jhalf = grid.fields["μ_jhalf"].value
+    λ = grid.fields["λ"].value
+    μ = grid.fields["μ"].value
+    ρ_ihalf = grid.fields["ρ_ihalf"].value
+    ρ_jhalf = grid.fields["ρ_jhalf"].value
+    μ_ihalf_jhalf = grid.fields["μ_ihalf_jhalf"].value
 
     # Precomputing divisions
     factx = 1.0 / (24.0 * dx)
     factz = 1.0 / (24.0 * dz)
     
     # update stresses σxx and σzz 
-    @parallel (2:nx-2, 1:nz-1) update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
-        vx, vz, dt, λ_ihalf, μ_ihalf,
-        ψ_∂vx∂x, ψ_∂vz∂z,
-        b_x_half, b_z, a_x_half, a_z, freetop)
+    @parallel (3:nx-2, 1:nz-2) update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz, vx, vz, dt, λ, μ,
+                                                     ψ_∂vx∂x, ψ_∂vz∂z, b_x, b_z, a_x, a_z, freetop)
     # update stress σxz
-    @parallel (3:nx-1, 1:nz-2) update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
-        μ_jhalf, b_x, b_z_half,
-        ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
+    @parallel (2:nx-2, 1:nz-2) update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt, μ_ihalf_jhalf,
+                                                  ψ_∂vx∂z, ψ_∂vz∂x, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
 
-    # update velocity vx 
-    @parallel (3:nx-1, 1:nz-1) update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z,
-        b_x, b_z, a_x, a_z, freetop)
+    # update velocity vx
+    @parallel (2:nx-2, 1:nz-2) update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ_ihalf,
+                                                 ψ_∂σxx∂x, ψ_∂σxz∂z, b_x_half, b_z, a_x_half, a_z, freetop)
     # update velocity vz
-    @parallel (2:nx-2, 1:nz-2) update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, ψ_∂σxz∂x,
-        ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+    @parallel (3:nx-2, 1:nz-2) update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_jhalf,
+                                                 ψ_∂σxz∂x, ψ_∂σzz∂z, b_x, b_z_half, a_x, a_z_half, freetop)
 
     # inject sources (residuals as velocities)
-    nsrcpts_vx = size(srccoeij_vx, 1)
-    nsrcpts_vz = size(srccoeij_vz, 1)
-    @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, residuals_bk, srccoeij_vx, srccoeval_vx, ρ, it)
-    @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(vz, residuals_bk, srccoeij_vz, srccoeval_vz, ρ_ihalf_jhalf, it)
+    nsrcs_vx = size(srccoeij_vx, 1)
+    nsrcs_vz = size(srccoeij_vz, 1)
+    for s in 1:nsrcs_vx
+        nsrcpts_vx = size(srccoeij_vx[s], 1)
+        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, residuals_bk, srccoeij_vx[s], srccoeval_vx[s], ρ_ihalf, it, s, dt)
+    end
+    for s in 1:nsrcs_vz
+        nsrcpts_vz = size(srccoeij_vz[s], 1)
+        @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(vz, residuals_bk, srccoeij_vz[s], srccoeval_vz[s], ρ_jhalf, it, s, dt)
+    end
 
     return
 end

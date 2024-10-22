@@ -74,6 +74,7 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
         # Save snapshot
         if snapenabled(model)
             savesnapshot!(model.snapshotter, "v" => model.grid.fields["v"], it)
+            savesnapshot!(model.snapshotter, "σ" => model.grid.fields["σ"], it)
         end
     end
 
@@ -109,7 +110,7 @@ end
     reccoeval_vx = [backend.Data.Array(reccoeval_vx[i]) for i in eachindex(reccoeval_vx)]
     reccoeij_vz = [backend.Data.Array(reccoeij_vz[i]) for i in eachindex(reccoeij_vz)]
     reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in eachindex(reccoeval_vz)]
-    
+
     srctf_bk = backend.Data.Array(scal_srctf)
     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
@@ -149,6 +150,7 @@ end
         # Save snapshot
         if snapenabled(model)
             savesnapshot!(model.snapshotter, "v" => model.grid.fields["v"], it)
+            savesnapshot!(model.snapshotter, "σ" => model.grid.fields["σ"], it)
         end
     end
 

@@ -7,14 +7,14 @@
     if sincinterp
         # interpolation coefficients for sources in vx
         nsrcs = size(shot.srcs.positions, 1)
-        srccoeij_vx, srccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=0.0, zstart=0.0)
+        srccoeij_vx, srccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=model.grid.spacing[1]/2, zstart=0.0)
         # interpolation coefficients for sources in vz
-        srccoeij_vz, srccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+        srccoeij_vz, srccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=0.0, zstart=model.grid.spacing[2]/2)
         nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_vx, reccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=0.0, zstart=0.0)
+        reccoeij_vx, reccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=model.grid.spacing[1]/2, zstart=0.0)
         # interpolation coefficients for receivers in vz
-        reccoeij_vz, reccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+        reccoeij_vz, reccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=0.0, zstart=model.grid.spacing[2]/2)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
@@ -30,24 +30,21 @@
         reccoeval_vz = [ones(T, 1) for _ in 1:nrecs]
     end
 
-    # scale source time function with timestep size
-    scal_srctf = shot.srcs.tf .* model.dt
-
-    return srccoeij_vx, srccoeval_vx, srccoeij_vz, srccoeval_vz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, scal_srctf
+    return srccoeij_vx, srccoeval_vx, srccoeij_vz, srccoeval_vz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, shot.srcs.tf
 end
 
 @views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
         nsrcs = size(shot.srcs.positions, 1)
         # interpolation coefficients for sources in σxx and σzz
-        srccoeij_xx, srccoeval_xx = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=model.grid.spacing[1]/2, zstart=0.0)
+        srccoeij_xx, srccoeval_xx = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=0.0, zstart=0.0)
         # interpolation coefficients for sources in σxz
-        srccoeij_xz, srccoeval_xz = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=0.0, zstart=model.grid.spacing[2]/2)
+        srccoeij_xz, srccoeval_xz = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
         nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_vx, reccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=0.0, zstart=0.0)
+        reccoeij_vx, reccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=model.grid.spacing[1]/2, zstart=0.0)
         # interpolation coefficients for receivers in vz
-        reccoeij_vz, reccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+        reccoeij_vz, reccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=0.0, zstart=model.grid.spacing[2]/2)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
@@ -63,10 +60,7 @@ end
         reccoeval_vz = [ones(T, 1) for _ in 1:nrecs]
     end
 
-    # scale source time function with timestep size
-    scal_srctf = shot.srcs.tf .* model.dt
-
-    return srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, scal_srctf
+    return srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, shot.srcs.tf
 end
 
 
@@ -129,23 +123,20 @@ end
 
 function precomp_elaprop!(model::ElasticIsoWaveSimulation{T, 2}) where {T}
     # Excract fields
-    ρ, λ, μ = model.grid.fields["ρ"].value, model.grid.fields["λ"].value, model.grid.fields["μ"].value
-    ρ_ihalf_jhalf = model.grid.fields["ρ_ihalf_jhalf"].value
-    μ_ihalf = model.grid.fields["μ_ihalf"].value
-    μ_jhalf = model.grid.fields["μ_jhalf"].value
-    λ_ihalf = model.grid.fields["λ_ihalf"].value
+    λ = model.grid.fields["λ"].value
+    μ = model.grid.fields["μ"].value
+    ρ_ihalf = model.grid.fields["ρ_ihalf"].value
+    ρ_jhalf = model.grid.fields["ρ_jhalf"].value
+    μ_ihalf_jhalf = model.grid.fields["μ_ihalf_jhalf"].value
     # Copy from internal matprop
-    copyto!(ρ, model.matprop.ρ)
     copyto!(λ, model.matprop.λ)
     copyto!(μ, model.matprop.μ)
     #-------------------------------------------------------------
     # pre-interpolate properties at half distances between nodes
     #-------------------------------------------------------------
-    copyto!(ρ_ihalf_jhalf, interp(model.matprop.interp_method_ρ, model.matprop.ρ, [1, 2]))
-    copyto!(λ_ihalf, interp(model.matprop.interp_method_λ, model.matprop.λ, 1))
-    copyto!(μ_ihalf, interp(model.matprop.interp_method_μ, model.matprop.μ, 1))
-    copyto!(μ_jhalf, interp(model.matprop.interp_method_μ, model.matprop.μ, 2))
-
+    copyto!(ρ_ihalf, interp(model.matprop.interp_method_ρ, model.matprop.ρ, 1))
+    copyto!(ρ_jhalf, interp(model.matprop.interp_method_ρ, model.matprop.ρ, 2))
+    copyto!(μ_ihalf_jhalf, interp(model.matprop.interp_method_μ, model.matprop.μ, [1, 2]))
     return
 end
 
@@ -214,87 +205,115 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         if N == 2
             # Stress and velocity
             addfield!(grid, "σ" => MultiVariableField(
-                [backend.zeros(T, gridsize...) for _ in 1:3]
+                [
+                    backend.zeros(T, gridsize...),              # σxx
+                    backend.zeros(T, gridsize...),              # σzz
+                    backend.zeros(T, (gridsize .- 1)...)        # σxz
+                ]
             ))
             addfield!(grid, "v" => MultiVariableField(
-                [backend.zeros(T, gridsize...) for _ in 1:2]
+                [
+                    backend.zeros(T, (gridsize .- [1, 0])...),  # vx
+                    backend.zeros(T, (gridsize .- [0, 1])...)   # vz
+                ]
             ))
             # Material properties
-            addfield!(grid, "ρ" => ScalarVariableField(
-                backend.zeros(T, gridsize...)
-            ))
             addfield!(grid, "λ" => ScalarVariableField(
                 backend.zeros(T, gridsize...)
             ))
             addfield!(grid, "μ" => ScalarVariableField(
                 backend.zeros(T, gridsize...)
             ))
-            addfield!(grid, "λ_ihalf" => ScalarVariableField(
+            addfield!(grid, "ρ_ihalf" => ScalarVariableField(
                 backend.zeros(T, (gridsize .- [1, 0])...)
             ))
-            addfield!(grid, "μ_ihalf" => ScalarVariableField(
-                backend.zeros(T, (gridsize .- [1, 0])...)
-            ))
-            addfield!(grid, "μ_jhalf" => ScalarVariableField(
+            addfield!(grid, "ρ_jhalf" => ScalarVariableField(
                 backend.zeros(T, (gridsize .- [0, 1])...)
             ))
-            addfield!(grid, "ρ_ihalf_jhalf" => ScalarVariableField(
+            addfield!(grid, "μ_ihalf_jhalf" => ScalarVariableField(
                 backend.zeros(T, (gridsize .- 1)...)
             ))
             # CPML memory variables
-            grds = [gridsize...]
-            gs1, gs2 = copy(grds), copy(grds)
-            gs1[1] = 2 * halo
-            gs2[2] = 2 * halo
             addfield!(grid, "ψ_∂σ∂x" => MultiVariableField(
-                [backend.zeros(T, gs1...) for _ in 1:2]
+                [
+                    backend.zeros(T, 2(halo+1), gridsize[2]  ), # ψ_∂σxx∂x
+                    backend.zeros(T, 2halo    , gridsize[2]-1)  # ψ_∂σxz∂x
+                ]
             ))
             addfield!(grid, "ψ_∂σ∂z" => MultiVariableField(
-                [backend.zeros(T, gs2...) for _ in 1:2]
+                [
+                    backend.zeros(T, gridsize[1]  , 2(halo+1)), # ψ_∂σzz∂z
+                    backend.zeros(T, gridsize[1]-1, 2halo    )  # ψ_∂σxz∂z
+                ]
             ))
             addfield!(grid, "ψ_∂v∂x" => MultiVariableField(
-                [backend.zeros(T, gs1...) for _ in 1:2]
+                [
+                    backend.zeros(T, 2halo    , gridsize[2]  ), # ψ_∂vx∂x
+                    backend.zeros(T, 2(halo+1), gridsize[2]-1)  # ψ_∂vz∂x
+                ]
             ))
             addfield!(grid, "ψ_∂v∂z" => MultiVariableField(
-                [backend.zeros(T, gs2...) for _ in 1:2]
+                [
+                    backend.zeros(T, gridsize[1]-1, 2(halo+1)), # ψ_∂vx∂z
+                    backend.zeros(T, gridsize[1]  , 2halo    )  # ψ_∂vz∂z
+                ]
             ))
             # Initialize gradient arrays if needed
             if gradient
                 # Stress and velocity
                 addfield!(grid, "adjσ" => MultiVariableField(
-                    [backend.zeros(T, gridsize...) for _ in 1:3]
+                    [
+                        backend.zeros(T, gridsize...),              # σxx
+                        backend.zeros(T, gridsize...),              # σzz
+                        backend.zeros(T, (gridsize .- 1)...)        # σxz
+                    ]
                 ))
                 addfield!(grid, "adjv" => MultiVariableField(
-                    [backend.zeros(T, gridsize...) for _ in 1:2]
+                    [
+                        backend.zeros(T, (gridsize .- [1, 0])...),  # vx
+                        backend.zeros(T, (gridsize .- [0, 1])...)   # vz
+                    ]
                 ))
                 # CPML memory variables
-                addfield!(grid, "adjψ_∂σ∂x" => MultiVariableField(
-                    [backend.zeros(T, gs1...) for _ in 1:2]
+                    addfield!(grid, "adjψ_∂σ∂x" => MultiVariableField(
+                    [
+                        backend.zeros(T, 2(halo+1), gridsize[2]  ), # ψ_∂σxx∂x
+                        backend.zeros(T, 2halo    , gridsize[2]-1)  # ψ_∂σxz∂x
+                    ]
                 ))
                 addfield!(grid, "adjψ_∂σ∂z" => MultiVariableField(
-                    [backend.zeros(T, gs2...) for _ in 1:2]
+                    [
+                        backend.zeros(T, gridsize[1]  , 2(halo+1)), # ψ_∂σzz∂z
+                        backend.zeros(T, gridsize[1]-1, 2halo    )  # ψ_∂σxz∂z
+                    ]
                 ))
                 addfield!(grid, "adjψ_∂v∂x" => MultiVariableField(
-                    [backend.zeros(T, gs1...) for _ in 1:2]
+                    [
+                        backend.zeros(T, 2halo    , gridsize[2]  ), # ψ_∂vx∂x
+                        backend.zeros(T, 2(halo+1), gridsize[2]-1)  # ψ_∂vz∂x
+                    ]
                 ))
                 addfield!(grid, "adjψ_∂v∂z" => MultiVariableField(
-                    [backend.zeros(T, gs2...) for _ in 1:2]
+                    [
+                        backend.zeros(T, gridsize[1]-1, 2(halo+1)), # ψ_∂vx∂z
+                        backend.zeros(T, gridsize[1]  , 2halo    )  # ψ_∂vz∂z
+                    ]
                 ))
                 # Gradient arrays
-                addfield!(grid, "grad_ρ" => ScalarVariableField(
+                addfield!(grid, "grad_λ" => ScalarVariableField(
                     backend.zeros(T, gridsize...)
                 ))
-                addfield!(grid, "grad_ρ_ihalf_jhalf" => ScalarVariableField(
-                    backend.zeros(T, (gridsize .- 1)...)
+                addfield!(grid, "grad_μ" => ScalarVariableField(
+                    backend.zeros(T, gridsize...)
                 ))
-                addfield!(grid, "grad_λ_ihalf" => ScalarVariableField(
+                addfield!(grid, "grad_ρ_ihalf" => ScalarVariableField(
                     backend.zeros(T, (gridsize .- [1, 0])...)
                 ))
-                addfield!(grid, "grad_μ_ihalf" => ScalarVariableField(
-                    backend.zeros(T, (gridsize .- [1, 0])...)
-                ))
-                addfield!(grid, "grad_μ_jhalf" => ScalarVariableField(
+                addfield!(grid, "grad_ρ_jhalf" => ScalarVariableField(
                     backend.zeros(T, (gridsize .- [0, 1])...)
+                ))
+                addfield!(grid, "grad_μ_ihalf_jhalf" => ScalarVariableField(
+                    backend.zeros(T, (gridsize .- 1)...)
                 ))
 
                 # Initialize checkpointer
@@ -322,9 +341,21 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
 
         if snapevery !== nothing
             # Initialize snapshotter
-            snapshotter = LinearSnapshotter{Array{T, N}}(nt, snapevery, Dict("v" => MultiVariableField(
-                [backend.zeros(T, gridsize...) for _ in 1:N]
-            )))
+            snapshotter = LinearSnapshotter{Array{T, N}}(nt, snapevery, Dict(
+                "v" => MultiVariableField(
+                    [
+                        backend.zeros(T, (gridsize .- [1, 0])...),  # vx
+                        backend.zeros(T, (gridsize .- [0, 1])...)   # vz
+                    ]
+                ),
+                "σ" => MultiVariableField(
+                    [
+                        backend.zeros(T, gridsize...),              # σxx
+                        backend.zeros(T, gridsize...),              # σzz
+                        backend.zeros(T, (gridsize .- 1)...)        # σxz
+                    ]
+                )
+            ))
         end
 
         # Check infoevery
@@ -361,7 +392,7 @@ end
 
 @views function reset!(model::ElasticIsoCPMLWaveSimulation{T, N}) where {T, N}
     # Reset computational arrays
-    reset!(model.grid; except=["ρ", "λ", "μ", "λ_ihalf", "μ_ihalf", "μ_jhalf", "ρ_ihalf_jhalf"])
+    reset!(model.grid; except=["λ", "μ", "ρ_ihalf", "ρ_jhalf", "μ_ihalf_jhalf"])
     if model.checkpointer !== nothing
         reset!(model.checkpointer)
     end
