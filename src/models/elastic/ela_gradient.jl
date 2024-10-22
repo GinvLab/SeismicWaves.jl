@@ -10,7 +10,7 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
     # scale source time function
     srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz,
     reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz,
-    scal_srctf = possrcrec_scaletf(model, shots; sincinterp=model.sincinterp)
+    scal_srctf = possrcrec_scaletf(model, shot; sincinterp=model.sincinterp)
     # moment tensors
     momtens = shot.srcs.momtens
 
@@ -46,7 +46,8 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(model,
+        backend.forward_onestep_CPML!(
+            model,
             srccoeij_xx,
             srccoeval_xx,
             srccoeij_xz,
@@ -59,7 +60,8 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
             traces_bk,
             it,
             Mxx_bk, Mzz_bk, Mxz_bk;
-            save_trace=true)
+            save_trace=true
+        )
 
         # Print timestep info
         if it % model.infoevery == 0
@@ -118,7 +120,8 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
             recover!(
                 checkpointer,
                 recit -> begin
-                    backend.forward_onestep_CPML!(model,
+                    backend.forward_onestep_CPML!(
+                        model,
                         srccoeij_xx,
                         srccoeval_xx,
                         srccoeij_xz,
@@ -128,10 +131,11 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
                         reccoeij_vz,
                         reccoeval_vz,
                         srctf_bk,
-                        nothing,
-                        it,
+                        traces_bk,
+                        recit,
                         Mxx_bk, Mzz_bk, Mxz_bk;
-                        save_trace=false)
+                        save_trace=false
+                    )
                     return ["v" => grid.fields["v"]]
                 end
             )
@@ -147,12 +151,12 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
     gradient_λ = zeros(T, grid.size...)
     gradient_μ = zeros(T, grid.size...)
     # Get gradients
-    copyto!(gradient_ρ, grid.fields["grad_ρ"].value)
+    copyto!(gradient_λ, grid.fields["grad_λ"].value)
+    copyto!(gradient_μ, grid.fields["grad_μ"].value)
     # Compute chain rules for back interpolations
-    gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf_jhalf"].value), [1, 2])
-    gradient_λ .+= back_interp(model.matprop.interp_method_λ, model.matprop.λ, Array(grid.fields["grad_λ_ihalf"].value), 1)
-    gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf"].value), 1) .+
-                   back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_jhalf"].value), 2)
+    gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf"].value), 1) .+
+                   back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
+    gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
     # TODO smooth gradients
     # Compute regularization if needed
     ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
@@ -193,7 +197,7 @@ end
     reccoeval_vx = [backend.Data.Array(reccoeval_vx[i]) for i in eachindex(reccoeval_vx)]
     reccoeij_vz = [backend.Data.Array(reccoeij_vz[i]) for i in eachindex(reccoeij_vz)]
     reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in eachindex(reccoeval_vz)]
-    
+
     srctf_bk = backend.Data.Array(scal_srctf)
     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
@@ -203,7 +207,8 @@ end
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(model,
+        backend.forward_onestep_CPML!(
+            model,
             srccoeij_vx,
             srccoeval_vx,
             srccoeij_vz,
@@ -215,7 +220,8 @@ end
             srctf_bk,
             traces_bk,
             it;
-            save_trace=true)
+            save_trace=true
+        )
 
         # Print timestep info
         if it % model.infoevery == 0
@@ -274,7 +280,8 @@ end
             recover!(
                 checkpointer,
                 recit -> begin
-                    backend.forward_onestep_CPML!(model,
+                    backend.forward_onestep_CPML!(
+                        model,
                         srccoeij_vx,
                         srccoeval_vx,
                         srccoeij_vz,
@@ -284,10 +291,10 @@ end
                         reccoeij_vz,
                         reccoeval_vz,
                         srctf_bk,
-                        nothing,
-                        it,
-                        fx_bk, fz_bk;
-                        save_trace=false)
+                        traces_bk,
+                        recit;
+                        save_trace=false
+                    )
                     return ["v" => grid.fields["v"]]
                 end
             )
@@ -303,12 +310,12 @@ end
     gradient_λ = zeros(T, grid.size...)
     gradient_μ = zeros(T, grid.size...)
     # Get gradients
-    copyto!(gradient_ρ, grid.fields["grad_ρ"].value)
+    copyto!(gradient_λ, grid.fields["grad_λ"].value)
+    copyto!(gradient_μ, grid.fields["grad_μ"].value)
     # Compute chain rules for back interpolations
-    gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf_jhalf"].value), [1, 2])
-    gradient_λ .+= back_interp(model.matprop.interp_method_λ, model.matprop.λ, Array(grid.fields["grad_λ_ihalf"].value), 1)
-    gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf"].value), 1) .+
-                   back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_jhalf"].value), 2)
+    gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf"].value), 1) .+
+                   back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
+    gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
     # TODO smooth gradients
     # Compute regularization if needed
     ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
