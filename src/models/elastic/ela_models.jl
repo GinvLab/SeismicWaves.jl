@@ -2,51 +2,6 @@
 
 # Functions for all ElasticIsoWaveSimulation subtypes
 
-function modd_2D_grid(x0::T, y0::T, dx::T, dy::T, nx::Int, ny::Int, r::Int=4, β::Int=10, xstart::T=0, ystart::T=0) where {T}
-    xs = range(xstart, length=nx, step=dx)
-    ys = range(ystart, length=ny, step=dy)
-    dd_coeffs = Vector{Tuple{Int, Int, T}}()
-
-    kaiser(x, r, β) = (-r <= x <= r ? besseli(0, β * sqrt(1 - (x / r)^2)) / besseli(0, β) : 0.0)
-    modd_(x, x0, r, β, Δx) = 1/Δx * kaiser(x - x0, r, β) * sinc((x - x0)/Δx)
-    modd(x, x0, r, β, Δx) = begin
-        res = modd_(x, x0, r * Δx, β, Δx)
-        return res ≈ 0 ? 0.0 : res
-    end
-    modd_2D(x, y, x0, y0, r, β, Δx, Δy) = modd(x, x0, r, β, Δx) * modd(y, y0, r, β, Δy)
-    findnearest(x, xs) = argmin(abs.(x .- xs))
-
-    i0 = findnearest(x0, xs)
-    j0 = findnearest(y0, ys)
-    for i in i0-r-1:i0+r+1, j in j0-r-1:j0+r+1
-        if i < 1 || i > nx || j < 1 || j > ny
-            continue
-        end
-        ddij = modd_2D(xs[i], ys[j], x0, y0, r, β, dx, dy)
-        if ddij != 0.0
-            push!(dd_coeffs, (i, j, ddij))
-        end
-    end
-
-    return dd_coeffs
-end
-
-function spread2D(spacing::NTuple{2, T}, size::NTuple{2, Int}, positions::Matrix{T}, npositions; r::Int=4, β::Int=10, xstart::T=0, zstart::T=0) where {T}
-    coeij = Vector{Matrix{Int}}(undef, npositions)
-    coeval = Vector{Vector{T}}(undef, npositions)
-    for p in 1:npositions
-        x0, y0 = positions[p, 1], positions[p, 2]
-        dd_coeffs = modd_2D_grid(x0, y0, spacing[1], spacing[2], size[1], size[2], r, β, xstart, zstart)
-        coeij[p] = zeros(Int, length(dd_coeffs), 2)
-        coeval[p] = zeros(T, length(dd_coeffs))
-        for (idx, (i, j, val)) in enumerate(dd_coeffs)
-            coeij[p][idx, :] .= (i, j)
-            coeval[p][idx] = val
-        end
-    end
-    return coeij, coeval
-end
-
 # Scaling for ElasticIsoWaveSimulation
 @views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
@@ -75,7 +30,7 @@ end
         reccoeval_vz = [ones(T, 1) for _ in 1:nrecs]
     end
 
-    # scale source time function with boxcar and timestep size
+    # scale source time function with timestep size
     scal_srctf = shot.srcs.tf .* model.dt
 
     return srccoeij_vx, srccoeval_vx, srccoeij_vz, srccoeval_vz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, scal_srctf
@@ -108,7 +63,7 @@ end
         reccoeval_vz = [ones(T, 1) for _ in 1:nrecs]
     end
 
-    # scale source time function with boxcar and timestep size
+    # scale source time function with timestep size
     scal_srctf = shot.srcs.tf .* model.dt
 
     return srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, scal_srctf
