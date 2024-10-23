@@ -13,6 +13,15 @@ function gaussian_vel_2D(nx, ny, c0, c0max, r, origin=[(nx + 1) / 2, (ny + 1) / 
     return c0 .+ [f(x, y) for x in 1:nx, y in 1:ny]
 end
 
+function gradient_vel_2D(nx, ny, c0, c0max)
+    c = zeros(nx, ny)
+    dc = (c0max - c0) / (ny-1)
+    for j in 1:ny
+        c[:, j] .= c0 .+ dc * (j-1)
+    end
+    return c
+end
+
 function create_constant_velocity_model(nx, nz, ρ0, vp0, vs0=vp0 / sqrt(3))
     vp = vp0 .* ones(nx, nz)
     vs = vs0 .* ones(nx, nz)
@@ -34,41 +43,37 @@ function create_gaussian_velocity_model(nx, nz, ρ0, vp0, vs0=vp0 / sqrt(3))
 end
 
 # Function to define shots
-function define_shots(nx, nz, nt, dt, dh)
+function define_shots(lx, lz, nx, nz, nt, dt, dh)
     nsrc = 1
     possrcs = zeros(nsrc, 2)
-    for s in 1:nsrc
-        possrcs[s, :] .= [(s / (nsrc+1) * nx) * dh, (nz / 6) * dh]
-    end
-    f0 = 150.0
+    possrcs[1, :] .= [lx / 3, lz / 2]
+    f0 = 4.0
     t0 = 1.20 / f0
-    # srcstf = zeros(nt, nsrc)
-    # Mxx = fill(5e10, nsrc)
-    # Mzz = fill(0.0, nsrc)
-    # Mxz = fill(0.0, nsrc)
-    # srcstf[:, 1] .= rickerstf.(collect(Float64, range(0.0; step=dt, length=nt)), t0, f0)
-    srcstf = zeros(nt, 2, nsrc)
-    for s in 1:nsrc
-        srcstf[:, 1, s] .= 0.0 .* rickerstf.(collect(Float64, range(0.0; step=dt, length=nt)), t0, f0)
-        srcstf[:, 2, s] .= 1e10 .* rickerstf.(collect(Float64, range(0.0; step=dt, length=nt)), t0, f0)
-    end
-    srcs = ExternalForceSources(possrcs, srcstf, f0)
-    # srcs = MomentTensorSources(possrcs, srcstf, [MomentTensor2D(; Mxx=Mxx[s], Mzz=Mzz[s], Mxz=Mxz[s]) for s in 1:nsrc], f0)
+    srcstf = zeros(nt, nsrc)
+    Mxx = fill(1e15, nsrc)
+    Mzz = fill(1e15, nsrc)
+    Mxz = fill(2e14, nsrc)
+    srcstf[:, 1] .= rickerstf.(collect(Float64, range(0.0; step=dt, length=nt)), t0, f0)
+    # srcstf = zeros(nt, 2, nsrc)
+    # for s in 1:nsrc
+    #     srcstf[:, 1, s] .= 1e10 .* rickerstf.(collect(Float64, range(0.0; step=dt, length=nt)), t0, f0)
+    #     srcstf[:, 2, s] .= 1e10 .* rickerstf.(collect(Float64, range(0.0; step=dt, length=nt)), t0, f0)
+    # end
+    # srcs = ExternalForceSources(possrcs, srcstf, f0)
+    srcs = MomentTensorSources(possrcs, srcstf, [MomentTensor2D(; Mxx=Mxx[s], Mzz=Mzz[s], Mxz=Mxz[s]) for s in 1:nsrc], f0)
     nrecs = 1
     posrecs = zeros(nrecs, 2)
-    for r in 1:nrecs
-        posrecs[r, :] .= [(r / (nrecs+1) * nx) * dh, (5nz / 6) * dh]
-    end
+    posrecs[1, :] .= [2lx / 3, lz / 2]
 
     recs = VectorReceivers(posrecs, nt)
-    shots = [ExternalForceShot(; srcs=srcs, recs=recs)]
-    # shots = [MomentTensorShot(; srcs=srcs, recs=recs)]
+    # shots = [ExternalForceShot(; srcs=srcs, recs=recs)]
+    shots = [MomentTensorShot(; srcs=srcs, recs=recs)]
     return shots
 end
 
 # Function to compute the forward simulation
 function compute_forward_simulation(params, matprop, shots)
-    model = build_wavesim(params, matprop; parall=:threads, gradient=true, check_freq=nothing, snapevery=5)
+    model = build_wavesim(params, matprop; parall=:threads, gradient=true, check_freq=nothing, snapevery=20)
     snaps = swforward!(model, matprop, shots)
     return model, snaps
 end
@@ -97,55 +102,128 @@ end
 # Main function to orchestrate the workflow
 function main()
     # Time and grid parameters
-    nt = 1000
-    dt = 0.00008
     halo = 20
-    nx = 200 + halo*2
-    nz = 200 + halo*2
-    dh = 0.5
     rcoef = 0.0001
+    nx, nz = 11*7*5+1 + 2halo, 11*7*5+1 + 2halo
+    vp0 = 3100.0
+    vs0 = vp0 / sqrt(3)
+    # vs0 = 0.0
+    ρ0 = 2700.0
+    lx = lz = 6000.0
+    dx, dz = lx / (nx - 1), lz / (nz - 1)
+    T = 5.0
+    dt = dx / vp0 / sqrt(2) * 0.7
+    nt = ceil(Int, T / dt)
+    dh = dx = dz
 
     # Create velocity model
-    matprop_const = create_constant_velocity_model(nx, nz, 2100.0, 3100.0, 0.0)
-    matprop_gauss = create_gaussian_velocity_model(nx, nz, 2100.0, 3100.0, 0.0)
+    matprop_const = create_constant_velocity_model(nx, nz, ρ0, vp0, vs0)
+    # matprop_const.λ .= gradient_vel_2D(nx, nz, λ0, λ0 * 1.15)
+    matprop_gauss = deepcopy(matprop_const)
+    matprop_gauss.ρ .*= 0.75
+    # matprop_gauss.ρ .= gradient_vel_2D(nx, nz, ρ0, ρ0 * 0.75)
+    # matprop_gauss = create_constant_velocity_model(nx, nz, ρ0 * 0.75, vp0, vs0)
+
 
     # Define shots
-    shots = define_shots(nx, nz, nt, dt, dh)
+    shots = define_shots(lx, lz, nx, nz, nt, dt, dh)
 
     # Input parameters for elastic simulation
-    boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false)
+    boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=true)
     params = InputParametersElastic(nt, dt, (nx, nz), (dh, dh), boundcond)
 
     # Compute forward simulation
+    println("Computing forward simulation to get observed data")
     model, snapshots = compute_forward_simulation(params, matprop_gauss, shots)
 
     # Compute the gradient
-    shots_grad = Vector{ExternalForceShot{Float64, 2}}()
-    # shots_grad = Vector{MomentTensorShot{Float64, 2, MomentTensor2D{Float64}}}()
+    # shots_grad = Vector{ExternalForceShot{Float64, 2}}()
+    shots_grad = Vector{MomentTensorShot{Float64, 2, MomentTensor2D{Float64}}}()
     for i in eachindex(shots)
         recs_grad = VectorReceivers(shots[i].recs.positions, nt; observed=copy(shots[i].recs.seismograms), invcov=1.0 * I(nt))
-        push!(shots_grad, ExternalForceShot(; srcs=shots[i].srcs, recs=recs_grad))
-        # push!(shots_grad, MomentTensorShot(; srcs=shots[i].srcs, recs=recs_grad))
+        # push!(shots_grad, ExternalForceShot(; srcs=shots[i].srcs, recs=recs_grad))
+        push!(shots_grad, MomentTensorShot(; srcs=shots[i].srcs, recs=recs_grad))
     end
 
+    println("Compute gradient with adjoint method")
     grad, misfit = compute_gradient(model, matprop_const, shots_grad)
     serialize("grads_adj.jls", grad)
 
-    # # Compute FD gradients
-    # Δρ = minimum(ρ) * 1e-4
-    # grad_ρ_FD = zeros(nx, nz)
-    # compute_fd_gradient!(grad_ρ_FD, :ρ, Δρ, model, matprop_grad, shots_grad, misfit, halo, nx, nz)
-    # serialize("grad_ρ_FD.jls", grad_ρ_FD)
+    # # Check gradient with respect to density
+    # println("Check gradient with respect to ρ")
+    # @show minimum(matprop_const.ρ)
+    # Δρ = rand(nx, nz) .* minimum(matprop_const.ρ) .* 1e-6
+    # FD_matprop_right = ElasticIsoMaterialProperties(; ρ=matprop_const.ρ .+ Δρ, μ=matprop_const.μ, λ=matprop_const.λ)
+    # FD_matprop_left = ElasticIsoMaterialProperties(; ρ=matprop_const.ρ .- Δρ, μ=matprop_const.μ, λ=matprop_const.λ)
+    # FD_misfit_right = swmisfit!(params, FD_matprop_right, shots_grad)
+    # FD_misfit_left = swmisfit!(params, FD_matprop_left, shots_grad)
+    # right = FD_misfit_right - FD_misfit_left
+    # left = dot(reduce(vcat, grad["rho"]), reduce(vcat, 2 .* Δρ))
+    # println("χ(m + Δρ) - χ(m - Δρ) = ", right)
+    # println("∂χ/∂ρ * 2Δρ = ", left)
+    # println("Difference = ", right - left)
+    # println("Ratio = ", left / right)
 
-    # Δλ = minimum(λ) * 1e-4
-    # grad_λ_FD = zeros(nx, nz)
-    # compute_fd_gradient!(grad_λ_FD, :λ, Δλ, model, matprop_grad, shots_grad, misfit, halo, nx, nz)
-    # serialize("grad_λ_FD.jls", grad_λ_FD)
+    # # Check gradient with respect to λ
+    # println("Check gradient with respect to λ")
+    # @show minimum(matprop_const.λ)
+    # Δλ = rand(nx, nz) .* minimum(matprop_const.λ) .* 1e-6
+    # FD_matprop_right = ElasticIsoMaterialProperties(; ρ=matprop_const.ρ, μ=matprop_const.μ, λ=matprop_const.λ .+ Δλ)
+    # FD_matprop_left = ElasticIsoMaterialProperties(; ρ=matprop_const.ρ, μ=matprop_const.μ, λ=matprop_const.λ .- Δλ)
+    # FD_misfit_right = swmisfit!(params, FD_matprop_right, shots_grad)
+    # FD_misfit_left = swmisfit!(params, FD_matprop_left, shots_grad)
+    # right = FD_misfit_right - FD_misfit_left
+    # left = dot(reduce(vcat, grad["lambda"]), reduce(vcat, 2 .* Δλ))
+    # println("χ(m + Δλ) - χ(m - Δλ) = ", right)
+    # println("∂χ/∂λ * 2Δλ = ", left)
+    # println("Difference = ", right - left)
+    # println("Ratio = ", left / right)
 
-    # Δμ = minimum(λ) * 1e-4
-    # grad_μ_FD = zeros(nx, nz)
-    # compute_fd_gradient!(grad_μ_FD, :μ, Δμ, model, matprop_grad, shots_grad, misfit, halo, nx, nz)
-    # serialize("grad_μ_FD.jls", grad_μ_FD)
+    # println("Check gradient with respect to λ")
+    # @show minimum(matprop_const.λ)
+    # Δλ = rand(nx, nz) .* minimum(matprop_const.λ) .* 1e-6
+    # FD_matprop_right = ElasticIsoMaterialProperties(; ρ=matprop_const.ρ, μ=matprop_const.μ, λ=matprop_const.λ .+ Δλ)
+    # FD_matprop_left = ElasticIsoMaterialProperties(; ρ=matprop_const.ρ, μ=matprop_const.μ, λ=matprop_const.λ .- Δλ)
+    # FD_misfit_right = swmisfit!(params, FD_matprop_right, shots_grad)
+    # FD_misfit_left = swmisfit!(params, FD_matprop_left, shots_grad)
+    # right = FD_misfit_right - FD_misfit_left
+    # left = dot(reduce(vcat, grad["lambda"]), reduce(vcat, 2 .* Δλ))
+    # println("χ(m + Δλ) - χ(m - Δλ) = ", right)
+    # println("∂χ/∂λ * 2Δλ = ", left)
+    # println("Difference = ", right - left)
+    # println("Ratio = ", left / right)
+
+    # # Check gradient with respect to μ
+    # println("Check gradient with respect to μ")
+    # @show minimum(matprop_const.μ)
+    # Δμ = rand(nx, nz) .* minimum(matprop_const.μ) .* 1e-6
+    # FD_matprop_right = ElasticIsoMaterialProperties(; ρ=matprop_const.ρ, μ=matprop_const.μ .+ Δμ, λ=matprop_const.λ)
+    # FD_matprop_left = ElasticIsoMaterialProperties(; ρ=matprop_const.ρ, μ=matprop_const.μ .- Δμ, λ=matprop_const.λ)
+    # FD_misfit_right = swmisfit!(params, FD_matprop_right, shots_grad)
+    # FD_misfit_left = swmisfit!(params, FD_matprop_left, shots_grad)
+    # right = FD_misfit_right - FD_misfit_left
+    # left = dot(reduce(vcat, grad["mu"]), reduce(vcat, 2 .* Δμ))
+    # println("χ(m + Δμ) - χ(m - Δμ) = ", right)
+    # println("∂χ/∂μ * 2Δμ = ", left)
+    # println("Difference = ", right - left)
+    # println("Ratio = ", left / right)
+
+    model = build_wavesim(params, matprop_const; parall=:threads)
+    # Compute FD gradients
+    Δρ = minimum(matprop_const.ρ) * 1e-4
+    grad_ρ_FD = zeros(nx, nz)
+    compute_fd_gradient!(grad_ρ_FD, :ρ, Δρ, model, matprop_grad, shots_grad, misfit, halo, nx, nz)
+    serialize("grad_ρ_FD.jls", grad_ρ_FD)
+
+    Δλ = minimum(matprop_const.λ) * 1e-4
+    grad_λ_FD = zeros(nx, nz)
+    compute_fd_gradient!(grad_λ_FD, :λ, Δλ, model, matprop_grad, shots_grad, misfit, halo, nx, nz)
+    serialize("grad_λ_FD.jls", grad_λ_FD)
+
+    Δμ = minimum(matprop_const.μ) * 1e-4
+    grad_μ_FD = zeros(nx, nz)
+    compute_fd_gradient!(grad_μ_FD, :μ, Δμ, model, matprop_grad, shots_grad, misfit, halo, nx, nz)
+    serialize("grad_μ_FD.jls", grad_μ_FD)
 
     return params, matprop_gauss, shots, snapshots
 end
@@ -156,7 +234,6 @@ function load_and_plot_gradients(params, shots)
     grad_ρ_FD = deserialize("grad_ρ_FD.jls")
     grad_λ_FD = deserialize("grad_λ_FD.jls")
     grad_μ_FD = deserialize("grad_μ_FD.jls")
-    
     # Plot gradients
     plotgrad(params, grads, shots, grad_ρ_FD, grad_λ_FD, grad_μ_FD)
 end
@@ -165,7 +242,7 @@ function plotgrad(par, grad, shots, grad_ρ_FD, grad_λ_FD, grad_μ_FD)
     xgrd = [par.gridspacing[1] * (i - 1) for i in 1:par.gridsize[1]]
     ygrd = [par.gridspacing[2] * (i - 1) for i in 1:par.gridsize[2]]
 
-    fig = Figure(; size=(1000, 1000))
+    fig = Figure(; size=(500, 1000))
 
     axes = [
         (Axis(fig[1, 1]; aspect=DataAspect(), title="grad ρ", xlabel="x [m]", ylabel="z [m]"), grad["rho"], "∂χ/∂ρ", [1,2]),
@@ -181,14 +258,14 @@ function plotgrad(par, grad, shots, grad_ρ_FD, grad_λ_FD, grad_μ_FD)
     for (ax, grad_data, label, cbarpos) in axes
         grad2 = copy(grad_data)
         for s in 1:size(shots[1].srcs.positions, 1)
-            srcx, srcy = ceil.(Int, shots[1].srcs.positions[s, :] ./ par.gridspacing)
-            grad2[srcx-radius:srcx+radius, srcy-radius:srcy+radius] .= 0
+            srcx, srcy = ceil.(Int, shots[1].srcs.positions[s, :] ./ par.gridspacing) .+ 1
+            grad2[srcx-radius:srcx+radius, srcy:srcy+radius] .= 0
         end
         for r in 1:size(shots[1].recs.positions, 1)
-            recx, recy = ceil.(Int, shots[1].recs.positions[r, :] ./ par.gridspacing)
-            grad2[recx-radius:recx+radius, recy-radius:recy+radius] .= 0
+            recx, recy = ceil.(Int, shots[1].recs.positions[r, :] ./ par.gridspacing) .+ 1
+            grad2[recx-radius:recx+radius, recy:recy+radius] .= 0
         end
-        maxabsgrad = maximum(abs.(grad2))
+        maxabsgrad = maximum(abs.(grad2)) / 10
         hm = heatmap!(ax, xgrd, ygrd, grad_data; colormap=:vik, colorrange=(-maxabsgrad, maxabsgrad))
         Colorbar(fig[cbarpos[1], cbarpos[2]], hm; label=label)
         ax.yreversed = true
@@ -198,7 +275,7 @@ function plotgrad(par, grad, shots, grad_ρ_FD, grad_λ_FD, grad_μ_FD)
     return fig
 end
 
-function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
+function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=20)
     xgrd = [par.gridspacing[1] * (i - 1) for i in 1:par.gridsize[1]]
     ygrd = [par.gridspacing[2] * (i - 1) for i in 1:par.gridsize[2]]
     xrec = shots[1].recs.positions[:, 1]
@@ -231,7 +308,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     end
 
     ##=====================================
-    fig = Figure(; size=(800, 1500÷2 * 3))
+    fig = Figure(; size=(1500, 500))
 
     nframes = length(vxsnap)
 
@@ -254,7 +331,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     # axislegend(ax1)
     ax1.yreversed = true
 
-    ax2 = Axis(fig[2, 1]; aspect=DataAspect(),
+    ax2 = Axis(fig[1, 3]; aspect=DataAspect(),
         xlabel="x [m]", ylabel="z [m]", title="Vz, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
     #poly!(ax4,Rect(rect...),color=:green,alpha=0.3)
     extx = extrema.([vzsnap[i] for i in eachindex(vzsnap)])
@@ -263,7 +340,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     vminmax = scalamp .* (-vmax, vmax)
     hm = heatmap!(ax2, xgrd, ygrd, curvz; colormap=cmapwavefield,
         colorrange=vminmax) #,alpha=0.7)
-    Colorbar(fig[2, 2], hm; label="z partic. vel.")
+    Colorbar(fig[1, 4], hm; label="z partic. vel.")
 
     lines!(ax2, Rect(rectpml...); color=:green)
     scatter!(ax2, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
@@ -271,10 +348,10 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     # axislegend(ax2)
     ax2.yreversed = true
 
-    ax3 = Axis(fig[3, 1]; aspect=DataAspect(),
+    ax3 = Axis(fig[1, 5]; aspect=DataAspect(),
         xlabel="x [m]", ylabel="z [m]")
     hm = heatmap!(ax3, xgrd, ygrd, vp; colormap=:Reds) #,alpha=0.7)
-    Colorbar(fig[3, 2], hm; label="Vp")
+    Colorbar(fig[1, 6], hm; label="Vp")
 
     scatter!(ax3, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
     scatter!(ax3, xsrc, ysrc; label="Sources", markersize=15)
@@ -313,6 +390,6 @@ end
 # Run the main function
 params, matprop_gauss, shots, snapshots = main()
 # Plot animation
-snapanimate(params, matprop_gauss, shots, snapshots)
+snapanimate(params, matprop_gauss, shots, snapshots; scalamp=0.005)
 # Load and plot gradients
 load_and_plot_gradients(params, shots)
