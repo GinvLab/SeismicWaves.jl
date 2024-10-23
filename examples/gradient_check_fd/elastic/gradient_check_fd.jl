@@ -47,12 +47,12 @@ function define_shots(lx, lz, nx, nz, nt, dt, dh)
     nsrc = 1
     possrcs = zeros(nsrc, 2)
     possrcs[1, :] .= [lx / 3, lz / 2]
-    f0 = 4.0
+    f0 = 2.0
     t0 = 1.20 / f0
     srcstf = zeros(nt, nsrc)
     Mxx = fill(1e15, nsrc)
     Mzz = fill(1e15, nsrc)
-    Mxz = fill(2e14, nsrc)
+    Mxz = fill(0.0, nsrc)
     srcstf[:, 1] .= rickerstf.(collect(Float64, range(0.0; step=dt, length=nt)), t0, f0)
     # srcstf = zeros(nt, 2, nsrc)
     # for s in 1:nsrc
@@ -104,7 +104,7 @@ function main()
     # Time and grid parameters
     halo = 20
     rcoef = 0.0001
-    nx, nz = 11*7*5+1 + 2halo, 11*7*5+1 + 2halo
+    nx, nz = 11*7*2+1 + 2halo, 11*7*2+1 + 2halo
     vp0 = 3100.0
     vs0 = vp0 / sqrt(3)
     # vs0 = 0.0
@@ -120,7 +120,7 @@ function main()
     matprop_const = create_constant_velocity_model(nx, nz, ρ0, vp0, vs0)
     # matprop_const.λ .= gradient_vel_2D(nx, nz, λ0, λ0 * 1.15)
     matprop_gauss = deepcopy(matprop_const)
-    matprop_gauss.ρ .*= 0.75
+    matprop_gauss.ρ .*= 0.9
     # matprop_gauss.ρ .= gradient_vel_2D(nx, nz, ρ0, ρ0 * 0.75)
     # matprop_gauss = create_constant_velocity_model(nx, nz, ρ0 * 0.75, vp0, vs0)
 
@@ -129,7 +129,7 @@ function main()
     shots = define_shots(lx, lz, nx, nz, nt, dt, dh)
 
     # Input parameters for elastic simulation
-    boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=true)
+    boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false)
     params = InputParametersElastic(nt, dt, (nx, nz), (dh, dh), boundcond)
 
     # Compute forward simulation
@@ -209,6 +209,7 @@ function main()
     # println("Ratio = ", left / right)
 
     model = build_wavesim(params, matprop_const; parall=:threads)
+    matprop_grad = deepcopy(matprop_const)
     # Compute FD gradients
     Δρ = minimum(matprop_const.ρ) * 1e-4
     grad_ρ_FD = zeros(nx, nz)
@@ -231,9 +232,10 @@ end
 # Function to load and plot gradients
 function load_and_plot_gradients(params, shots)
     grads = deserialize("grads_adj.jls")
-    grad_ρ_FD = deserialize("grad_ρ_FD.jls")
-    grad_λ_FD = deserialize("grad_λ_FD.jls")
-    grad_μ_FD = deserialize("grad_μ_FD.jls")
+    # grad_ρ_FD = deserialize("grad_ρ_FD.jls")
+    # grad_λ_FD = deserialize("grad_λ_FD.jls")
+    # grad_μ_FD = deserialize("grad_μ_FD.jls")
+    grad_ρ_FD = grad_λ_FD = grad_μ_FD = zeros(params.gridsize...)
     # Plot gradients
     plotgrad(params, grads, shots, grad_ρ_FD, grad_λ_FD, grad_μ_FD)
 end
@@ -259,13 +261,13 @@ function plotgrad(par, grad, shots, grad_ρ_FD, grad_λ_FD, grad_μ_FD)
         grad2 = copy(grad_data)
         for s in 1:size(shots[1].srcs.positions, 1)
             srcx, srcy = ceil.(Int, shots[1].srcs.positions[s, :] ./ par.gridspacing) .+ 1
-            grad2[srcx-radius:srcx+radius, srcy:srcy+radius] .= 0
+            grad2[srcx-radius:srcx+radius, srcy-radius:srcy+radius] .= 0
         end
         for r in 1:size(shots[1].recs.positions, 1)
             recx, recy = ceil.(Int, shots[1].recs.positions[r, :] ./ par.gridspacing) .+ 1
-            grad2[recx-radius:recx+radius, recy:recy+radius] .= 0
+            grad2[recx-radius:recx+radius, recy-radius:recy+radius] .= 0
         end
-        maxabsgrad = maximum(abs.(grad2)) / 10
+        maxabsgrad = maximum(abs.(grad2))
         hm = heatmap!(ax, xgrd, ygrd, grad_data; colormap=:vik, colorrange=(-maxabsgrad, maxabsgrad))
         Colorbar(fig[cbarpos[1], cbarpos[2]], hm; label=label)
         ax.yreversed = true
