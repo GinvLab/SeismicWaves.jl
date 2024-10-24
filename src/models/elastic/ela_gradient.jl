@@ -22,16 +22,20 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
     # Numerics
     nt = model.nt
     # Wrap sources and receivers arrays
-    srccoeij_xx = [backend.Data.Array(srccoeij_xx[i]) for i in eachindex(srccoeij_xx)]
-    srccoeval_xx = [backend.Data.Array(srccoeval_xx[i]) for i in eachindex(srccoeval_xx)]
-    srccoeij_xz = [backend.Data.Array(srccoeij_xz[i]) for i in eachindex(srccoeij_xz)]
-    srccoeval_xz = [backend.Data.Array(srccoeval_xz[i]) for i in eachindex(srccoeval_xz)]
-    reccoeij_vx = [backend.Data.Array(reccoeij_vx[i]) for i in eachindex(reccoeij_vx)]
-    reccoeval_vx = [backend.Data.Array(reccoeval_vx[i]) for i in eachindex(reccoeval_vx)]
-    reccoeij_vz = [backend.Data.Array(reccoeij_vz[i]) for i in eachindex(reccoeij_vz)]
-    reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in eachindex(reccoeval_vz)]
-
+    nsrcs = size(shot.srcs.positions, 1)
+    nrecs = size(shot.recs.positions, 1)
+    srccoeij_xx  = [backend.Data.Array( srccoeij_xx[i]) for i in 1:nsrcs]
+    srccoeval_xx = [backend.Data.Array(srccoeval_xx[i]) for i in 1:nsrcs]
+    srccoeij_xz  = [backend.Data.Array( srccoeij_xz[i]) for i in 1:nsrcs]
+    srccoeval_xz = [backend.Data.Array(srccoeval_xz[i]) for i in 1:nsrcs]
+    reccoeij_vx  = [backend.Data.Array( reccoeij_vx[i]) for i in 1:nrecs]
+    reccoeval_vx = [backend.Data.Array(reccoeval_vx[i]) for i in 1:nrecs]
+    reccoeij_vz  = [backend.Data.Array( reccoeij_vz[i]) for i in 1:nrecs]
+    reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in 1:nrecs]
     srctf_bk = backend.Data.Array(scal_srctf)
+    reduced_buf = zeros(T, nrecs)
+    traces_vx_bk_buf = [backend.zeros(T, size(reccoeij_vx[i], 1)) for i in 1:nrecs]
+    traces_vz_bk_buf = [backend.zeros(T, size(reccoeij_vz[i], 1)) for i in 1:nrecs]
     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
     ## ONLY 2D for now!!!
@@ -57,6 +61,9 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
             reccoeij_vz,
             reccoeval_vz,
             srctf_bk,
+            reduced_buf,
+            traces_vx_bk_buf,
+            traces_vz_bk_buf,
             traces_bk,
             it,
             Mxx_bk, Mzz_bk, Mxz_bk;
@@ -131,6 +138,9 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
                         reccoeij_vz,
                         reccoeval_vz,
                         srctf_bk,
+                        reduced_buf,
+                        traces_vx_bk_buf,
+                        traces_vz_bk_buf,
                         traces_bk,
                         recit,
                         Mxx_bk, Mzz_bk, Mxz_bk;
@@ -189,16 +199,20 @@ end
     # Numerics
     nt = model.nt
     # Wrap sources and receivers arrays
-    srccoeij_vx = [backend.Data.Array(srccoeij_vx[i]) for i in eachindex(srccoeij_vx)]
-    srccoeval_vx = [backend.Data.Array(srccoeval_vx[i]) for i in eachindex(srccoeval_vx)]
-    srccoeij_vz = [backend.Data.Array(srccoeij_vz[i]) for i in eachindex(srccoeij_vz)]
-    srccoeval_vz = [backend.Data.Array(srccoeval_vz[i]) for i in eachindex(srccoeval_vz)]
-    reccoeij_vx = [backend.Data.Array(reccoeij_vx[i]) for i in eachindex(reccoeij_vx)]
-    reccoeval_vx = [backend.Data.Array(reccoeval_vx[i]) for i in eachindex(reccoeval_vx)]
-    reccoeij_vz = [backend.Data.Array(reccoeij_vz[i]) for i in eachindex(reccoeij_vz)]
-    reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in eachindex(reccoeval_vz)]
-
+    nsrcs = size(shot.srcs.positions, 1)
+    nrecs = size(shot.recs.positions, 1)
+    srccoeij_vx  = [backend.Data.Array( srccoeij_vx[i]) for i in 1:nsrcs]
+    srccoeval_vx = [backend.Data.Array(srccoeval_vx[i]) for i in 1:nsrcs]
+    srccoeij_vz  = [backend.Data.Array( srccoeij_vz[i]) for i in 1:nsrcs]
+    srccoeval_vz = [backend.Data.Array(srccoeval_vz[i]) for i in 1:nsrcs]
+    reccoeij_vx  = [backend.Data.Array( reccoeij_vx[i]) for i in 1:nrecs]
+    reccoeval_vx = [backend.Data.Array(reccoeval_vx[i]) for i in 1:nrecs]
+    reccoeij_vz  = [backend.Data.Array( reccoeij_vz[i]) for i in 1:nrecs]
+    reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in 1:nrecs]
     srctf_bk = backend.Data.Array(scal_srctf)
+    reduced_buf = zeros(T, nrecs)
+    traces_vx_bk_buf = [backend.zeros(T, size(reccoeij_vx[i], 1)) for i in 1:nrecs]
+    traces_vz_bk_buf = [backend.zeros(T, size(reccoeij_vz[i], 1)) for i in 1:nrecs]
     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
     # Reset wavesim
@@ -218,6 +232,9 @@ end
             reccoeij_vz,
             reccoeval_vz,
             srctf_bk,
+            reduced_buf,
+            traces_vx_bk_buf,
+            traces_vz_bk_buf,
             traces_bk,
             it;
             save_trace=true
@@ -291,6 +308,9 @@ end
                         reccoeij_vz,
                         reccoeval_vz,
                         srctf_bk,
+                        reduced_buf,
+                        traces_vx_bk_buf,
+                        traces_vz_bk_buf,
                         traces_bk,
                         recit;
                         save_trace=false

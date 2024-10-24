@@ -235,15 +235,15 @@ end
     return nothing
 end
 
-@parallel_indices (p) function record_receivers2D_vx!(vx, traces_bk, reccoeij_vx, reccoeval_vx, it, r)
+@parallel_indices (p) function record_receivers2D_vx!(vx, traces_vx_bk_buf, reccoeij_vx, reccoeval_vx)
     irec, jrec = reccoeij_vx[p, 1], reccoeij_vx[p, 2]
-    traces_bk[it, 1, r] += reccoeval_vx[p] * vx[irec, jrec]
+    traces_vx_bk_buf[p] = reccoeval_vx[p] * vx[irec, jrec]
     return nothing
 end
 
-@parallel_indices (p) function record_receivers2D_vz!(vz, traces_bk, reccoeij_vz, reccoeval_vz, it, r)
+@parallel_indices (p) function record_receivers2D_vz!(vz, traces_vz_bk_buf, reccoeij_vz, reccoeval_vz)
     irec, jrec = reccoeij_vz[p, 1], reccoeij_vz[p, 2]
-    traces_bk[it, 2, r] += reccoeval_vz[p] * vz[irec, jrec]
+    traces_vz_bk_buf[p] = reccoeval_vz[p] * vz[irec, jrec]
     return nothing
 end
 
@@ -258,6 +258,9 @@ function forward_onestep_CPML!(
     reccoeij_vz,
     reccoeval_vz,
     srctf_bk,
+    reduced_buf,
+    traces_vx_bk_buf,
+    traces_vz_bk_buf,
     traces_bk,
     it::Int,
     Mxx_bk,
@@ -312,16 +315,19 @@ function forward_onestep_CPML!(
 
     # record receivers
     if save_trace
-        nrecs_vx = size(reccoeij_vx, 1)
-        nrecs_vz = size(reccoeij_vz, 1)
-        for r in 1:nrecs_vx
+        nrecs = size(reccoeij_vx, 1)
+        for r in 1:nrecs
             nrecspts_vx = size(reccoeij_vx[r], 1)
-            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_bk, reccoeij_vx[r], reccoeval_vx[r], it, r)
+            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_vx_bk_buf[r], reccoeij_vx[r], reccoeval_vx[r])
+            reduced_buf[r] = reduce(+, traces_vx_bk_buf[r])
         end
-        for r in 1:nrecs_vz
+        copyto!(@view(traces_bk[it, 1, :]), reduced_buf)
+        for r in 1:nrecs
             nrecspts_vz = size(reccoeij_vz[r], 1)
-            @parallel (1:nrecspts_vz) record_receivers2D_vz!(vz, traces_bk, reccoeij_vz[r], reccoeval_vz[r], it, r)
+            @parallel (1:nrecspts_vz) record_receivers2D_vz!(vz, traces_vz_bk_buf[r], reccoeij_vz[r], reccoeval_vz[r])
+            reduced_buf[r] = reduce(+, traces_vz_bk_buf[r])
         end
+        copyto!(@view(traces_bk[it, 2, :]), reduced_buf)
     end
 
     # update stresses σxx and σzz 
@@ -357,6 +363,9 @@ function forward_onestep_CPML!(
     reccoeij_vz,
     reccoeval_vz,
     srctf_bk,
+    reduced_buf,
+    traces_vx_bk_buf,
+    traces_vz_bk_buf,
     traces_bk,
     it::Int;
     save_trace::Bool=true
@@ -420,16 +429,19 @@ function forward_onestep_CPML!(
 
     # record receivers
     if save_trace
-        nrecs_vx = size(reccoeij_vx, 1)
-        nrecs_vz = size(reccoeij_vz, 1)
-        for r in 1:nrecs_vx
+        nrecs = size(reccoeij_vx, 1)
+        for r in 1:nrecs
             nrecspts_vx = size(reccoeij_vx[r], 1)
-            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_bk, reccoeij_vx[r], reccoeval_vx[r], it, r)
+            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_vx_bk_buf[r], reccoeij_vx[r], reccoeval_vx[r])
+            reduced_buf[r] = reduce(+, traces_vx_bk_buf[r])
         end
-        for r in 1:nrecs_vz
+        copyto!(@view(traces_bk[it, 1, :]), reduced_buf)
+        for r in 1:nrecs
             nrecspts_vz = size(reccoeij_vz[r], 1)
-            @parallel (1:nrecspts_vz) record_receivers2D_vz!(vz, traces_bk, reccoeij_vz[r], reccoeval_vz[r], it, r)
+            @parallel (1:nrecspts_vz) record_receivers2D_vz!(vz, traces_vz_bk_buf[r], reccoeij_vz[r], reccoeval_vz[r])
+            reduced_buf[r] = reduce(+, traces_vz_bk_buf[r])
         end
+        copyto!(@view(traces_bk[it, 2, :]), reduced_buf)
     end
 
     # update stresses σxx and σzz 
