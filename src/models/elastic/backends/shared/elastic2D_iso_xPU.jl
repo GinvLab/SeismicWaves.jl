@@ -318,16 +318,16 @@ function forward_onestep_CPML!(
         nrecs = size(reccoeij_vx, 1)
         for r in 1:nrecs
             nrecspts_vx = size(reccoeij_vx[r], 1)
-            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_vx_bk_buf[r], reccoeij_vx[r], reccoeval_vx[r])
-            reduced_buf[r] = reduce(+, traces_vx_bk_buf[r])
-        end
-        copyto!(@view(traces_bk[it, 1, :]), reduced_buf)
-        for r in 1:nrecs
             nrecspts_vz = size(reccoeij_vz[r], 1)
+            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_vx_bk_buf[r], reccoeij_vx[r], reccoeval_vx[r])
             @parallel (1:nrecspts_vz) record_receivers2D_vz!(vz, traces_vz_bk_buf[r], reccoeij_vz[r], reccoeval_vz[r])
-            reduced_buf[r] = reduce(+, traces_vz_bk_buf[r])
+            Base.mapreducedim!(identity, +, @view(reduced_buf[1][r:r]), traces_vx_bk_buf[r])
+            Base.mapreducedim!(identity, +, @view(reduced_buf[2][r:r]), traces_vz_bk_buf[r])
         end
-        copyto!(@view(traces_bk[it, 2, :]), reduced_buf)
+        copyto!(@view(traces_bk[it, 1, :]), reduced_buf[1])
+        copyto!(@view(traces_bk[it, 2, :]), reduced_buf[2])
+        reduced_buf[1] .= 0.0
+        reduced_buf[2] .= 0.0
     end
 
     # update stresses σxx and σzz 
@@ -338,14 +338,11 @@ function forward_onestep_CPML!(
                                                   ψ_∂vx∂z, ψ_∂vz∂x, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
 
     # inject sources (moment tensor type of internal force)
-    nrecs_xx = size(srccoeij_xx, 1)
-    nrecs_xz = size(srccoeij_xz, 1)
-    for s in 1:nrecs_xx
+    nsrcs = size(srccoeij_xx, 1)
+    for s in 1:nsrcs
         nsrcpts_xx = size(srccoeij_xx[s], 1)
-        @parallel (1:nsrcpts_xx) inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx_bk, Mzz_bk, srctf_bk, srccoeij_xx[s], srccoeval_xx[s], it, s, dt)
-    end
-    for s in 1:nrecs_xz
         nsrcpts_xz = size(srccoeij_xz[s], 1)
+        @parallel (1:nsrcpts_xx) inject_momten_sources2D_σxx_σzz!(σxx, σzz, Mxx_bk, Mzz_bk, srctf_bk, srccoeij_xx[s], srccoeval_xx[s], it, s, dt)
         @parallel (1:nsrcpts_xz) inject_momten_sources2D_σxz!(σxz, Mxz_bk, srctf_bk, srccoeij_xz[s], srccoeval_xz[s], it, s, dt)
     end
 
@@ -416,32 +413,28 @@ function forward_onestep_CPML!(
                                                  ψ_∂σxz∂x, ψ_∂σzz∂z, b_x, b_z_half, a_x, a_z_half, freetop)
 
     # inject sources
-    nsrcs_vx = size(srccoeij_vx, 1)
-    nsrcs_vz = size(srccoeij_vz, 1)
-    for s in 1:nsrcs_vx
+    nsrcs = size(srccoeij_vx, 1)
+    for s in 1:nsrcs
         nsrcpts_vx = size(srccoeij_vx[s], 1)
-        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_vx[s], srccoeval_vx[s], ρ_ihalf, it, s, dt)
-    end
-    for s in 1:nsrcs_vz
         nsrcpts_vz = size(srccoeij_vz[s], 1)
+        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, srctf_bk, srccoeij_vx[s], srccoeval_vx[s], ρ_ihalf, it, s, dt)
         @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(vz, srctf_bk, srccoeij_vz[s], srccoeval_vz[s], ρ_jhalf, it, s, dt)
     end
 
-    # record receivers
     if save_trace
         nrecs = size(reccoeij_vx, 1)
         for r in 1:nrecs
             nrecspts_vx = size(reccoeij_vx[r], 1)
-            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_vx_bk_buf[r], reccoeij_vx[r], reccoeval_vx[r])
-            reduced_buf[r] = reduce(+, traces_vx_bk_buf[r])
-        end
-        copyto!(@view(traces_bk[it, 1, :]), reduced_buf)
-        for r in 1:nrecs
             nrecspts_vz = size(reccoeij_vz[r], 1)
+            @parallel (1:nrecspts_vx) record_receivers2D_vx!(vx, traces_vx_bk_buf[r], reccoeij_vx[r], reccoeval_vx[r])
             @parallel (1:nrecspts_vz) record_receivers2D_vz!(vz, traces_vz_bk_buf[r], reccoeij_vz[r], reccoeval_vz[r])
-            reduced_buf[r] = reduce(+, traces_vz_bk_buf[r])
+            Base.mapreducedim!(identity, +, @view(reduced_buf[1][r:r]), traces_vx_bk_buf[r])
+            Base.mapreducedim!(identity, +, @view(reduced_buf[2][r:r]), traces_vz_bk_buf[r])
         end
-        copyto!(@view(traces_bk[it, 2, :]), reduced_buf)
+        copyto!(@view(traces_bk[it, 1, :]), reduced_buf[1])
+        copyto!(@view(traces_bk[it, 2, :]), reduced_buf[2])
+        reduced_buf[1] .= 0.0
+        reduced_buf[2] .= 0.0
     end
 
     # update stresses σxx and σzz 
@@ -516,14 +509,11 @@ function adjoint_onestep_CPML!(
                                                  ψ_∂σxz∂x, ψ_∂σzz∂z, b_x, b_z_half, a_x, a_z_half, freetop)
 
     # inject sources (residuals as velocities)
-    nsrcs_vx = size(srccoeij_vx, 1)
-    nsrcs_vz = size(srccoeij_vz, 1)
-    for s in 1:nsrcs_vx
+    nsrcs = size(srccoeij_vx, 1)
+    for s in 1:nsrcs
         nsrcpts_vx = size(srccoeij_vx[s], 1)
-        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, residuals_bk, srccoeij_vx[s], srccoeval_vx[s], ρ_ihalf, it, s, dt)
-    end
-    for s in 1:nsrcs_vz
         nsrcpts_vz = size(srccoeij_vz[s], 1)
+        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, residuals_bk, srccoeij_vx[s], srccoeval_vx[s], ρ_ihalf, it, s, dt)
         @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(vz, residuals_bk, srccoeij_vz[s], srccoeval_vz[s], ρ_jhalf, it, s, dt)
     end
 

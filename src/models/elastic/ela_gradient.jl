@@ -33,7 +33,7 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
     reccoeij_vz  = [backend.Data.Array( reccoeij_vz[i]) for i in 1:nrecs]
     reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in 1:nrecs]
     srctf_bk = backend.Data.Array(scal_srctf)
-    reduced_buf = zeros(T, nrecs)
+    reduced_buf = [backend.zeros(T, nrecs), backend.zeros(T, nrecs)]
     traces_vx_bk_buf = [backend.zeros(T, size(reccoeij_vx[i], 1)) for i in 1:nrecs]
     traces_vz_bk_buf = [backend.zeros(T, size(reccoeij_vz[i], 1)) for i in 1:nrecs]
     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
@@ -210,7 +210,7 @@ end
     reccoeij_vz  = [backend.Data.Array( reccoeij_vz[i]) for i in 1:nrecs]
     reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in 1:nrecs]
     srctf_bk = backend.Data.Array(scal_srctf)
-    reduced_buf = zeros(T, nrecs)
+    reduced_buf = [backend.zeros(T, nrecs), backend.zeros(T, nrecs)]
     traces_vx_bk_buf = [backend.zeros(T, size(reccoeij_vx[i], 1)) for i in 1:nrecs]
     traces_vz_bk_buf = [backend.zeros(T, size(reccoeij_vz[i], 1)) for i in 1:nrecs]
     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
