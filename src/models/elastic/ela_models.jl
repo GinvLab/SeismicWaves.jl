@@ -137,6 +137,17 @@ function precomp_elaprop!(model::ElasticIsoWaveSimulation{T, 2}) where {T}
     copyto!(ρ_ihalf, interp(model.matprop.interp_method_ρ, model.matprop.ρ, 1))
     copyto!(ρ_jhalf, interp(model.matprop.interp_method_ρ, model.matprop.ρ, 2))
     copyto!(μ_ihalf_jhalf, interp(model.matprop.interp_method_μ, model.matprop.μ, [1, 2]))
+    if model.checkpointer !== nothing
+        # Interpolated material properties for adjoint evolution
+        λ_ihalf = model.grid.fields["λ_ihalf"].value
+        λ_jhalf = model.grid.fields["λ_jhalf"].value
+        μ_ihalf = model.grid.fields["μ_ihalf"].value
+        μ_jhalf = model.grid.fields["μ_jhalf"].value
+        copyto!(λ_ihalf, interp(model.matprop.interp_method_λ, model.matprop.λ, 1))
+        copyto!(λ_jhalf, interp(model.matprop.interp_method_λ, model.matprop.λ, 2))
+        copyto!(μ_ihalf, interp(model.matprop.interp_method_μ, model.matprop.μ, 1))
+        copyto!(μ_jhalf, interp(model.matprop.interp_method_μ, model.matprop.μ, 2))
+    end
     return
 end
 
@@ -260,6 +271,19 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             ))
             # Initialize gradient arrays if needed
             if gradient
+                # Interpolated material properties
+                addfield!(grid, "λ_ihalf" => ScalarVariableField(
+                    backend.zeros(T, (gridsize .- [1, 0])...)
+                ))
+                addfield!(grid, "λ_jhalf" => ScalarVariableField(
+                    backend.zeros(T, (gridsize .- [0, 1])...)
+                ))
+                addfield!(grid, "μ_ihalf" => ScalarVariableField(
+                    backend.zeros(T, (gridsize .- [1, 0])...)
+                ))
+                addfield!(grid, "μ_jhalf" => ScalarVariableField(
+                    backend.zeros(T, (gridsize .- [0, 1])...)
+                ))
                 # Stress and velocity
                 addfield!(grid, "adjσ" => MultiVariableField(
                     [
@@ -278,11 +302,13 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
                     addfield!(grid, "adjψ_∂σ∂x" => MultiVariableField(
                     [
                         backend.zeros(T, 2(halo+1), gridsize[2]  ), # ψ_∂σxx∂x
+                        backend.zeros(T, 2(halo+1), gridsize[2]  ), # ψ_∂σzz∂x
                         backend.zeros(T, 2halo    , gridsize[2]-1)  # ψ_∂σxz∂x
                     ]
                 ))
                 addfield!(grid, "adjψ_∂σ∂z" => MultiVariableField(
                     [
+                        backend.zeros(T, gridsize[1]  , 2(halo+1)), # ψ_∂σxx∂z
                         backend.zeros(T, gridsize[1]  , 2(halo+1)), # ψ_∂σzz∂z
                         backend.zeros(T, gridsize[1]-1, 2halo    )  # ψ_∂σxz∂z
                     ]
@@ -392,7 +418,7 @@ end
 
 @views function reset!(model::ElasticIsoCPMLWaveSimulation{T, N}) where {T, N}
     # Reset computational arrays
-    reset!(model.grid; except=["λ", "μ", "ρ_ihalf", "ρ_jhalf", "μ_ihalf_jhalf"])
+    reset!(model.grid; except=["λ", "μ", "ρ_ihalf", "ρ_jhalf", "λ_ihalf", "λ_jhalf", "μ_ihalf", "μ_jhalf", "μ_ihalf_jhalf"])
     if model.checkpointer !== nothing
         reset!(model.checkpointer)
     end

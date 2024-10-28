@@ -50,24 +50,50 @@
     return nothing
 end
 
+@parallel_indices (i, j) function update_4thord_adjvx!(
+    nx, nz, halo, adjvx, factx, factz, adjσxx, adjσzz, adjσxz, dt, ρ_ihalf, λ_ihalf, μ_ihalf,
+    adjψ_∂σxx∂x, adjψ_∂σzz∂x, adjψ_∂σxz∂z, b_x_half, b_z, a_x_half, a_z, freetop)
+
+    ∂σxx∂x = (-adjσxx[i+2, j] + 27 * adjσxx[i+1, j] - 27 * adjσxx[i, j  ] + adjσxx[i-1, j]) * factx
+    ∂σzz∂x = (-adjσzz[i+2, j] + 27 * adjσzz[i+1, j] - 27 * adjσzz[i, j  ] + adjσzz[i-1, j]) * factx
+    ∂σxz∂z = (-adjσxz[i, j+1] + 27 * adjσxz[i, j  ] - 27 * adjσxz[i, j-1] + adjσxz[i, j-2]) * factz
+
+    ### CPML ###
+    if i <= halo + 1
+        # left boundary
+        adjψ_∂σxx∂x[i, j] = b_x_half[i] * adjψ_∂σxx∂x[i, j] + a_x_half[i] * ∂σxx∂x
+        adjψ_∂σzz∂x[i, j] = b_x_half[i] * adjψ_∂σzz∂x[i, j] + a_x_half[i] * ∂σzz∂x
+        ∂σxx∂x += adjψ_∂σxx∂x[i, j]
+        ∂σzz∂x += adjψ_∂σzz∂x[i, j]
+    elseif i >= nx - halo - 1
+        # right boundary
+        ii = i - (nx - halo - 1) + 1 + (halo + 1)
+        adjψ_∂σxx∂x[ii, j] = b_x_half[ii] * adjψ_∂σxx∂x[ii, j] + a_x_half[ii] * ∂σxx∂x
+        adjψ_∂σzz∂x[ii, j] = b_x_half[ii] * adjψ_∂σzz∂x[ii, j] + a_x_half[ii] * ∂σzz∂x
+        ∂σxx∂x += adjψ_∂σxx∂x[ii, j]
+        ∂σzz∂x += adjψ_∂σzz∂x[ii, j]
+    end
+    if j >= 2 && j <= halo + 1 && freetop == false
+        # top boundary
+        adjψ_∂σxz∂z[i, j-1] = b_z[j-1] * adjψ_∂σxz∂z[i, j-1] + a_z[j-1] * ∂σxz∂z
+        ∂σxz∂z += adjψ_∂σxz∂z[i, j-1]
+    elseif j >= nz - halo
+        # bottom boundary
+        jj = j - (nz - halo) + 2 + (halo)
+        adjψ_∂σxz∂z[i, jj-1] = b_z[jj-1] * adjψ_∂σxz∂z[i, jj-1] + a_z[jj-1] * ∂σxz∂z
+        ∂σxz∂z += adjψ_∂σxz∂z[i, jj-1]
+    end
+    ############
+
+    adjvx[i, j] += dt * (((λ_ihalf[i, j] + 2*μ_ihalf[i, j]) / ρ_ihalf[i, j]) * ∂σxx∂x + (λ_ihalf[i, j] / ρ_ihalf[i, j]) * ∂σzz∂x + (μ_ihalf[i, j] / ρ_ihalf[i, j]) * ∂σxz∂z)
+    # adjvx[i, j] += dt * (∂σxx∂x + ∂σzz∂x + ∂σxz∂z)
+
+    return nothing
+end
+
 @parallel_indices (i, j) function update_4thord_vz!(
-    nx,
-    nz,
-    halo,
-    vz,
-    factx,
-    factz,
-    σxz,
-    σzz,
-    dt,
-    ρ_jhalf,
-    ψ_∂σxz∂x,
-    ψ_∂σzz∂z,
-    b_x,
-    b_z_half,
-    a_x,
-    a_z_half,
-    freetop)
+    nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_jhalf,
+    ψ_∂σxz∂x, ψ_∂σzz∂z, b_x, b_z_half, a_x, a_z_half, freetop)
     if freetop && j == 1
         # just half step below the free surface
         # mirroring stress at the top boundary
@@ -106,6 +132,47 @@ end
     ############
 
     vz[i, j] += dt * (∂σzz∂z + ∂σxz∂x) / ρ_jhalf[i, j]
+
+    return nothing
+end
+
+@parallel_indices (i, j) function update_4thord_adjvz!(
+    nx, nz, halo, adjvz, factx, factz, adjσxx, adjσzz, adjσxz, dt, ρ_jhalf, λ_jhalf, μ_jhalf,
+    adjψ_∂σxx∂z, adjψ_∂σzz∂z, adjψ_∂σxz∂x, b_x, b_z_half, a_x, a_z_half, freetop)
+
+    ∂σxx∂z = (-adjσxx[i, j+2] + 27 * adjσxx[i, j+1] - 27 * adjσxx[i, j  ] + adjσxx[i, j-1]) * factz
+    ∂σzz∂z = (-adjσzz[i, j+2] + 27 * adjσzz[i, j+1] - 27 * adjσzz[i, j  ] + adjσzz[i, j-1]) * factz
+    ∂σxz∂x = (-adjσxz[i+1, j] + 27 * adjσxz[i, j  ] - 27 * adjσxz[i-1, j] + adjσxz[i-2, j]) * factx
+    
+    ### CPML ###
+    if i <= halo + 1
+        # left boundary
+        adjψ_∂σxz∂x[i-1, j] = b_x[i-1] * adjψ_∂σxz∂x[i-1, j] + a_x[i-1] * ∂σxz∂x
+        ∂σxz∂x += adjψ_∂σxz∂x[i-1, j]
+    elseif i >= nx - halo
+        # right boundary
+        ii = i - (nx - halo) + 2 + (halo)
+        adjψ_∂σxz∂x[ii-1, j] = b_x[ii-1] * adjψ_∂σxz∂x[ii-1, j] + a_x[ii-1] * ∂σxz∂x
+        ∂σxz∂x += adjψ_∂σxz∂x[ii-1, j]
+    end
+    if j <= halo + 1 && freetop == false
+        # top boundary
+        adjψ_∂σxx∂z[i, j] = b_z_half[j] * adjψ_∂σxx∂z[i, j] + a_z_half[j] * ∂σxx∂z
+        adjψ_∂σzz∂z[i, j] = b_z_half[j] * adjψ_∂σzz∂z[i, j] + a_z_half[j] * ∂σzz∂z
+        ∂σxx∂z += adjψ_∂σxx∂z[i, j]
+        ∂σzz∂z += adjψ_∂σzz∂z[i, j]
+    elseif j >= nz - halo
+        # bottom boundary
+        jj = j - (nz - halo) + 2 + (halo + 1)
+        adjψ_∂σxx∂z[i, jj] = b_z_half[jj] * adjψ_∂σxx∂z[i, jj] + a_z_half[jj] * ∂σxx∂z
+        adjψ_∂σzz∂z[i, jj] = b_z_half[jj] * adjψ_∂σzz∂z[i, jj] + a_z_half[jj] * ∂σzz∂z
+        ∂σxx∂z += adjψ_∂σxx∂z[i, jj]
+        ∂σzz∂z += adjψ_∂σzz∂z[i, jj]
+    end
+    ############
+
+    adjvz[i, j] += dt * (((λ_jhalf[i, j] + 2*μ_jhalf[i, j]) / ρ_jhalf[i, j]) * ∂σzz∂z + (λ_jhalf[i, j] / ρ_jhalf[i, j]) * ∂σxx∂z + (μ_jhalf[i, j] / ρ_jhalf[i, j]) * ∂σxz∂x)
+    # adjvz[i, j] += dt * (∂σxx∂z + ∂σzz∂z + ∂σxz∂x)
 
     return nothing
 end
@@ -165,6 +232,44 @@ end
     return nothing
 end
 
+@parallel_indices (i, j) function update_4thord_adjσxxσzz!(
+    nx, nz, halo, adjσxx, adjσzz, factx, factz,
+    adjvx, adjvz, dt, adjψ_∂vx∂x, adjψ_∂vz∂z,
+    b_x, b_z, a_x, a_z, freetop)
+    
+    ∂vx∂x = (-adjvx[i+1, j] + 27 * adjvx[i, j] - 27 * adjvx[i-1, j] + adjvx[i-2, j]) * factx
+    ∂vz∂z = (-adjvz[i, j+1] + 27 * adjvz[i, j] - 27 * adjvz[i, j-1] + adjvz[i, j-2]) * factz
+
+    ### CPML ###
+    if i <= halo + 1
+        # left boundary
+        adjψ_∂vx∂x[i-1, j] = b_x[i-1] * adjψ_∂vx∂x[i-1, j] + a_x[i-1] * ∂vx∂x
+        ∂vx∂x += adjψ_∂vx∂x[i-1, j]
+    elseif i >= nx - halo
+        # right boundary
+        ii = i - (nx - halo) + 2 + (halo)
+        adjψ_∂vx∂x[ii-1, j] = b_x[ii-1] * adjψ_∂vx∂x[ii-1, j] + a_x[ii-1] * ∂vx∂x
+        ∂vx∂x += adjψ_∂vx∂x[ii-1, j]
+    end
+    if j <= halo + 1 && freetop == false
+        # top boundary
+        adjψ_∂vz∂z[i, j-1] = b_z[j-1] * adjψ_∂vz∂z[i, j-1] + a_z[j-1] * ∂vz∂z
+        ∂vz∂z += adjψ_∂vz∂z[i, j-1]
+    elseif j >= nz - halo
+        # bottom boundary
+        jj = j - (nz - halo) + 2 + (halo)
+        adjψ_∂vz∂z[i, jj-1] = b_z[jj-1] * adjψ_∂vz∂z[i, jj-1] + a_z[jj-1] * ∂vz∂z
+        ∂vz∂z += adjψ_∂vz∂z[i, jj-1]
+    end
+    ############
+
+    # update stresses
+    adjσxx[i, j] += dt * ∂vx∂x
+    adjσzz[i, j] += dt * ∂vz∂z
+
+    return nothing
+end
+
 @parallel_indices (i, j) function update_4thord_σxz!(
     nx, nz, halo, σxz, factx, factz, vx, vz, dt, μ_ihalf_jhalf,
     ψ_∂vx∂z, ψ_∂vz∂x, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
@@ -204,6 +309,41 @@ end
     ############
 
     σxz[i, j] += dt * μ_ihalf_jhalf[i, j] * (∂vx∂z + ∂vz∂x)
+
+    return nothing
+end
+
+@parallel_indices (i, j) function update_4thord_adjσxz!(
+    nx, nz, halo, adjσxz, factx, factz, adjvx, adjvz, dt,
+    adjψ_∂vx∂z, adjψ_∂vz∂x, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+
+    ∂vx∂z = (-adjvx[i, j+2] + 27 * adjvx[i, j+1] - 27 * adjvx[i, j] + adjvx[i, j-1]) * factz
+    ∂vz∂x = (-adjvz[i+2, j] + 27 * adjvz[i+1, j] - 27 * adjvz[i, j] + adjvz[i-1, j]) * factx
+
+    ### CPML ###
+    if i <= halo + 1
+        # left boundary
+        adjψ_∂vz∂x[i, j] = b_x_half[i] * adjψ_∂vz∂x[i, j] + a_x_half[i] * ∂vz∂x
+        ∂vz∂x += adjψ_∂vz∂x[i, j]
+    elseif i >= nx - halo - 1
+        # right boundary
+        ii = i - (nx - halo - 1) + 1 + (halo + 1)
+        adjψ_∂vz∂x[ii, j] = b_x_half[ii] * adjψ_∂vz∂x[ii, j] + a_x_half[ii] * ∂vz∂x
+        ∂vz∂x += adjψ_∂vz∂x[ii, j]
+    end
+    if j <= halo + 1 && freetop == false
+        # top boundary
+        adjψ_∂vx∂z[i, j] = b_z_half[j] * adjψ_∂vx∂z[i, j] + a_z_half[j] * ∂vx∂z
+        ∂vx∂z += adjψ_∂vx∂z[i, j]
+    elseif j >= nz - halo - 1
+        # bottom boundary
+        jj = j - (nz - halo - 1) + 1 + (halo + 1)
+        adjψ_∂vx∂z[i, jj] = b_z_half[jj] * adjψ_∂vx∂z[i, jj] + a_z_half[jj] * ∂vx∂z
+        ∂vx∂z += adjψ_∂vx∂z[i, jj]
+    end
+    ############
+
+    adjσxz[i, j] += dt * (∂vx∂z + ∂vz∂x)
 
     return nothing
 end
@@ -466,13 +606,13 @@ function adjoint_onestep_CPML!(
     halo = model.cpmlparams.halo
     grid = model.grid
 
-    vx, vz = grid.fields["adjv"].value
-    σxx, σzz, σxz = grid.fields["adjσ"].value
+    adjvx, adjvz = grid.fields["adjv"].value
+    adjσxx, adjσzz, adjσxz = grid.fields["adjσ"].value
 
-    ψ_∂σxx∂x, ψ_∂σxz∂x = grid.fields["adjψ_∂σ∂x"].value
-    ψ_∂σzz∂z, ψ_∂σxz∂z = grid.fields["adjψ_∂σ∂z"].value
-    ψ_∂vx∂x, ψ_∂vz∂x = grid.fields["adjψ_∂v∂x"].value
-    ψ_∂vx∂z, ψ_∂vz∂z = grid.fields["adjψ_∂v∂z"].value
+    adjψ_∂σxx∂x, adjψ_∂σzz∂x, adjψ_∂σxz∂x = grid.fields["adjψ_∂σ∂x"].value
+    adjψ_∂σxx∂z, adjψ_∂σzz∂z, adjψ_∂σxz∂z = grid.fields["adjψ_∂σ∂z"].value
+    adjψ_∂vx∂x, adjψ_∂vz∂x = grid.fields["adjψ_∂v∂x"].value
+    adjψ_∂vx∂z, adjψ_∂vz∂z = grid.fields["adjψ_∂v∂z"].value
 
     a_x = cpmlcoeffs[1].a
     a_x_half = cpmlcoeffs[1].a_h
@@ -484,37 +624,44 @@ function adjoint_onestep_CPML!(
     b_z = cpmlcoeffs[2].b
     b_z_half = cpmlcoeffs[2].b_h
 
-    λ = grid.fields["λ"].value
-    μ = grid.fields["μ"].value
     ρ_ihalf = grid.fields["ρ_ihalf"].value
     ρ_jhalf = grid.fields["ρ_jhalf"].value
-    μ_ihalf_jhalf = grid.fields["μ_ihalf_jhalf"].value
+    λ_ihalf = grid.fields["λ_ihalf"].value
+    λ_jhalf = grid.fields["λ_jhalf"].value
+    μ_ihalf = grid.fields["μ_ihalf"].value
+    μ_jhalf = grid.fields["μ_jhalf"].value
 
     # Precomputing divisions
     factx = 1.0 / (24.0 * dx)
     factz = 1.0 / (24.0 * dz)
     
-    # update stresses σxx and σzz 
-    @parallel (3:nx-2, 1:nz-2) update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz, vx, vz, dt, λ, μ,
-                                                     ψ_∂vx∂x, ψ_∂vz∂z, b_x, b_z, a_x, a_z, freetop)
-    # update stress σxz
-    @parallel (2:nx-2, 1:nz-2) update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt, μ_ihalf_jhalf,
-                                                  ψ_∂vx∂z, ψ_∂vz∂x, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+    # update adjoint stresses σxx and σzz 
+    @parallel (3:nx-2, 3:nz-2) update_4thord_adjσxxσzz!(nx, nz, halo, adjσxx, adjσzz, factx, factz,
+                                                        adjvx, adjvz, dt, adjψ_∂vx∂x, adjψ_∂vz∂z,
+                                                        b_x, b_z, a_x, a_z, freetop)
+    # update adjoint stress σxz
+    @parallel (2:nx-2, 2:nz-2) update_4thord_adjσxz!(nx, nz, halo, adjσxz, factx, factz,
+                                                     adjvx, adjvz, dt, adjψ_∂vx∂z, adjψ_∂vz∂x,
+                                                     b_x_half, b_z_half, a_x_half, a_z_half, freetop)
 
-    # update velocity vx
-    @parallel (2:nx-2, 1:nz-2) update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ_ihalf,
-                                                 ψ_∂σxx∂x, ψ_∂σxz∂z, b_x_half, b_z, a_x_half, a_z, freetop)
-    # update velocity vz
-    @parallel (3:nx-2, 1:nz-2) update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_jhalf,
-                                                 ψ_∂σxz∂x, ψ_∂σzz∂z, b_x, b_z_half, a_x, a_z_half, freetop)
+    # update adjoint velocity vx
+    @parallel (2:nx-2, 3:nz-2) update_4thord_adjvx!(nx, nz, halo, adjvx, factx, factz,
+                                                    adjσxx, adjσzz, adjσxz, dt, ρ_ihalf, λ_ihalf, μ_ihalf,
+                                                    adjψ_∂σxx∂x, adjψ_∂σzz∂x, adjψ_∂σxz∂z,
+                                                    b_x_half, b_z, a_x_half, a_z, freetop)
+    # update adjoint velocity vz
+    @parallel (3:nx-2, 2:nz-2) update_4thord_adjvz!(nx, nz, halo, adjvz, factx, factz,
+                                                    adjσxx, adjσzz, adjσxz, dt, ρ_jhalf, λ_jhalf, μ_jhalf,
+                                                    adjψ_∂σxx∂z, adjψ_∂σzz∂z, adjψ_∂σxz∂x,
+                                                    b_x, b_z_half, a_x, a_z_half, freetop)
 
     # inject sources (residuals as velocities)
     nsrcs = size(srccoeij_vx, 1)
     for s in 1:nsrcs
         nsrcpts_vx = size(srccoeij_vx[s], 1)
         nsrcpts_vz = size(srccoeij_vz[s], 1)
-        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(vx, residuals_bk, srccoeij_vx[s], srccoeval_vx[s], ρ_ihalf, it, s, dt)
-        @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(vz, residuals_bk, srccoeij_vz[s], srccoeval_vz[s], ρ_jhalf, it, s, dt)
+        @parallel (1:nsrcpts_vx) inject_external_sources2D_vx!(adjvx, residuals_bk, srccoeij_vx[s], srccoeval_vx[s], ρ_ihalf, it, s, dt)
+        @parallel (1:nsrcpts_vz) inject_external_sources2D_vz!(adjvz, residuals_bk, srccoeij_vz[s], srccoeval_vz[s], ρ_jhalf, it, s, dt)
     end
 
     return
