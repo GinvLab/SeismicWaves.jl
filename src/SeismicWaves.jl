@@ -29,6 +29,11 @@ export build_wavesim, swforward!, swmisfit!, swgradient!
 # source time functions
 export gaussstf, gaussderivstf, rickerstf
 
+module FiniteDifferencesMacros
+    include("utils/fdgen.jl")
+    export @∂, @∂², @∂ⁿ, @∇, @∇², @∇ⁿ, @div, @∂x, @∂y, @∂z, @∂²x, @∂²y, @∂²z, @∂ⁿx, @∂ⁿy, @∂ⁿz
+end
+
 include("utils/abstract_types.jl")
 
 # Traits
