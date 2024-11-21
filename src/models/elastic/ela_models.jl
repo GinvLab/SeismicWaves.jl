@@ -247,26 +247,26 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             # CPML memory variables
             addfield!(grid, "ψ_∂σ∂x" => MultiVariableField(
                 [
-                    backend.zeros(T, 2(halo+1), gridsize[2]  ), # ψ_∂σxx∂x
-                    backend.zeros(T, 2halo    , gridsize[2]-1)  # ψ_∂σxz∂x
+                    backend.zeros(T, 2halo    , gridsize[2]  ), # ψ_∂σxx∂x
+                    backend.zeros(T, 2(halo+1), gridsize[2]-1)  # ψ_∂σxz∂x
                 ]
             ))
             addfield!(grid, "ψ_∂σ∂z" => MultiVariableField(
                 [
-                    backend.zeros(T, gridsize[1]  , 2(halo+1)), # ψ_∂σzz∂z
-                    backend.zeros(T, gridsize[1]-1, 2halo    )  # ψ_∂σxz∂z
+                    backend.zeros(T, gridsize[1]  , 2halo    ), # ψ_∂σzz∂z
+                    backend.zeros(T, gridsize[1]-1, 2(halo+1))  # ψ_∂σxz∂z
                 ]
             ))
             addfield!(grid, "ψ_∂v∂x" => MultiVariableField(
                 [
-                    backend.zeros(T, 2halo    , gridsize[2]  ), # ψ_∂vx∂x
-                    backend.zeros(T, 2(halo+1), gridsize[2]-1)  # ψ_∂vz∂x
+                    backend.zeros(T, 2(halo+1), gridsize[2]  ), # ψ_∂vx∂x
+                    backend.zeros(T, 2halo    , gridsize[2]-1)  # ψ_∂vz∂x
                 ]
             ))
             addfield!(grid, "ψ_∂v∂z" => MultiVariableField(
                 [
-                    backend.zeros(T, gridsize[1]-1, 2(halo+1)), # ψ_∂vx∂z
-                    backend.zeros(T, gridsize[1]  , 2halo    )  # ψ_∂vz∂z
+                    backend.zeros(T, gridsize[1]-1, 2halo    ), # ψ_∂vx∂z
+                    backend.zeros(T, gridsize[1]  , 2(halo+1))  # ψ_∂vz∂z
                 ]
             ))
             # Initialize gradient arrays if needed
@@ -301,28 +301,28 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
                 # CPML memory variables
                     addfield!(grid, "adjψ_∂σ∂x" => MultiVariableField(
                     [
-                        backend.zeros(T, 2(halo+1), gridsize[2]  ), # ψ_∂σxx∂x
-                        backend.zeros(T, 2(halo+1), gridsize[2]  ), # ψ_∂σzz∂x
-                        backend.zeros(T, 2halo    , gridsize[2]-1)  # ψ_∂σxz∂x
+                        backend.zeros(T, 2halo    , gridsize[2]  ), # ψ_∂σxx∂x
+                        backend.zeros(T, 2halo    , gridsize[2]  ), # ψ_∂σzz∂x
+                        backend.zeros(T, 2(halo+1), gridsize[2]-1)  # ψ_∂σxz∂x
                     ]
                 ))
                 addfield!(grid, "adjψ_∂σ∂z" => MultiVariableField(
                     [
-                        backend.zeros(T, gridsize[1]  , 2(halo+1)), # ψ_∂σxx∂z
-                        backend.zeros(T, gridsize[1]  , 2(halo+1)), # ψ_∂σzz∂z
-                        backend.zeros(T, gridsize[1]-1, 2halo    )  # ψ_∂σxz∂z
+                        backend.zeros(T, gridsize[1]  , 2halo    ), # ψ_∂σxx∂z
+                        backend.zeros(T, gridsize[1]  , 2halo    ), # ψ_∂σzz∂z
+                        backend.zeros(T, gridsize[1]-1, 2(halo+1))  # ψ_∂σxz∂z
                     ]
                 ))
                 addfield!(grid, "adjψ_∂v∂x" => MultiVariableField(
                     [
-                        backend.zeros(T, 2halo    , gridsize[2]  ), # ψ_∂vx∂x
-                        backend.zeros(T, 2(halo+1), gridsize[2]-1)  # ψ_∂vz∂x
+                        backend.zeros(T, 2(halo+1), gridsize[2]  ), # ψ_∂vx∂x
+                        backend.zeros(T, 2halo    , gridsize[2]-1)  # ψ_∂vz∂x
                     ]
                 ))
                 addfield!(grid, "adjψ_∂v∂z" => MultiVariableField(
                     [
-                        backend.zeros(T, gridsize[1]-1, 2(halo+1)), # ψ_∂vx∂z
-                        backend.zeros(T, gridsize[1]  , 2halo    )  # ψ_∂vz∂z
+                        backend.zeros(T, gridsize[1]-1, 2halo    ), # ψ_∂vx∂z
+                        backend.zeros(T, gridsize[1]  , 2(halo+1))  # ψ_∂vz∂z
                     ]
                 ))
                 # Gradient arrays
@@ -361,9 +361,6 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         else
             error("Only elastic 2D is currently implemented.")
         end
-
-        # Initialize CPML coefficients
-        cpmlcoeffs = tuple([CPMLCoefficientsAxis{T, V}(halo, backend) for _ in 1:N]...)
 
         if snapevery !== nothing
             # Initialize snapshotter

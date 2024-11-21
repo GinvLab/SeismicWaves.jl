@@ -31,7 +31,7 @@ export gaussstf, gaussderivstf, rickerstf
 
 module FiniteDifferencesMacros
     include("utils/fdgen.jl")
-    export @∂, @∂², @∂ⁿ, @∇, @∇², @∇ⁿ, @div, @∂x, @∂y, @∂z, @∂²x, @∂²y, @∂²z, @∂ⁿx, @∂ⁿy, @∂ⁿz
+    export @∂, @∂², @∂ⁿ, @∇, @∇², @∇ⁿ, @div, @∂x, @∂y, @∂z, @∂²x, @∂²y, @∂²z, @∂ⁿx, @∂ⁿy, @∂ⁿz, @∂̃, @∂̃x, @∂̃y, @∂̃z
 end
 
 include("utils/abstract_types.jl")

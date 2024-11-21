@@ -58,10 +58,11 @@ function fdidxs(deriv::Int, order::Int, dim::Int, I...)
     return Is
 end
 
-function ∂ⁿ_(A, dim::Int; I=[:i], _Δ=1.0, deriv::Int=1, order::Int=2, bdcheck::Bool=false, mirror=(false, false))
+function ∂ⁿ_(A, dim::Int; I=(:i,), _Δ=1.0, deriv::Int=1, order::Int=2, bdcheck::Bool=true, mirror=(false, false))
     coeffs = fdcoeffs(deriv, order)
     Is = fdidxs(deriv, order, dim, I...)
     N = length(I)
+    @assert N > 0 "Need at least one index!"
     mirror_left, mirror_right = mirror
     # right boundary checks
     function right_checks_recursive(coeffs, Is, A, dim, _Δ, state)
@@ -129,6 +130,30 @@ function ∂ⁿ_(A, dim::Int; I=[:i], _Δ=1.0, deriv::Int=1, order::Int=2, bdche
     return Expr(:call, :*, Expr(:call, :+, [:($c * $A[$(Is[i]...)]) for (i, c) in enumerate(coeffs)]...), _Δ)
 end
 
+function ∂̃_(A, a, b, ψ, dim::Int; I=[:i], halo=:halo, halfgrid=true, kwargs...)
+    ψtemp = gensym(:ψ)
+    iidim = gensym(:i)
+    stencil = ∂ⁿ_(A, dim; I=I, deriv=1, kwargs...)
+    plusone = halfgrid ? 0 : 1
+    idim = :( $(I[dim]) + $plusone )
+    ndim = :( size($A, $dim) + $plusone )
+    Iψ  = [i == dim ?  idim : I[i] for i in eachindex(I)]
+    IIψ = [i == dim ? iidim : I[i] for i in eachindex(I)]
+    return quote
+        $ψtemp = $stencil
+        if $idim <= ($halo + $plusone)
+            $ψ[$(Iψ...)]  = $b[$idim ] * $ψ[$(Iψ...)] + $a[$idim ] * $ψtemp
+            $ψtemp + $ψ[$(Iψ...)]
+        elseif $idim >= $ndim - $halo
+            $iidim = $idim - ($ndim - $halo) + 1 + ($halo + $plusone)
+            $ψ[$(IIψ...)] = $b[$iidim] * $ψ[$(IIψ...)] + $a[$iidim] * $ψtemp
+            $ψtemp + $ψ[$(IIψ...)]
+        else
+            $ψtemp
+        end
+    end
+end
+
 function ∇ⁿ_(A; I=(), _Δ=(), kwargs...)
     @assert length(I) == length(_Δ)
     return Expr(:tuple, (∂ⁿ_(A, i; _Δ=_Δ[i], I=I, deriv=1, kwargs...) for i in eachindex(_Δ))...)
@@ -169,3 +194,9 @@ macro ∂²z(args...)  posargs, kwargs = extract_kwargs(args...); esc(          
 macro ∂ⁿx(args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs..., 1; kwargs...)                    ) end
 macro ∂ⁿy(args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs..., 2; kwargs...)                    ) end
 macro ∂ⁿz(args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs..., 3; kwargs...)                    ) end
+
+# CPML partial scalar derivatives
+macro ∂̃( args...)  posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs...;    kwargs...)                    ) end
+macro ∂̃x( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 1; kwargs...)                    ) end
+macro ∂̃y( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 2; kwargs...)                    ) end
+macro ∂̃z( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 3; kwargs...)                    ) end
