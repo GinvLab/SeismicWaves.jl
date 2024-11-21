@@ -130,8 +130,8 @@ function ∂ⁿ_(A, dim::Int; I=(:i,), _Δ=1.0, deriv::Int=1, order::Int=2, bdch
     return Expr(:call, :*, Expr(:call, :+, [:($c * $A[$(Is[i]...)]) for (i, c) in enumerate(coeffs)]...), _Δ)
 end
 
-function ∂̃_(A, a, b, ψ, dim::Int; I=[:i], halo=:halo, halfgrid=true, kwargs...)
-    ψtemp = gensym(:ψ)
+function ∂̃_(A, a, b, ψ, dim::Int; I=(:i,), halo=:halo, halfgrid=true, kwargs...)
+    ∂Atemp = gensym(:∂A)
     iidim = gensym(:i)
     stencil = ∂ⁿ_(A, dim; I=I, deriv=1, kwargs...)
     plusone = halfgrid ? 0 : 1
@@ -140,16 +140,44 @@ function ∂̃_(A, a, b, ψ, dim::Int; I=[:i], halo=:halo, halfgrid=true, kwargs
     Iψ  = [i == dim ?  idim : I[i] for i in eachindex(I)]
     IIψ = [i == dim ? iidim : I[i] for i in eachindex(I)]
     return quote
-        $ψtemp = $stencil
+        $∂Atemp = $stencil
         if $idim <= ($halo + $plusone)
             $ψ[$(Iψ...)]  = $b[$idim ] * $ψ[$(Iψ...)] + $a[$idim ] * $ψtemp
-            $ψtemp + $ψ[$(Iψ...)]
+            $∂Atemp + $ψ[$(Iψ...)]
         elseif $idim >= $ndim - $halo
             $iidim = $idim - ($ndim - $halo) + 1 + ($halo + $plusone)
             $ψ[$(IIψ...)] = $b[$iidim] * $ψ[$(IIψ...)] + $a[$iidim] * $ψtemp
-            $ψtemp + $ψ[$(IIψ...)]
+            $∂Atemp + $ψ[$(IIψ...)]
         else
-            $ψtemp
+            $∂Atemp
+        end
+    end
+end
+
+function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, kwargs...)
+    ∂²Atemp = gensym(:∂²A)
+    ∂ψtemp = gensym(:∂ψ)
+    iidim = gensym(:i)
+    Astencil = ∂ⁿ_(A, dim; I=I, deriv=2, kwargs...)
+    ψstencil_left  = ∂ⁿ_(ψ, dim; I=I, deriv=1, kwargs..., bdcheck=false)
+    ψstencil_right = ∂ⁿ_(ψ, dim; I=I, deriv=1, kwargs..., bdcheck=false)
+    idim = :( $(I[dim]) )
+    ndim = :( size($A, $dim) )
+    Iξ  = [i == dim ?  idim : I[i] for i in eachindex(I)]
+    IIξ = [i == dim ? iidim : I[i] for i in eachindex(I)]
+    return quote
+        $∂²Atemp = $Astencil
+        if $idim <= ($halo + 1)
+            $∂ψtemp = $ψstencil_left
+            $ξ[$(Iξ...)]  = $b[$idim ] * $ξ[$(Iξ...)] + $a[$idim ] * ($∂²Atemp + $∂ψtemp)
+            $∂²Atemp + $∂ψtemp + $ξ[$(Iξ...)]
+        elseif $idim >= $ndim - $halo
+            $∂ψtemp = $ψstencil_right
+            $iidim = $idim - ($ndim - $halo) + 1 + ($halo + 1)
+            $ξ[$(IIξ...)] = $b[$iidim] * $ξ[$(IIξ...)] + $a[$iidim] * ($∂²Atemp + $∂ψtemp)
+            $∂²Atemp + $∂ψtemp + $ξ[$(IIξ...)]
+        else
+            $∂²Atemp
         end
     end
 end
@@ -157,6 +185,16 @@ end
 function ∇ⁿ_(A; I=(), _Δ=(), kwargs...)
     @assert length(I) == length(_Δ)
     return Expr(:tuple, (∂ⁿ_(A, i; _Δ=_Δ[i], I=I, deriv=1, kwargs...) for i in eachindex(_Δ))...)
+end
+
+function ∇̃_(args...; I=(), _Δ=(), kwargs...)
+    @assert length(I) == length(_Δ)
+    return Expr(:tuple, (∂̃_(args...; _Δ=_Δ[i], I=I, kwargs...) for i in eachindex(_Δ))...)
+end
+
+function ∇̃²_(args...; I=(), _Δ=(), kwargs...)
+    @assert length(I) == length(_Δ)
+    return Expr(:tuple, (∂̃²_(args...; _Δ=_Δ[i], I=I, kwargs...) for i in eachindex(_Δ))...)
 end
 
 function extract_kwargs(args...)
@@ -200,3 +238,7 @@ macro ∂̃( args...)  posargs, kwargs = extract_kwargs(args...); esc(          
 macro ∂̃x( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 1; kwargs...)                    ) end
 macro ∂̃y( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 2; kwargs...)                    ) end
 macro ∂̃z( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 3; kwargs...)                    ) end
+macro ∂̃²( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃²_(posargs...;   kwargs...)                    ) end
+
+macro ∇̃( args...)  posargs, kwargs = extract_kwargs(args...); esc(                   ∇̃_(posargs...;    kwargs...)                    ) end
+macro ∇̃²( args...) posargs, kwargs = extract_kwargs(args...); esc( Expr(:call, :+,   ∇̃²_(posargs...;   kwargs...).args... )          ) end
