@@ -142,11 +142,11 @@ function ∂̃_(A, a, b, ψ, dim::Int; I=(:i,), halo=:halo, halfgrid=true, kwarg
     return quote
         $∂Atemp = $stencil
         if $idim <= ($halo + $plusone)
-            $ψ[$(Iψ...)]  = $b[$idim ] * $ψ[$(Iψ...)] + $a[$idim ] * $ψtemp
+            $ψ[$(Iψ...)]  = $b[$idim ] * $ψ[$(Iψ...)] + $a[$idim ] * $∂Atemp
             $∂Atemp + $ψ[$(Iψ...)]
         elseif $idim >= $ndim - $halo
             $iidim = $idim - ($ndim - $halo) + 1 + ($halo + $plusone)
-            $ψ[$(IIψ...)] = $b[$iidim] * $ψ[$(IIψ...)] + $a[$iidim] * $ψtemp
+            $ψ[$(IIψ...)] = $b[$iidim] * $ψ[$(IIψ...)] + $a[$iidim] * $∂Atemp
             $∂Atemp + $ψ[$(IIψ...)]
         else
             $∂Atemp
@@ -158,7 +158,7 @@ function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, kwargs...)
     ∂²Atemp = gensym(:∂²A)
     ∂ψtemp = gensym(:∂ψ)
     iidim = gensym(:i)
-    Astencil = ∂ⁿ_(A, dim; I=I, deriv=2, kwargs...)
+    Astencil       = ∂ⁿ_(A, dim; I=I, deriv=2, kwargs...)
     ψstencil_left  = ∂ⁿ_(ψ, dim; I=I, deriv=1, kwargs..., bdcheck=false)
     ψstencil_right = ∂ⁿ_(ψ, dim; I=I, deriv=1, kwargs..., bdcheck=false)
     idim = :( $(I[dim]) )
@@ -184,12 +184,12 @@ end
 
 function ∇ⁿ_(A; I=(), _Δ=(), kwargs...)
     @assert length(I) == length(_Δ)
-    return Expr(:tuple, (∂ⁿ_(A, i; _Δ=_Δ[i], I=I, deriv=1, kwargs...) for i in eachindex(_Δ))...)
+    return Expr(:tuple, (∂ⁿ_(A, i; _Δ=_Δ[i], I=I, kwargs...) for i in eachindex(_Δ))...)
 end
 
 function ∇̃_(args...; I=(), _Δ=(), kwargs...)
     @assert length(I) == length(_Δ)
-    return Expr(:tuple, (∂̃_(args...; _Δ=_Δ[i], I=I, kwargs...) for i in eachindex(_Δ))...)
+    return Expr(:tuple, (∂̃_(args...; _Δ=_Δ[i], I=I, kwargs..., deriv=1) for i in eachindex(_Δ))...)
 end
 
 function ∇̃²_(args...; I=(), _Δ=(), kwargs...)
@@ -211,18 +211,10 @@ function extract_kwargs(args...)
     return positional, kwargs
 end
 
-# General partial scalar derivatives
+# SCALAR DERIVATIVES
 macro ∂(  args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs...;    kwargs..., deriv=1)           ) end
 macro ∂²( args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs...;    kwargs..., deriv=2)           ) end
 macro ∂ⁿ( args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs...;    kwargs...)                    ) end
-
-# General partial vector derivatives (gradient, divergence and Laplacian)
-macro ∇(  args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∇ⁿ_(posargs...;    kwargs...)                    ) end
-macro div(args...)  posargs, kwargs = extract_kwargs(args...); esc( Expr(:call, :+,  ∇ⁿ_(posargs...;    kwargs..., deriv=1).args... ) ) end
-macro ∇²( args...)  posargs, kwargs = extract_kwargs(args...); esc( Expr(:call, :+,  ∇ⁿ_(posargs...;    kwargs..., deriv=2).args... ) ) end
-macro ∇ⁿ( args...)  posargs, kwargs = extract_kwargs(args...); esc( Expr(:call, :+,  ∇ⁿ_(posargs...;    kwargs...,        ).args... ) ) end
-
-# Specialized partial scalar derivatives
 macro ∂x( args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs..., 1; kwargs..., deriv=1)           ) end
 macro ∂y( args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs..., 2; kwargs..., deriv=1)           ) end
 macro ∂z( args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs..., 3; kwargs..., deriv=1)           ) end
@@ -233,12 +225,22 @@ macro ∂ⁿx(args...)  posargs, kwargs = extract_kwargs(args...); esc(         
 macro ∂ⁿy(args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs..., 2; kwargs...)                    ) end
 macro ∂ⁿz(args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∂ⁿ_(posargs..., 3; kwargs...)                    ) end
 
-# CPML partial scalar derivatives
-macro ∂̃( args...)  posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs...;    kwargs...)                    ) end
-macro ∂̃x( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 1; kwargs...)                    ) end
-macro ∂̃y( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 2; kwargs...)                    ) end
-macro ∂̃z( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 3; kwargs...)                    ) end
-macro ∂̃²( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃²_(posargs...;   kwargs...)                    ) end
+# VECTOR DERIVATIVES (GRADIENT, DIVERGENCE, LAPLACIAN)
+macro ∇(  args...)  posargs, kwargs = extract_kwargs(args...); esc(                  ∇ⁿ_(posargs...;    kwargs...)                    ) end
+macro div(args...)  posargs, kwargs = extract_kwargs(args...); esc( Expr(:call, :+,  ∇ⁿ_(posargs...;    kwargs..., deriv=1).args... ) ) end
+macro ∇²( args...)  posargs, kwargs = extract_kwargs(args...); esc( Expr(:call, :+,  ∇ⁿ_(posargs...;    kwargs..., deriv=2).args... ) ) end
 
-macro ∇̃( args...)  posargs, kwargs = extract_kwargs(args...); esc(                   ∇̃_(posargs...;    kwargs...)                    ) end
-macro ∇̃²( args...) posargs, kwargs = extract_kwargs(args...); esc( Expr(:call, :+,   ∇̃²_(posargs...;   kwargs...).args... )          ) end
+# SCALAR DERIVATIVES WITH CPML DAMPING
+macro ∂̃( args...)  posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs...;     kwargs...)                    ) end
+macro ∂̃x( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 1;  kwargs...)                    ) end
+macro ∂̃y( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 2;  kwargs...)                    ) end
+macro ∂̃z( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃_(posargs..., 3;  kwargs...)                    ) end
+macro ∂̃²( args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃²_(posargs...;    kwargs...)                    ) end
+macro ∂̃²x(args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃²_(posargs..., 1; kwargs...)                    ) end
+macro ∂̃²y(args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃²_(posargs..., 2; kwargs...)                    ) end
+macro ∂̃²z(args...) posargs, kwargs = extract_kwargs(args...); esc(                   ∂̃²_(posargs..., 3; kwargs...)                    ) end
+
+# VECTOR DERIVATIVES (GRADIENT, DIVERGENCE, LAPLACIAN) WITH CPML DAMPING
+macro ∇̃( args...)  posargs, kwargs = extract_kwargs(args...); esc(                   ∇̃_(posargs...;    kwargs...)                     ) end
+macro diṽ(args...) posargs, kwargs = extract_kwargs(args...); esc( Expr(:call, :+,   ∇̃_(posargs...;    kwargs...).args... )           ) end
+macro ∇̃²( args...) posargs, kwargs = extract_kwargs(args...); esc( Expr(:call, :+,   ∇̃²_(posargs...;   kwargs...).args... )           ) end
