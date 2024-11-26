@@ -330,7 +330,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
     # Material properties
     matprop::VpRhoAcousticVDMaterialProperties{T, N}
     # CPML coefficients
-    cpmlcoeffs::NTuple{N, CPMLCoefficients{T, V}}
+    cpmlcoeffs::NTuple{N, CPMLCoefficientsAxis{T, V}}
     # Checkpointing setup
     checkpointer::Union{Nothing, LinearCheckpointer{T}}
     # Smooth radius for gradient
@@ -370,7 +370,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         # Initialize computational grid
         grid = UniformFiniteDifferenceGrid(gridsize, gridspacing)
         # Initialize CPML coefficients
-        cpmlcoeffs = tuple([CPMLCoefficients{T, V}(halo, backend, true) for _ in 1:N]...)
+        cpmlcoeffs = tuple([CPMLCoefficientsAxis{T, V}(halo, backend) for _ in 1:N]...)
 
         # Populate computational grid
         addfield!(grid, "fact_m0" => ScalarVariableField(backend.zeros(T, gridsize...)))
@@ -391,54 +391,30 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
                 [backend.zeros(T, (gridsize .- [i == j ? 1 : 0 for j in 1:N])...) for i in 1:N]
             ))
         end
-        # CPML coefficients
-        addfield!(
-            grid,
-            "a_pml" => MultiVariableField(
-                cat([[cpmlcoeffs[i].a_l, cpmlcoeffs[i].a_r, cpmlcoeffs[i].a_hl, cpmlcoeffs[i].a_hr] for i in 1:N]...; dims=1)
-            )
-        )
-        addfield!(
-            grid,
-            "b_pml" => MultiVariableField(
-                cat([[cpmlcoeffs[i].b_l, cpmlcoeffs[i].b_r, cpmlcoeffs[i].b_hl, cpmlcoeffs[i].b_hr] for i in 1:N]...; dims=1)
-            )
-        )
         # CPML memory variables
         addfield!(
             grid,
-            "ψ" => MultiVariableField(
-                cat(
-                    [[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...;
-                    dims=1
-                )
+            "ψ" => MultiVariableField(  # memory variables for velocities
+                [backend.zeros(T, [j == i ? 2halo : gridsize[j] for j in 1:N]...) for i in 1:N]
             )
         )
         addfield!(
             grid,
-            "ξ" => MultiVariableField(
-                cat([[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+            "ξ" => MultiVariableField(  # memory variables for pressure
+                [backend.zeros(T, [j == i ? 2(halo+1) : gridsize[j] for j in 1:N]...) for i in 1:N]
             )
         )
         if gradient
             addfield!(
                 grid,
-                "ψ_adj" => MultiVariableField(
-                    cat(
-                        [
-                            [backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N
-                        ]...;
-                        dims=1
-                    )
+                "ψ_adj" => MultiVariableField(  # memory variables for velocities
+                    [backend.zeros(T, [j == i ? 2halo : gridsize[j] for j in 1:N]...) for i in 1:N]
                 )
             )
             addfield!(
                 grid,
-                "ξ_adj" => MultiVariableField(
-                    cat(
-                        [[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...;
-                        dims=1
-                    )
+                "ξ_adj" => MultiVariableField(  # memory variables for pressure
+                    [backend.zeros(T, [j == i ? 2(halo+1) : gridsize[j] for j in 1:N]...) for i in 1:N]
                 )
             )
         end
@@ -497,7 +473,7 @@ end
 
 @views function reset!(model::AcousticVDStaggeredCPMLWaveSimulation)
     # Reset computational arrays
-    reset!(model.grid; except=["fact_m0", "fact_m1_stag", "a_pml", "b_pml"])
+    reset!(model.grid; except=["fact_m0", "fact_m1_stag"])
     if model.checkpointer !== nothing
         reset!(model.checkpointer)
     end

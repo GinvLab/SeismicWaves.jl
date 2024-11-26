@@ -122,7 +122,7 @@ end
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
+        backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
@@ -147,7 +147,7 @@ end
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        backend.adjoint_onestep_CPML!(grid, posrecs_bk, residuals_bk, it)
+        backend.adjoint_onestep_CPML!(model, posrecs_bk, residuals_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Backward iteration: %d", it)
@@ -163,7 +163,7 @@ end
             recover!(
                 checkpointer,
                 recit -> begin
-                    backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
+                    backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
                     return ["pcur" => grid.fields["pcur"]]
                 end
             )
