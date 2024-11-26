@@ -135,8 +135,8 @@ function setup_constant_elastic_2D_CPML(nt, dt, nx, ny, dx, dy, ρ0, λ0, μ0, h
 
     srcs = MomentTensorSources(possrcs, srctf, [MomentTensor2D(; Mxx=5e10, Mzz=5e10, Mxz=0.98e10)], f0)
     observed = zeros(nt, 2, 1)
-    observed[:,1,1] .= srctf[:,1]
-    observed[:,2,1] .= srctf[:,1]
+    observed[:, 1, 1] .= srctf[:, 1]
+    observed[:, 2, 1] .= srctf[:, 1]
     recs = VectorReceivers(posrecs, nt, 2; observed=observed, invcov=1.0 * I(nt))
     shots = [MomentTensorShot(; srcs=srcs, recs=recs)]
     return params, shots, matprop

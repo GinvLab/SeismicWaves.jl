@@ -231,12 +231,12 @@ function coeffsinc2D(xstart::Real, zstart::Real, Δx::Real, Δz::Real, xcenter::
 end
 
 function modd_2D_grid(x0::T, y0::T, dx::T, dy::T, nx::Int, ny::Int, r::Int=4, β::Int=10, xstart::T=0, ystart::T=0) where {T}
-    xs = range(xstart, length=nx, step=dx)
-    ys = range(ystart, length=ny, step=dy)
+    xs = range(xstart; length=nx, step=dx)
+    ys = range(ystart; length=ny, step=dy)
     dd_coeffs = Vector{Tuple{Int, Int, T}}()
 
     kaiser(x, r, β) = (-r <= x <= r ? besseli(0, β * sqrt(1 - (x / r)^2)) / besseli(0, β) : 0.0)
-    modd_(x, x0, r, β, Δx) = 1/Δx * kaiser(x - x0, r, β) * sinc((x - x0)/Δx)
+    modd_(x, x0, r, β, Δx) = 1 / Δx * kaiser(x - x0, r, β) * sinc((x - x0) / Δx)
     modd(x, x0, r, β, Δx) = begin
         res = modd_(x, x0, r * Δx, β, Δx)
         return res ≈ 0 ? 0.0 : res

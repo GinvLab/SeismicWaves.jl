@@ -36,7 +36,7 @@ function (misfit::L2Misfit)(recs::VectorReceivers{T, N}, matprop::MaterialProper
     end
     residuals .= mask .* residuals
     # Inner product using inverse covariance matrix
-    msf = sum([dot(residuals[:,i,:], recs.invcov, residuals[:,i,:]) for i in 1:N]) / 2
+    msf = sum([dot(residuals[:, i, :], recs.invcov, residuals[:, i, :]) for i in 1:N]) / 2
     # Add regularization if needed
     if misfit.regularization !== nothing
         msf += misfit.regularization(matprop)
@@ -74,7 +74,7 @@ function dχ_du(_::L2Misfit, recs::VectorReceivers{T}) where {T}
     residuals .= mask .* residuals
     # Multiply with inverse of covariance matrix
     for d in axes(residuals, 2)
-        residuals[:,d,:] .= recs.invcov * residuals[:,d,:]
+        residuals[:, d, :] .= recs.invcov * residuals[:, d, :]
     end
     return residuals
 end

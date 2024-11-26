@@ -27,7 +27,6 @@ Base.@kwdef struct MomentTensorShot{T, N, M <: MomentTensor{T, N}} <: Shot{T}
     recs::VectorReceivers{T, N}
 end
 
-
 """
 $(TYPEDEF)
 

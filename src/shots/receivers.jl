@@ -85,7 +85,7 @@ struct VectorReceivers{T, N} <: Receivers{T}
         ndim::Int=2;
         observed::Union{Array{T}, Nothing}=nothing,
         invcov::Union{AbstractMatrix{T}, Nothing}=nothing,
-        windows::Union{Vector{Pair{Int,Int}}, Nothing}=nothing
+        windows::Union{Vector{Pair{Int, Int}}, Nothing}=nothing
     ) where {T}
         @assert size(positions, 1) > 0 "There must be at least one receiver!"
         seismograms = zeros(T, nt, ndim, size(positions, 1))  ## N+1 !!!  <<<<<<<<--------------<<<<
