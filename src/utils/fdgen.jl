@@ -73,8 +73,7 @@ function ∂ⁿ_(A, dim::Int; I=(:i,), _Δ=1.0, deriv::Int=1, order::Int=2, bdch
             head = :elseif
         # zero if out of boundaries
         else
-            Aname = string(A)
-            return Expr(:elseif, :(size($A, $dim) < $width), :(error("Size of array (size($($Aname), $($dim)) = $(size($A, $dim))) is smaller than stancil width ($($width))")), :(0))
+            return :(0.0)
         end
         condition = :(1 <= $(is[1]) <= $(is[state-1]) <= size($A, $dim) && $(is[state]) > size($A, $dim))
         if mirror_right
