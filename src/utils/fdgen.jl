@@ -181,9 +181,9 @@ function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, kwargs...)
     end
 end
 
-function ∇ⁿ_(A; I=(), _Δ=(), kwargs...)
+function ∇ⁿ_(args...; I=(), _Δ=(), kwargs...)
     @assert length(I) == length(_Δ)
-    return Expr(:tuple, (∂ⁿ_(A, i; _Δ=_Δ[i], I=I, kwargs...) for i in eachindex(_Δ))...)
+    return Expr(:tuple, (∂ⁿ_(length(args) == 1 ? args[1] : args[i], i; _Δ=_Δ[i], I=I, kwargs...) for i in eachindex(_Δ))...)
 end
 
 function ∇̃_(args...; I=(), _Δ=(), kwargs...)
