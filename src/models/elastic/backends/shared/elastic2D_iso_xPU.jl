@@ -461,7 +461,7 @@ function forward_onestep_CPML!(
     end
 
     # update stresses σxx and σzz
-    idxzσxx = freetop ? (1:nz-2) : (2:nz-1)
+    idxzσxx = freetop ? (1:nz-1) : (2:nz-1)
     @parallel (2:nx-1, idxzσxx) update_4thord_σxxσzz!(
         σxx, σzz, vx, vz, dt, _dx, _dz, λ, μ,
         halo, ψ_∂vx∂x, ψ_∂vz∂z, b_x, b_z, a_x, a_z, freetop
@@ -524,7 +524,7 @@ function adjoint_onestep_CPML!(
     _dz = 1.0 / dz
     
     # update adjoint stresses σxx and σzz 
-    @parallel (1:nx-1, 1:nz-1) update_4thord_adjσxxσzz!(
+    @parallel (2:nx-1, 2:nz-1) update_4thord_adjσxxσzz!(
         adjσxx, adjσzz, adjvx, adjvz, dt, _dx, _dz,
         halo, adjψ_∂vx∂x, adjψ_∂vz∂z, b_x, b_z, a_x, a_z
     )
