@@ -14,6 +14,8 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :AMDGPU)
     end
 
+    @testset "Test misfit (acoustic CD)" begin
+
     for parall in test_backends
         @testset "Test 1D $(parall) swmisfit!" begin
             # Physics
@@ -74,5 +76,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             mis = swmisfit!(params, vel, shots; parall=parall)
             @test mis > 0
         end
+    end
+
     end
 end

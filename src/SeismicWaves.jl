@@ -30,8 +30,16 @@ export build_wavesim, swforward!, swmisfit!, swgradient!
 export gaussstf, gaussderivstf, rickerstf
 
 module FiniteDifferencesMacros
-include("utils/fdgen.jl")
-export @∂, @∂², @∂ⁿ, @∇, @∇², @∇ⁿ, @div, @∂x, @∂y, @∂z, @∂²x, @∂²y, @∂²z, @∂ⁿx, @∂ⁿy, @∂ⁿz, @∂̃, @∂̃x, @∂̃y, @∂̃z
+    include("utils/fdgen.jl")
+    export @∂, @∂², @∂ⁿ
+    export @∂x, @∂y, @∂z
+    export @∂²x, @∂²y, @∂²z
+    export @∂ⁿx, @∂ⁿy, @∂ⁿz
+    export @∇, @div, @∇²
+    export @∂̃, @∂̃x, @∂̃y, @∂̃z
+    export @∂̃², @∂̃²x, @∂̃²y, @∂̃²z
+    export @∇̃, @diṽ, @∇̃²
+
 end
 
 include("utils/abstract_types.jl")
@@ -112,7 +120,9 @@ include("models/elastic/backends/Elastic2D_Iso_CPML_Threads.jl")
 
 ## HMC stuff
 include("HMCseiswaves.jl")
+
 using .HMCseiswaves
 export AcouWavCDProb
+export FiniteDifferencesMacros
 
 end # module

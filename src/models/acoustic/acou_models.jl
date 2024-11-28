@@ -67,7 +67,7 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     # Material properties
     matprop::VpAcousticCDMaterialProperties{T, N}
     # CPML coefficients
-    cpmlcoeffs::NTuple{N, CPMLCoefficients{T, V}}
+    cpmlcoeffs::NTuple{N, CPMLCoefficientsAxis{T, V}}
     # Checkpointing setup
     checkpointer::Union{Nothing, LinearCheckpointer{T}}
     # Smooth radius for gradient
@@ -107,7 +107,7 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         # Initialize computational grid
         grid = UniformFiniteDifferenceGrid(gridsize, gridspacing)
         # Initialize CPML coefficients
-        cpmlcoeffs = tuple([CPMLCoefficients{T, V}(halo, backend, true) for _ in 1:N]...)
+        cpmlcoeffs = tuple([CPMLCoefficientsAxis{T, V}(halo, backend) for _ in 1:N]...)
 
         # Populate computational grid
         addfield!(grid, "fact" => ScalarVariableField(backend.zeros(T, gridsize...)))
@@ -120,54 +120,31 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             addfield!(grid, "adjcur" => ScalarVariableField(backend.zeros(T, gridsize...)))
             addfield!(grid, "adjnew" => ScalarVariableField(backend.zeros(T, gridsize...)))
         end
-        # CPML coefficients
-        addfield!(
-            grid,
-            "a_pml" => MultiVariableField(
-                cat([[cpmlcoeffs[i].a_l, cpmlcoeffs[i].a_r, cpmlcoeffs[i].a_hl, cpmlcoeffs[i].a_hr] for i in 1:N]...; dims=1)
-            )
-        )
-        addfield!(
-            grid,
-            "b_pml" => MultiVariableField(
-                cat([[cpmlcoeffs[i].b_l, cpmlcoeffs[i].b_r, cpmlcoeffs[i].b_hl, cpmlcoeffs[i].b_hr] for i in 1:N]...; dims=1)
-            )
-        )
         # CPML memory variables
         addfield!(
             grid,
-            "ψ" => MultiVariableField(
-                cat(
-                    [[backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N]...;
-                    dims=1
-                )
+            "ψ" => MultiVariableField(  # memory variables for velocities
+                [backend.zeros(T, [j == i ? 2halo : gridsize[j] for j in 1:N]...) for i in 1:N]
             )
         )
         addfield!(
             grid,
-            "ξ" => MultiVariableField(
-                cat([[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...; dims=1)
+            "ξ" => MultiVariableField(  # memory variables for pressure
+                [backend.zeros(T, [j == i ? 2(halo+1) : gridsize[j] for j in 1:N]...) for i in 1:N]
             )
         )
         if gradient
+            # CPML memory variables
             addfield!(
                 grid,
-                "ψ_adj" => MultiVariableField(
-                    cat(
-                        [
-                            [backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo + 1 : gridsize[j] for j in 1:N]...)] for i in 1:N
-                        ]...;
-                        dims=1
-                    )
+                "ψ_adj" => MultiVariableField(  # memory variables for velocities
+                    [backend.zeros(T, [j == i ? 2halo : gridsize[j] for j in 1:N]...) for i in 1:N]
                 )
             )
             addfield!(
                 grid,
-                "ξ_adj" => MultiVariableField(
-                    cat(
-                        [[backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...), backend.zeros(T, [j == i ? halo : gridsize[j] for j in 1:N]...)] for i in 1:N]...;
-                        dims=1
-                    )
+                "ξ_adj" => MultiVariableField(  # memory variables for pressure
+                    [backend.zeros(T, [j == i ? 2(halo+1) : gridsize[j] for j in 1:N]...) for i in 1:N]
                 )
             )
         end
@@ -237,7 +214,7 @@ end
 # Specific functions for AcousticCDCPMLWaveSimulation
 
 @views function reset!(model::AcousticCDCPMLWaveSimulation)
-    reset!(model.grid; except=["fact", "a_pml", "b_pml"])
+    reset!(model.grid; except=["fact"])
     if model.checkpointer !== nothing
         reset!(model.checkpointer)
     end

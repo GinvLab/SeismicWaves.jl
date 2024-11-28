@@ -14,6 +14,8 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :AMDGPU)
     end
 
+    @testset "Test gradient (elastic homogeneous)" begin
+
     for parall in test_backends
         @testset "Test 2D (P-SV) $(parall) swgradient! with compute misfit" begin
             # Physics
@@ -112,5 +114,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test grad["lambda"] ≈ grad_check["lambda"]
             @test grad["mu"] ≈ grad_check["mu"]
         end
+    end
+
     end
 end

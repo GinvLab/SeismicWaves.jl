@@ -98,9 +98,7 @@ end
     end
 end
 
-@views function adjoint_onestep_CPML!(
-    model, possrcs, srctf, it
-)
+function adjoint_onestep_CPML!(model, possrcs, srctf, it)
     # Extract info from grid
     grid = model.grid
     nx = grid.size[1]

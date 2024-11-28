@@ -14,6 +14,8 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :AMDGPU)
     end
 
+    @testset "Test snapshotting (acoustic CD)" begin
+
     for parall in test_backends
         @testset "Test 1D $(parall) single-shot snapshotting" begin
             #  velocity setup
@@ -127,5 +129,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test sort(keys(snaps[1])) == sort(keys(snaps[2]))
             @test all(it -> !(snaps[1][it]["pcur"].value ≈ snaps[2][it]["pcur"].value), [it for it in keys(snaps[2])])
         end
+    end
+
     end
 end

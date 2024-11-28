@@ -32,16 +32,16 @@ struct ArithmeticAverageInterpolation <: AbstractInterpolationMethod end
 # Harmonic average interpolation
 struct HarmonicAverageInterpolation <: AbstractInterpolationMethod end
 
-@views function (itp::ArithmeticAverageInterpolation)(m::Array{<:Real, N}, dims::Vector{Int}) where {N}
-    itp = Interpolations.interpolate(m, BSpline(Linear()))
-    return itp([i in dims ? (1.5:size(m, i)-0.5) : (1:size(m, i)) for i in 1:N]...)
+function (itp::ArithmeticAverageInterpolation)(m::Array{<:Real, N}, dims::Vector{Int}) where {N}
+    itp_obj = Interpolations.interpolate(m, BSpline(Linear()))
+    return itp_obj([i in dims ? (1.5:size(m, i)-0.5) : (1:size(m, i)) for i in 1:N]...)
 end
 
-@views function (itp::HarmonicAverageInterpolation)(m::Array{<:Real, N}, dims::Vector{Int}) where {N}
-    itp = Interpolations.interpolate(1 ./ m, BSpline(Linear()))
-    return 1 ./ itp([i in dims ? (1.5:size(m, i)-0.5) : (1:size(m, i)) for i in 1:N]...)
+function (itp::HarmonicAverageInterpolation)(m::Array{<:Real, N}, dims::Vector{Int}) where {N}
+    itp_obj = Interpolations.interpolate(1 ./ m, BSpline(Linear()))
+    return 1 ./ itp_obj([i in dims ? (1.5:size(m, i)-0.5) : (1:size(m, i)) for i in 1:N]...)
 end
 
-∂f∂m(_::ArithmeticAverageInterpolation, m::Array{T, N}, idxs, dims::Vector{Int}) where {T, N} = ones(T, size(m) .- Tuple(i in dims ? 1 : 0 for i in 1:N)) ./ (2^length(dims))
+@views ∂f∂m(_::ArithmeticAverageInterpolation, m::Array{T, N}, idxs, dims::Vector{Int}) where {T, N} = ones(T, size(m) .- Tuple(i in dims ? 1 : 0 for i in 1:N)) ./ (2^length(dims))
 
-∂f∂m(itp::HarmonicAverageInterpolation, m::Array{T, N}, idxs, dims::Vector{Int}) where {T, N} = (itp(m, dims) .^ 2) ./ (m[idxs] .^ 2) ./ (2^length(dims))
+@views ∂f∂m(itp::HarmonicAverageInterpolation, m::Array{T, N}, idxs, dims::Vector{Int}) where {T, N} = (itp(m, dims) .^ 2) ./ (m[idxs] .^ 2) ./ (2^length(dims))

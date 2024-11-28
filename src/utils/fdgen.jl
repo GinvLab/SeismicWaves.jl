@@ -64,6 +64,7 @@ function ∂ⁿ_(A, dim::Int; I=(:i,), _Δ=1.0, deriv::Int=1, order::Int=2, bdch
     N = length(I)
     @assert N > 0 "Need at least one index!"
     mirror_left, mirror_right = mirror
+    _Δ = deriv == 1 ? :( $_Δ ) : :( $_Δ ^ $deriv )
     # right boundary checks
     function right_checks_recursive(coeffs, Is, A, dim, _Δ, state)
         is = Tuple(Is[i][dim] for i in eachindex(Is))
@@ -158,21 +159,23 @@ function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, kwargs...)
     ∂ψtemp = gensym(:∂ψ)
     iidim = gensym(:i)
     Astencil       = ∂ⁿ_(A, dim; I=I, deriv=2, kwargs...)
-    ψstencil_left  = ∂ⁿ_(ψ, dim; I=I, deriv=1, kwargs..., bdcheck=false)
-    ψstencil_right = ∂ⁿ_(ψ, dim; I=I, deriv=1, kwargs..., bdcheck=false)
     idim = :( $(I[dim]) )
     ndim = :( size($A, $dim) )
+    Iψ  = [i == dim ?  :($idim - 1) : I[i] for i in eachindex(I)]
+    IIψ = [i == dim ?  :($iidim - 1) : I[i] for i in eachindex(I)]
     Iξ  = [i == dim ?  idim : I[i] for i in eachindex(I)]
     IIξ = [i == dim ? iidim : I[i] for i in eachindex(I)]
+    ψstencil_left  = ∂ⁿ_(ψ, dim; I=Iψ, deriv=1, kwargs..., bdcheck=false)
+    ψstencil_right = ∂ⁿ_(ψ, dim; I=IIψ, deriv=1, kwargs..., bdcheck=false)
     return quote
         $∂²Atemp = $Astencil
-        if $idim <= ($halo + 1)
+        if $idim <= $halo
             $∂ψtemp = $ψstencil_left
             $ξ[$(Iξ...)]  = $b[$idim ] * $ξ[$(Iξ...)] + $a[$idim ] * ($∂²Atemp + $∂ψtemp)
             $∂²Atemp + $∂ψtemp + $ξ[$(Iξ...)]
-        elseif $idim >= $ndim - $halo
+        elseif $idim >= $ndim - $halo + 1
+            $iidim = $idim - ($ndim - $halo) + 1 + $halo
             $∂ψtemp = $ψstencil_right
-            $iidim = $idim - ($ndim - $halo) + 1 + ($halo + 1)
             $ξ[$(IIξ...)] = $b[$iidim] * $ξ[$(IIξ...)] + $a[$iidim] * ($∂²Atemp + $∂ψtemp)
             $∂²Atemp + $∂ψtemp + $ξ[$(IIξ...)]
         else
@@ -182,18 +185,25 @@ function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, kwargs...)
 end
 
 function ∇ⁿ_(args...; I=(), _Δ=(), kwargs...)
-    @assert length(I) == length(_Δ)
+    N = length(I)
+    @assert N == length(_Δ)
     return Expr(:tuple, (∂ⁿ_(length(args) == 1 ? args[1] : args[i], i; _Δ=_Δ[i], I=I, kwargs...) for i in eachindex(_Δ))...)
 end
 
 function ∇̃_(args...; I=(), _Δ=(), kwargs...)
-    @assert length(I) == length(_Δ)
-    return Expr(:tuple, (∂̃_(args...; _Δ=_Δ[i], I=I, kwargs..., deriv=1) for i in eachindex(_Δ))...)
+    N = length(I)
+    @assert N == length(_Δ)
+    A = args[1]
+    cpml_args = collect(args[1+(1+3*(i-1)):1+3*(i-1)+3] for i in 1:N)
+    return Expr(:tuple, (∂̃_(A, cpml_args[i]..., i; _Δ=_Δ[i], I=I, kwargs..., deriv=1) for i in eachindex(_Δ))...)
 end
 
 function ∇̃²_(args...; I=(), _Δ=(), kwargs...)
-    @assert length(I) == length(_Δ)
-    return Expr(:tuple, (∂̃²_(args...; _Δ=_Δ[i], I=I, kwargs...) for i in eachindex(_Δ))...)
+    N = length(I)
+    @assert N == length(_Δ)
+    A = args[1]
+    cpml_args = collect(args[1+(1+4*(i-1)):1+4*(i-1)+4] for i in 1:N)
+    return Expr(:tuple, (∂̃²_(A, cpml_args[i]..., i; _Δ=_Δ[i], I=I, kwargs...) for i in eachindex(_Δ))...)
 end
 
 function extract_kwargs(args...)

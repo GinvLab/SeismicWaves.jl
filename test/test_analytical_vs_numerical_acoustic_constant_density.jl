@@ -8,6 +8,8 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :AMDGPU)
     end
 
+    @testset "Test analytical vs numerical solution (acoustic CD)" begin
+    
     for parall in test_backends
         @testset "Test 1D $(parall) analytical solution" begin
             @testset "Test 1D $(parall) constant velocity halo 0" begin
@@ -145,5 +147,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
                 @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
             end
         end
+    end
+
     end
 end

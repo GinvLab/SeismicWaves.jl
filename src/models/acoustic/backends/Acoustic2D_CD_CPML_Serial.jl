@@ -1,6 +1,8 @@
 
 module Acoustic2D_CD_CPML_Serial
 
+using SeismicWaves.FiniteDifferencesMacros
+
 include("shared/smooth_gradient_2D.jl")
 
 # Dummy data module
@@ -12,77 +14,55 @@ end
 ones = Base.ones
 zeros = Base.zeros
 
-function update_ψ_x!(ψ_x_l, ψ_x_r, pcur, halo, _dx, nx, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
-    ny = size(ψ_x_l, 2)
+function update_ψ_x!(
+    pcur, _dx, ny, halo, ψ_x, b_x_half, a_x_half
+)
     for j in 1:ny
-        for i in 1:(halo+1)
-            ii = i + nx - halo - 2  # shift for right boundary pressure indices
-            # left boundary
-            ψ_x_l[i, j] = b_x_hl[i] * ψ_x_l[i, j] + a_x_hl[i] * (pcur[i+1, j] - pcur[i, j]) * _dx
-            # right boundary
-            ψ_x_r[i, j] = b_x_hr[i] * ψ_x_r[i, j] + a_x_hr[i] * (pcur[ii+1, j] - pcur[ii, j]) * _dx
+        for i in 1:2halo
+            # Shift index to right side if beyond left boundary
+            ii = i > halo ? size(pcur, 1) - halo - 1 + (i - halo) : i
+            # Update CPML memory variable
+            @∂̃x(pcur, a_x_half, b_x_half, ψ_x,
+                order=2, I=(ii,j), _Δ=_dx,
+                halo=halo, halfgrid=true)
         end
     end
 end
 
-function update_ψ_y!(ψ_y_l, ψ_y_r, pcur, halo, _dy, ny, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
-    nx = size(ψ_y_l, 1)
-    for j in 1:(halo+1)
+function update_ψ_y!(
+    pcur, _dy, nx, halo, ψ_y, b_y_half, a_y_half
+)
+    for j in 1:2halo
         for i in 1:nx
-            jj = j + ny - halo - 2  # shift for bottom boundary pressure indices
-            # top boundary
-            ψ_y_l[i, j] = b_y_hl[j] * ψ_y_l[i, j] + a_y_hl[j] * (pcur[i, j+1] - pcur[i, j]) * _dy
-            # bottom boundary
-            ψ_y_r[i, j] = b_y_hr[j] * ψ_y_r[i, j] + a_y_hr[j] * (pcur[i, jj+1] - pcur[i, jj]) * _dy
+            # Shift index to right side if beyond left boundary
+            jj = j > halo ? size(pcur, 2) - halo - 1 + (j - halo) : j
+            # Update CPML memory variable
+            @∂̃y(pcur, a_y_half, b_y_half, ψ_y,
+                order=2, I=(i,jj), _Δ=_dy,
+                halo=halo, halfgrid=true)
         end
     end
 end
 
 function update_p_CPML!(
-    pold, pcur, pnew, halo, fact,
-    _dx, _dx2, _dy, _dy2, nx, ny,
-    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
-    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,
-    a_x_l, a_x_r, b_x_l, b_x_r,
-    a_y_l, a_y_r, b_y_l, b_y_r
+    pold, pcur, pnew, fact, _dx, _dy, nx, ny,
+    halo, ψ_x, ψ_y, ξ_x, ξ_y, b_x, b_y, a_x, a_y
 )
+
+    ##########################
+    # ∂²p/∂t² = c² * ∇²p     #
+    # fact = c² * dt²        #
+    ##########################
+
     for j in 2:(ny-1)
         for i in 2:(nx-1)
-
-            # pressure derivatives in space
-            d2p_dx2 = (pcur[i+1, j] - 2.0 * pcur[i, j] + pcur[i-1, j]) * _dx2
-            d2p_dy2 = (pcur[i, j+1] - 2.0 * pcur[i, j] + pcur[i, j-1]) * _dy2
-
-            damp = 0.0
-            # x boundaries
-            if i <= halo + 1
-                # left boundary
-                dψ_x_dx = (ψ_x_l[i, j] - ψ_x_l[i-1, j]) * _dx
-                ξ_x_l[i-1, j] = b_x_l[i-1] * ξ_x_l[i-1, j] + a_x_l[i-1] * (d2p_dx2 + dψ_x_dx)
-                damp += fact[i, j] * (dψ_x_dx + ξ_x_l[i-1, j])
-            elseif i >= nx - halo
-                # right boundary
-                ii = i - (nx - halo) + 2
-                dψ_x_dx = (ψ_x_r[ii, j] - ψ_x_r[ii-1, j]) * _dx
-                ξ_x_r[ii-1, j] = b_x_r[ii-1] * ξ_x_r[ii-1, j] + a_x_r[ii-1] * (d2p_dx2 + dψ_x_dx)
-                damp += fact[i, j] * (dψ_x_dx + ξ_x_r[ii-1, j])
-            end
-            # y boundaries
-            if j <= halo + 1
-                # top boundary
-                dψ_y_dy = (ψ_y_l[i, j] - ψ_y_l[i, j-1]) * _dy
-                ξ_y_l[i, j-1] = b_y_l[j-1] * ξ_y_l[i, j-1] + a_y_l[j-1] * (d2p_dy2 + dψ_y_dy)
-                damp += fact[i, j] * (dψ_y_dy + ξ_y_l[i, j-1])
-            elseif j >= ny - halo
-                # bottom boundary
-                jj = j - (ny - halo) + 2
-                dψ_y_dy = (ψ_y_r[i, jj] - ψ_y_r[i, jj-1]) * _dy
-                ξ_y_r[i, jj-1] = b_y_r[jj-1] * ξ_y_r[i, jj-1] + a_y_r[jj-1] * (d2p_dy2 + dψ_y_dy)
-                damp += fact[i, j] * (dψ_y_dy + ξ_y_r[i, jj-1])
-            end
+            # Compute pressure Laplacian
+            ∇²p = @∇̃²(pcur, a_x, b_x, ψ_x, ξ_x, a_y, b_y, ψ_y, ξ_y,
+                    order=2, I=(i,j), _Δ=(_dx, _dy),
+                    halo=halo)
 
             # update pressure
-            pnew[i, j] = 2.0 * pcur[i, j] - pold[i, j] + fact[i, j] * (d2p_dx2 + d2p_dy2) + damp
+            pnew[i, j] = 2.0 * pcur[i, j] - pold[i, j] + fact[i, j] * ∇²p
         end
     end
 end
@@ -111,37 +91,38 @@ prescale_residuals!(residuals, posrecs, fact) =
     end
 
 function forward_onestep_CPML!(
-    grid, possrcs, dt2srctf, posrecs, traces, it;
+    model, possrcs, dt2srctf, posrecs, traces, it;
     save_trace=true
 )
     # Extract info from grid
+    grid = model.grid
     nx, ny = grid.size
     dx, dy = grid.spacing
     pold, pcur, pnew = grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value
     fact = grid.fields["fact"].value
-    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ"].value
-    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r = grid.fields["ξ"].value
-    a_x_l, a_x_r, a_x_hl, a_x_hr, a_y_l, a_y_r, a_y_hl, a_y_hr = grid.fields["a_pml"].value
-    b_x_l, b_x_r, b_x_hl, b_x_hr, b_y_l, b_y_r, b_y_hl, b_y_hr = grid.fields["b_pml"].value
-    halo = length(a_x_r)
+    ψ_x, ψ_y = grid.fields["ψ"].value
+    ξ_x, ξ_y = grid.fields["ξ"].value
+    a_x = model.cpmlcoeffs[1].a
+    a_x_half = model.cpmlcoeffs[1].a_h
+    b_x = model.cpmlcoeffs[1].b
+    b_x_half = model.cpmlcoeffs[1].b_h
+    a_y = model.cpmlcoeffs[2].a
+    a_y_half = model.cpmlcoeffs[2].a_h
+    b_y = model.cpmlcoeffs[2].b
+    b_y_half = model.cpmlcoeffs[2].b_h
+    halo = model.cpmlparams.halo
+    # Precompute divisions
     _dx = 1 / dx
-    _dx2 = 1 / dx^2
     _dy = 1 / dy
-    _dy2 = 1 / dy^2
 
     # update ψ arrays
-    update_ψ_x!(ψ_x_l, ψ_x_r, pcur, halo, _dx, nx, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
-
-    update_ψ_y!(ψ_y_l, ψ_y_r, pcur, halo, _dy, ny, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
-
+    update_ψ_x!(pcur, _dx, ny, halo, ψ_x, b_x_half, a_x_half)
+    update_ψ_y!(pcur, _dy, nx, halo, ψ_y, b_y_half, a_y_half)
     # update pressure and ξ arrays
-    update_p_CPML!(pold, pcur, pnew, halo, fact,
-        _dx, _dx2, _dy, _dy2, nx, ny,
-        ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
-        ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,
-        a_x_l, a_x_r, b_x_l, b_x_r,
-        a_y_l, a_y_r, b_y_l, b_y_r)
-
+    update_p_CPML!(
+        pold, pcur, pnew, fact, _dx, _dy, nx, ny,
+        halo, ψ_x, ψ_y, ξ_x, ξ_y, b_x, b_y, a_x, a_y
+    )
     # inject sources
     inject_sources!(pnew, dt2srctf, possrcs, it)
     # record receivers
@@ -156,36 +137,36 @@ function forward_onestep_CPML!(
     return nothing
 end
 
-function adjoint_onestep_CPML!(grid, possrcs, dt2srctf, it)
+function adjoint_onestep_CPML!(model, possrcs, dt2srctf, it)
     # Extract info from grid
+    grid = model.grid
     nx, ny = grid.size
     dx, dy = grid.spacing
     pold, pcur, pnew = grid.fields["adjold"].value, grid.fields["adjcur"].value, grid.fields["adjnew"].value
     fact = grid.fields["fact"].value
-    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ_adj"].value
-    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r = grid.fields["ξ_adj"].value
-    a_x_l, a_x_r, a_x_hl, a_x_hr, a_y_l, a_y_r, a_y_hl, a_y_hr = grid.fields["a_pml"].value
-    b_x_l, b_x_r, b_x_hl, b_x_hr, b_y_l, b_y_r, b_y_hl, b_y_hr = grid.fields["b_pml"].value
-    halo = length(a_x_r)
+    ψ_x, ψ_y = grid.fields["ψ_adj"].value
+    ξ_x, ξ_y = grid.fields["ξ_adj"].value
+    a_x = model.cpmlcoeffs[1].a
+    a_x_half = model.cpmlcoeffs[1].a_h
+    b_x = model.cpmlcoeffs[1].b
+    b_x_half = model.cpmlcoeffs[1].b_h
+    a_y = model.cpmlcoeffs[2].a
+    a_y_half = model.cpmlcoeffs[2].a_h
+    b_y = model.cpmlcoeffs[2].b
+    b_y_half = model.cpmlcoeffs[2].b_h
+    halo = model.cpmlparams.halo
     # Precompute divisions
     _dx = 1 / dx
-    _dx2 = 1 / dx^2
     _dy = 1 / dy
-    _dy2 = 1 / dy^2
 
     # update ψ arrays
-    update_ψ_x!(ψ_x_l, ψ_x_r, pcur, halo, _dx, nx, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
-
-    update_ψ_y!(ψ_y_l, ψ_y_r, pcur, halo, _dy, ny, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
-
+    update_ψ_x!(pcur, _dx, ny, halo, ψ_x, b_x_half, a_x_half)
+    update_ψ_y!(pcur, _dy, nx, halo, ψ_y, b_y_half, a_y_half)
     # update pressure and ξ arrays
-    update_p_CPML!(pold, pcur, pnew, halo, fact,
-        _dx, _dx2, _dy, _dy2, nx, ny,
-        ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r,
-        ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r,
-        a_x_l, a_x_r, b_x_l, b_x_r,
-        a_y_l, a_y_r, b_y_l, b_y_r)
-
+    update_p_CPML!(
+        pold, pcur, pnew, fact, _dx, _dy, nx, ny,
+        halo, ψ_x, ψ_y, ξ_x, ξ_y, b_x, b_y, a_x, a_y
+    )
     # inject sources
     inject_sources!(pnew, dt2srctf, possrcs, it)
 

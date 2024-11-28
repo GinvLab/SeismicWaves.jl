@@ -14,6 +14,8 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :AMDGPU)
     end
 
+    @testset "Test forward (acoustic CD)" begin
+
     for parall in test_backends
         @testset "Test 1D $(parall) single precision" begin
             # constant velocity setup
@@ -264,5 +266,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
                 @test res[:, i] ≈ recs.seismograms[:, nrecs-i+1]
             end
         end
+    end
+
     end
 end

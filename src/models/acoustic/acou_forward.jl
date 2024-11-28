@@ -45,7 +45,7 @@ end
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
+        backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Iteration: %d, simulation time: %g [s]", it, model.dt * (it - 1))

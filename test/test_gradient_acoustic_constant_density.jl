@@ -14,6 +14,8 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :AMDGPU)
     end
 
+    @testset "Test gradient (acoustic CD)" begin
+
     for parall in test_backends
         @testset "Test 1D $(parall) swgradient! with compute misfit" begin
             # Physics
@@ -259,5 +261,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             # Check that computations are equivalent
             @test grad["vp"] ≈ grad_check["vp"]
         end
+    end
+
     end
 end
