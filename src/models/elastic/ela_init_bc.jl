@@ -4,7 +4,7 @@ init_bdc!(model::ElasticWaveSimulation, srcs::Sources) =
 
 init_bdc!(::ReflectiveBoundaryCondition, model::ElasticWaveSimulation, srcs::Sources) = nothing
 
-@views function init_bdc!(
+function init_bdc!(
     ::CPMLBoundaryCondition,
     model::ElasticIsoWaveSimulation,
     srcs::Sources

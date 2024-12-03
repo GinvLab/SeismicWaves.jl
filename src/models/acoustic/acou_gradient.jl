@@ -1,7 +1,7 @@
 swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     swgradient_1shot!(BoundaryConditionTrait(model), model, args...; kwargs...)
 
-@views function swgradient_1shot!(
+function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimulation{T, N},
     shot::ScalarShot{T},
@@ -94,7 +94,7 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     return Dict("vp" => gradient)
 end
 
-@views function swgradient_1shot!(
+function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticVDStaggeredCPMLWaveSimulation{T, N},
     shot::ScalarShot{T},

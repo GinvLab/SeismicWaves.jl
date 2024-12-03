@@ -2,7 +2,7 @@
 
 # Functions for all AcousticWaveSimulation subtypes
 
-@views function check_courant_condition(model::AcousticWaveSimulation{T, N}, vp::Array{T, N}) where {T, N}
+function check_courant_condition(model::AcousticWaveSimulation{T, N}, vp::Array{T, N}) where {T, N}
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp
@@ -29,7 +29,7 @@ end
 
 # Functions for all AcousticCDWaveSimulation subtypes
 
-@views function check_matprop(model::AcousticCDWaveSimulation{T, N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
+function check_matprop(model::AcousticCDWaveSimulation{T, N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert ndims(matprop.vp) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == model.grid.size "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(model.grid.size)"
@@ -38,7 +38,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticCDWaveSimulation{T, N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
+function update_matprop!(model::AcousticCDWaveSimulation{T, N}, matprop::VpAcousticCDMaterialProperties{T, N}) where {T, N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     # Precompute factors
@@ -198,7 +198,7 @@ end
 
 ###########################################################
 
-@views function find_nearest_grid_points(model::AcousticCDCPMLWaveSimulation{T}, positions::Matrix{T})::Matrix{Int} where {T}
+function find_nearest_grid_points(model::AcousticCDCPMLWaveSimulation{T}, positions::Matrix{T})::Matrix{Int} where {T}
     # source time functions
     nsrcs = size(positions, 1)                      # number of sources
     ncoos = size(positions, 2)                      # number of coordinates
@@ -213,7 +213,7 @@ end
 
 # Specific functions for AcousticCDCPMLWaveSimulation
 
-@views function reset!(model::AcousticCDCPMLWaveSimulation)
+function reset!(model::AcousticCDCPMLWaveSimulation)
     reset!(model.grid; except=["fact"])
     if model.checkpointer !== nothing
         reset!(model.checkpointer)
@@ -232,7 +232,7 @@ GridTrait(::Type{<:AcousticCDCPMLWaveSimulation}) = LocalGrid()
 
 # Functions for all AcousticVDStaggeredWaveSimulation subtypes
 
-@views function check_courant_condition(model::AcousticVDStaggeredWaveSimulation{T, N}, vp::Array{T, N}) where {T, N}
+function check_courant_condition(model::AcousticVDStaggeredWaveSimulation{T, N}, vp::Array{T, N}) where {T, N}
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp * 7 / 6    # 7/6 comes from the higher order stencil
@@ -255,7 +255,7 @@ function check_numerics(
     @assert ppw >= min_ppw "Not enough points per wavelengh!"
 end
 
-@views function check_matprop(model::AcousticVDStaggeredWaveSimulation{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
+function check_matprop(model::AcousticVDStaggeredWaveSimulation{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert ndims(matprop.vp) == ndims(matprop.rho) == N "Material property dimensionality must be the same as the wavesim!"
     @assert size(matprop.vp) == size(matprop.rho) == model.grid.size "Material property number of grid points must be the same as the wavesim! \n $(size(matprop.vp)), $(size(matprop.rho)), $(model.grid.size)"
@@ -265,7 +265,7 @@ end
     check_courant_condition(model, matprop.vp)
 end
 
-@views function update_matprop!(model::AcousticVDStaggeredWaveSimulation{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
+function update_matprop!(model::AcousticVDStaggeredWaveSimulation{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
     # Update material properties
     copyto!(model.matprop.vp, matprop.vp)
     copyto!(model.matprop.rho, matprop.rho)
@@ -274,7 +274,7 @@ end
     precompute_fact!(model)
 end
 
-@views function precompute_fact!(model::AcousticVDStaggeredWaveSimulation{T, N}) where {T, N}
+function precompute_fact!(model::AcousticVDStaggeredWaveSimulation{T, N}) where {T, N}
     # Precompute 1/m0 * dt factor
     copyto!(model.grid.fields["fact_m0"].value, model.matprop.vp .^ 2 .* model.matprop.rho .* model.dt)
     # Precompute m1 * dt factor by interpolation
@@ -448,7 +448,7 @@ end
 
 # Specific functions for AcousticVDStaggeredCPMLWaveSimulation
 
-@views function reset!(model::AcousticVDStaggeredCPMLWaveSimulation)
+function reset!(model::AcousticVDStaggeredCPMLWaveSimulation)
     # Reset computational arrays
     reset!(model.grid; except=["fact_m0", "fact_m1_stag"])
     if model.checkpointer !== nothing

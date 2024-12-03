@@ -86,7 +86,7 @@ end
 #######################################################
 
 ## single WaveSimulation object
-@views function run_swforward!(
+function run_swforward!(
     model::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
@@ -131,7 +131,7 @@ end
 end
 
 ## :threadpersrc, multiple WaveSimulation objects
-@views function run_swforward!(
+function run_swforward!(
     model::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};

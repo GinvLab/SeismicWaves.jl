@@ -30,7 +30,7 @@ end
     return nothing
 end
 
-@views function correlate_gradients!(grid, vcurr, vold, dt, freetop)
+function correlate_gradients!(grid, vcurr, vold, dt, freetop)
     nx, nz = grid.size
     @parallel correlate_gradient_ρ_kernel!(
         grid.fields["grad_ρ_ihalf"].value,

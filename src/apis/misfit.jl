@@ -79,7 +79,7 @@ end
 ### MISFITS ###
 
 ## single or multiple WaveSimulation objects
-@views function run_swmisfit!(
+function run_swmisfit!(
     model::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};

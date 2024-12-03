@@ -4,7 +4,7 @@
     return nothing
 end
 
-@views function correlate_gradient!(curgrad, adjcur, pcur, pold, pveryold, dt)
+function correlate_gradient!(curgrad, adjcur, pcur, pold, pveryold, dt)
     _dt2 = 1 / dt^2
     @parallel correlate_gradient_kernel!(curgrad, adjcur, pcur, pold, pveryold, _dt2)
 end
@@ -15,7 +15,7 @@ end
     return nothing
 end
 
-@views function correlate_gradient_m0!(curgrad_m0, adjpcur, pcur_corr, pcur_old, dt)
+function correlate_gradient_m0!(curgrad_m0, adjpcur, pcur_corr, pcur_old, dt)
     _dt = 1 / dt
     @parallel correlate_gradient_m0_kernel!(curgrad_m0, adjpcur, pcur_corr, pcur_old, _dt)
 end

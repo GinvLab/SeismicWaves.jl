@@ -13,7 +13,7 @@ end
 ones = Base.ones
 zeros = Base.zeros
 
-@views function inject_sources!(pnew, dt2srctf, possrcs, it)
+function inject_sources!(pnew, dt2srctf, possrcs, it)
     _, nsrcs = size(dt2srctf)
     for i in 1:nsrcs
         isrc = floor(Int, possrcs[i, 1])
@@ -21,7 +21,7 @@ zeros = Base.zeros
     end
 end
 
-@views function record_receivers!(pnew, traces, posrecs, it)
+function record_receivers!(pnew, traces, posrecs, it)
     _, nrecs = size(traces)
     for s in 1:nrecs
         irec = floor(Int, posrecs[s, 1])
@@ -40,7 +40,7 @@ function update_ψ!(pcur, _dx, halo, ψ_x, b_x_half, a_x_half)
     end
 end
 
-@views function update_p_CPML!(
+function update_p_CPML!(
     pold, pcur, pnew, fact, _dx, nx,
     halo, ψ_x, ξ_x, b_x, a_x
 )
@@ -59,7 +59,7 @@ end
     end
 end
 
-@views prescale_residuals!(residuals, posrecs, fact) =
+prescale_residuals!(residuals, posrecs, fact) =
     for ir in axes(posrecs, 1)
         irec = floor(Int, posrecs[ir, 1])
         for it in axes(residuals, 1) # nt

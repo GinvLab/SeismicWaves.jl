@@ -688,7 +688,7 @@ function correlate_gradient_jhalf_kernel!(grad_μ_jhalf, adjσxz, vx, vz, factx,
     return nothing
 end
 
-@views function correlate_gradients!(grid, vcurr, vold, dt, freetop)
+function correlate_gradients!(grid, vcurr, vold, dt, freetop)
     nx, nz = grid.size
     correlate_gradient_ρ_kernel!(grid.fields["grad_ρ"].value, grid.fields["adjv"].value[1], vcurr[1], vold[1], 1 / dt)
     correlate_gradient_ρ_kernel!(grid.fields["grad_ρ_ihalf_jhalf"].value, grid.fields["adjv"].value[2], vcurr[2], vold[2], 1 / dt)

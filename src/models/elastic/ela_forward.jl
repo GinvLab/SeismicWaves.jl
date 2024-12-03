@@ -1,7 +1,7 @@
 
 swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(BoundaryConditionTrait(model), model, args...)
 
-@views function swforward_1shot!(
+function swforward_1shot!(
     ::CPMLBoundaryCondition,
     model::ElasticIsoCPMLWaveSimulation{T, 2},
     shot::MomentTensorShot{T, 2, MomentTensor2D{T}}
@@ -90,7 +90,7 @@ swforward_1shot!(model::ElasticWaveSimulation, args...) = swforward_1shot!(Bound
     return
 end
 
-@views function swforward_1shot!(
+function swforward_1shot!(
     ::CPMLBoundaryCondition,
     model::ElasticIsoCPMLWaveSimulation{T, 2},
     shot::ExternalForceShot{T, 2}

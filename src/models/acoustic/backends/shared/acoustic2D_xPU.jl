@@ -69,7 +69,7 @@ end
     return nothing
 end
 
-@views function prescale_residuals!(residuals, posrecs, fact)
+function prescale_residuals!(residuals, posrecs, fact)
     nrecs = size(posrecs, 1)
     nt = size(residuals, 1)
     @parallel (1:nt, 1:nrecs) prescale_residuals_kernel!(residuals, posrecs, fact)

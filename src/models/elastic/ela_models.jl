@@ -3,7 +3,7 @@
 # Functions for all ElasticIsoWaveSimulation subtypes
 
 # Scaling for ElasticIsoWaveSimulation
-@views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}; sincinterp=false) where {T}
+function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
         # interpolation coefficients for sources in vx
         nsrcs = size(shot.srcs.positions, 1)
@@ -33,7 +33,7 @@
     return srccoeij_vx, srccoeval_vx, srccoeij_vz, srccoeval_vz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, shot.srcs.tf
 end
 
-@views function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
+function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
         nsrcs = size(shot.srcs.positions, 1)
         # interpolation coefficients for sources in σxx and σzz
@@ -65,7 +65,7 @@ end
 
 
 
-@views function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
+function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert all(matprop.λ .>= 0) "Lamè coefficient λ must be positive!"
     @assert all(matprop.μ .>= 0) "Lamè coefficient μ must be positive!"
@@ -108,7 +108,7 @@ function check_numerics(
     return
 end
 
-@views function update_matprop!(model::ElasticIsoWaveSimulation{T, 2}, matprop::ElasticIsoMaterialProperties{T, 2}) where {T}
+function update_matprop!(model::ElasticIsoWaveSimulation{T, 2}, matprop::ElasticIsoMaterialProperties{T, 2}) where {T}
 
     # Update material properties
     copyto!(model.matprop.λ, matprop.λ)
@@ -413,7 +413,7 @@ end
 
 # Specific functions for ElasticIsoCPMLWaveSimulation
 
-@views function reset!(model::ElasticIsoCPMLWaveSimulation{T, N}) where {T, N}
+function reset!(model::ElasticIsoCPMLWaveSimulation{T, N}) where {T, N}
     # Reset computational arrays
     reset!(model.grid; except=["λ", "μ", "ρ_ihalf", "ρ_jhalf", "λ_ihalf", "λ_jhalf", "μ_ihalf", "μ_jhalf", "μ_ihalf_jhalf"])
     if model.checkpointer !== nothing

@@ -105,7 +105,7 @@ end
 #######################################################
 
 ## single WaveSimulation object
-@views function run_swgradient!(
+function run_swgradient!(
     model::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
@@ -149,7 +149,7 @@ end
 end
 
 ## :threadpersrc, multiple WaveSimulation objects
-@views function run_swgradient!(
+function run_swgradient!(
     model::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};

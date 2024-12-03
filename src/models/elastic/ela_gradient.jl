@@ -1,7 +1,7 @@
 swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
     swgradient_1shot!(BoundaryConditionTrait(model), model, args...; kwargs...)
 
-@views function swgradient_1shot!(
+function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::ElasticIsoCPMLWaveSimulation{T, 2},
     shot::MomentTensorShot{T, 2, MomentTensor2D{T}},
@@ -178,7 +178,7 @@ swgradient_1shot!(model::ElasticWaveSimulation, args...; kwargs...) =
     )
 end
 
-@views function swgradient_1shot!(
+function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::ElasticIsoCPMLWaveSimulation{T, 2},
     shot::ExternalForceShot{T, 2},

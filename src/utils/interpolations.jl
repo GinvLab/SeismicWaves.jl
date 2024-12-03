@@ -42,6 +42,6 @@ function (itp::HarmonicAverageInterpolation)(m::Array{<:Real, N}, dims::Vector{I
     return 1 ./ itp_obj([i in dims ? (1.5:size(m, i)-0.5) : (1:size(m, i)) for i in 1:N]...)
 end
 
-@views ∂f∂m(_::ArithmeticAverageInterpolation, m::Array{T, N}, idxs, dims::Vector{Int}) where {T, N} = ones(T, size(m) .- Tuple(i in dims ? 1 : 0 for i in 1:N)) ./ (2^length(dims))
+∂f∂m(_::ArithmeticAverageInterpolation, m::Array{T, N}, idxs, dims::Vector{Int}) where {T, N} = ones(T, size(m) .- Tuple(i in dims ? 1 : 0 for i in 1:N)) ./ (2^length(dims))
 
-@views ∂f∂m(itp::HarmonicAverageInterpolation, m::Array{T, N}, idxs, dims::Vector{Int}) where {T, N} = (itp(m, dims) .^ 2) ./ (m[idxs] .^ 2) ./ (2^length(dims))
+∂f∂m(itp::HarmonicAverageInterpolation, m::Array{T, N}, idxs, dims::Vector{Int}) where {T, N} = (itp(m, dims) .^ 2) ./ (m[idxs] .^ 2) ./ (2^length(dims))

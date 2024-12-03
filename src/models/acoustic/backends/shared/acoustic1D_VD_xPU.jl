@@ -57,13 +57,13 @@ end
     return nothing
 end
 
-@views function prescale_residuals!(residuals, posrecs, fact)
+function prescale_residuals!(residuals, posrecs, fact)
     nrecs = size(posrecs, 1)
     nt = size(residuals, 1)
     @parallel (1:nt, 1:nrecs) prescale_residuals_kernel!(residuals, posrecs, fact)
 end
 
-@views function forward_onestep_CPML!(
+function forward_onestep_CPML!(
     model, possrcs, srctf, posrecs, traces, it;
     save_trace=true
 )
@@ -127,7 +127,7 @@ function adjoint_onestep_CPML!(model, possrcs, srctf, it)
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
 end
 
-@views function correlate_gradient_m1!(curgrad_m1_stag, adjvcur, pold, gridspacing)
+function correlate_gradient_m1!(curgrad_m1_stag, adjvcur, pold, gridspacing)
     _gridspacing = 1 ./ gridspacing
     nx = length(pold)
     @parallel (2:nx-2) correlate_gradient_m1_kernel_x!(curgrad_m1_stag[1], adjvcur[1], pold, _gridspacing[1])
