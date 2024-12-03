@@ -106,7 +106,7 @@ function ∂ⁿ_(A, dim::Int; I=(:i,), _Δ=1.0, deriv::Int=1, order::Int=2, bdch
         if mirror_left
             # construct the mirrored stencil
             original_stencil = Expr(:call, :+, [:($(coeffs[i]) * $A[$(Is[i]...)]) for i in state+1:width]...)                           # original stencil with indices beyond boundary
-            mirrored_Is = Tuple( Tuple(i == dim ? :($(Is[state+1][i])+$(j-1)) : Is[state+1][i] for i in 1:N) for j in 1:state)          # indices mirrored around boundary
+            mirrored_Is = Tuple( Tuple(i == dim ? :($(Is[state+1][i])+$(state-j)) : Is[state+1][i] for i in 1:N) for j in 1:state)          # indices mirrored around boundary
             mirrored_stencil = Expr(:call, :+, [:($(coeffs[i]) * -$A[$(mirrored_Is[i]...)]) for i in 1:state]...)                       # mirrored stencil with indices up to boundary but mirrored
             stencil = Expr(:call, :*, Expr(:call, :+, mirrored_stencil, original_stencil), _Δ)                                          # sum the original and mirrored stencils
         else
