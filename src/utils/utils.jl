@@ -65,214 +65,170 @@ Kaiser windowing function.
 # Parameters
 
   - `x`: coordinate of points
-  - `x0`: coordinate of source or receiver point
-  - `b`: 'b' coefficient
+  - `β`: Kaiser shape coefficient
   - `r`: cut-off radius
 """
-function kaiser(x::Vector, x0::T, b::T, r::T) where {T}
-    # Kaiser window function
-    #  r is window half with
-    # Rule of thumb for finite diff.:
-    #   b=4.14  b=6.31
-    #   r = 4.0*dx
-    w = zeros(T, length(x))
-    for i in 1:length(x)
-        xcur = x[i] - x0
-        if -r <= xcur <= r
-            w[i] = besseli(0, b * (sqrt(1 - (xcur / r)^2))) / besseli(0, b)
-        else
-            w[i] = 0.0
-        end
-    end
-    return w
-end
-
-#####################################################################
+kaiser(x, r, β) = (-r <= x <= r ? besseli(0, β * sqrt(1 - (x / r)^2)) / besseli(0, β) : 0.0)
 
 """
-Compute 1-D coefficients for windowed (Kaiser) sync interpolation of source or receiver position.
+Band limited delta function by combining Kaiser window and sinc function.
 
 # Parameters
 
-  - `xstart`: origin coordinate of the grid
+  - `x`: coordinate of points
+  - `x0`: coordinate of delta function center
+  - `r`: cut-off radius in number of grid points
+  - `β`: Kaiser shape coefficient
   - `Δx`: grid spacing
-  - `kind`: :monopole or :dipole, i.e., using sinc or derivative of sinc
-  - `npts` (optional): half-number of grid points for the window
-  - `beta` (optional): 'beta' parameter for the Kaiser windowing function
 """
-function coeffsinc1D(xstart::Real, Δx::Real, xcenter::Real, kind::Symbol, nx::Int;
-    npts::Int64=4, beta::Union{Nothing, Real}=nothing)
-    ## Coefficients for sinc interpolation
-    ##  in 1D
-    ##  xstart is the x coordinate of first node in the regular grid    
-    ##  
-    ## Rule of thumb for npts==4 [Hicks 2002, Geophysics]:
-    ##    beta=4.14 for monopoles,
-    ##    beta=4.40 for dipoles 
-    ###
-    ### Julia:  sinc(x) =
-    ###    \sin(\pi x) / (\pi x) if x \neq 0, and 1 if x = 0
-    ###
-    @assert xcenter >= xstart
-    @assert xcenter <= (nx - 1) * Δx + xstart
-
-    if beta === nothing
-        if kind == :monopole
-            beta = 4.14
-        elseif kind == :dipole
-            beta = 4.40
-        end
-    end
-
-    radius = npts * Δx
-    # Assuming x from grid starts at xstart
-    xh = (xcenter - xstart) / Δx
-    ix = floor(Int64, xh + 1)
-    if mod((xcenter - xstart), Δx) == 0.0
-        ixsta = ix - npts
-        ixend = ix + npts
-    else
-        ixsta = ix - npts + 1
-        ixend = ix + npts
-    end
-    x = [xstart + Δx * (i - 1) for i in ixsta:ixend]
-    indexes = ixsta:ixend
-
-    if kind == :monopole
-        # interpolating sinc(x) = sin(pi*x)/(pi*x) see Julia definition
-        intrpsinc = sinc.((x .- xcenter) ./ Δx) # factor 1/Δx ??
-
-    elseif kind == :dipole
-        # derivative of sinc
-        # cosc(x) is the derivative of sinc(x) in Julia
-        intrpsinc = cosc.((x .- xcenter) ./ Δx)
-
-    else
-        error("coeffsinc1d(): Wrong argument 'kind'.")
-    end
-    # apply Kaiser windowing
-    kaix = kaiser(x, xcenter, beta, radius)
-    itpfun = kaix .* intrpsinc
-    # return also indices of window (as a range)
-    return itpfun, indexes
+modd(x, x0, r, β, Δx) = begin
+    res = 1 / Δx * kaiser(x - x0, r * Δx, β) * sinc((x - x0) / Δx)
+    return res ≈ 0 ? 0.0 : res
 end
 
-#####################################################################
-
 """
-Compute 2-D coefficients for windowed (Kaiser) sync interpolation of source or receiver position.
+Band limited delta function with reflected coefficients over the boundary.
+This function keeps the property of having integral equal to one even when the sinc function goes over the boundary.
+This function should be used to inject / record velocities.
 
 # Parameters
 
-  - `xstart`, `zstart`: origin coordinates of the grid
-  - `Δx`,`Δz` : grid spacing
-  - `xcenter`, `zcenter`: coordinates of source or receiver point
-  - `nx`,`nz`: grid size in x and y
-  - `kind`: vector of symbols :monopole or :dipole, i.e., using sinc or derivative of sinc
-  - `npts` (optional): half-number of grid points for the window
-  - `beta` (optional): 'beta' parameter for the Kaiser windowing function
+  - `x`: coordinate of points
+  - `x0`: coordinate of delta function center
+  - `xbl`: coordinate of left boundary
+  - `xbr`: coordinate of right boundary 
+  - `r`: cut-off radius in number of grid points
+  - `β`: Kaiser shape coefficient
+  - `Δx`: grid spacing
 """
-function coeffsinc2D(xstart::Real, zstart::Real, Δx::Real, Δz::Real, xcenter::Real, zcenter::Real,
-    nx::Int, nz::Int, kind::Vector{Symbol};
-    npts::Int64=4, beta::Union{Nothing, Real}=nothing)
-
-    ## Calculate the 2D array of coefficients
-    xcoe, xidx = coeffsinc1D(xstart, Δx, xcenter, kind[1], nx; npts=npts, beta=beta)
-    zcoe, zidx = coeffsinc1D(zstart, Δz, zcenter, kind[2], nz; npts=npts, beta=beta)
-
-    function reflectcoeffsinc(coe, idx, nmax)
-        #
-        # "Reflect" coefficients past the edge, i.e., mirror and subtract them
-        #  from the internal ones
-        #
-        if idx[1] < 1
-            # We are before the edge
-            nab = count(idx .< 1)
-            # get the "reflected" coefficients
-            reflcoe = coe[nab:-1:1]
-            # Create a new set of indices excluding those above the surface
-            idx = idx[nab+1:end]
-            # Hicks 2002 Geophysics
-            # Subtract coefficients past the edge
-            coe[nab+1:2*nab] .-= reflcoe
-            # Create a new set of coefficients excluding those above the surface
-            coe = coe[nab+1:end]
-
-        elseif idx[end] > nmax
-            # We are past the edge
-            nab = count(idx .> nmax)
-            # get the "reflected" coefficients
-            reflcoe = coe[end:-1:end-nab+1]
-            # Create a new set of indices excluding those above the surface
-            idx = idx[1:end-nab]
-            # Hicks 2002 Geophysics
-            # Subtract coefficients past the edge
-            coe[end-2*nab+1:end-nab] .-= reflcoe
-            # Create a new set of coefficients excluding those above the surface
-            coe = coe[1:end-nab]
-        end
-
-        return coe, idx
+modd_refl(x, x0, xbl, xbr, r, β, Δx) = begin
+    res = modd(x, x0, r, β, Δx)
+    if x < xbl || x > xbr
+        return 0.0
     end
-
-    ## Crop and reflect coefficients if they go beyond model edges [Hicks 2002, Geophysics]
-    xcoe, xidx = reflectcoeffsinc(xcoe, xidx, nx)
-    zcoe, zidx = reflectcoeffsinc(zcoe, zidx, nz)
-
-    # tensor product of coeff. in x and z
-    xzcoeff = zeros(typeof(xcenter), length(xcoe), length(zcoe))
-    for j in eachindex(zcoe)
-        for i in eachindex(xcoe)
-            xzcoeff[i, j] = xcoe[i] * zcoe[j]
-        end
-    end
-
-    return xidx, zidx, xzcoeff
+    res_left = modd(xbl - (x - xbl), x0, r * Δx, β, Δx)
+    res_right = modd(xbr + (xbr - x), x0, r * Δx, β, Δx)
+    res_tot = res + res_left + res_right
+    return res_tot ≈ 0 ? 0.0 : res_tot
 end
 
-function modd_2D_grid(x0::T, y0::T, dx::T, dy::T, nx::Int, ny::Int, r::Int=4, β::Int=10, xstart::T=0, ystart::T=0) where {T}
-    xs = range(xstart; length=nx, step=dx)
-    ys = range(ystart; length=ny, step=dy)
-    dd_coeffs = Vector{Tuple{Int, Int, T}}()
+"""
+Band limited delta function with mirrored coefficients over the boundary.
+This delta functions should be used to inject / record pressure or stress when free surface boundary conditions are used.
 
-    kaiser(x, r, β) = (-r <= x <= r ? besseli(0, β * sqrt(1 - (x / r)^2)) / besseli(0, β) : 0.0)
-    modd_(x, x0, r, β, Δx) = 1 / Δx * kaiser(x - x0, r, β) * sinc((x - x0) / Δx)
-    modd(x, x0, r, β, Δx) = begin
-        res = modd_(x, x0, r * Δx, β, Δx)
-        return res ≈ 0 ? 0.0 : res
+# Parameters
+
+  - `x`: coordinate of points
+  - `x0`: coordinate of delta function center
+  - `xbl`: coordinate of left boundary
+  - `xbr`: coordinate of right boundary 
+  - `r`: cut-off radius in number of grid points
+  - `β`: Kaiser shape coefficient
+  - `Δx`: grid spacing
+"""
+modd_mirror(x, x0, xbl, xbr, r, β, Δx) = begin
+    res = modd(x, x0, r, β, Δx)
+    if x < xbl || x > xbr
+        return 0.0
     end
-    modd_2D(x, y, x0, y0, r, β, Δx, Δy) = modd(x, x0, r, β, Δx) * modd(y, y0, r, β, Δy)
-    findnearest(x, xs) = argmin(abs.(x .- xs))
+    res_left = modd(xbl - (x - xbl), x0, r * Δx, β, Δx)
+    res_right = modd(xbr + (xbr - x), x0, r * Δx, β, Δx)
+    res_tot = res - res_left - res_right
+    return res_tot ≈ 0 ? 0.0 : res_tot
+end
 
+"""
+Compute coefficients for a 1D band limited delta function.
+
+# Parameters
+
+  - `x0`: coordinate of delta function center
+  - `dx`: grid spacing
+  - `nx`: number of grid points
+  - `r`: cut-off radius in number of grid points
+  - `β`: Kaiser shape coefficient
+  - `xstart`: coordinate of the first grid point (from the left)
+  - `mirror`: controls if the delta function is mirrored over the boundary or not
+  - `xbl`: coordinate of left boundary
+  - `xbr`: coordinate of right boundary
+"""
+
+function coeffsinc1D(x0::T, dx::T, nx::Int, r::Int, β::T, xstart::T, mirror::Bool, xbl::T, xbr::T) where {T}
+    # Grid points
+    xs = range(xstart; length=nx, step=dx)
+    # Placeholders for indices and coefficients
+    idxs, coeffs = Vector{Int}(), Vector{T}()
+    # Find nearest grid point to the delta function center
+    findnearest(x, xs) = argmin(abs.(x .- xs))
     i0 = findnearest(x0, xs)
-    j0 = findnearest(y0, ys)
-    for i in i0-r-1:i0+r+1, j in j0-r-1:j0+r+1
-        if i < 1 || i > nx || j < 1 || j > ny
+    # Compute coefficients
+    for idx in i0-r-1:i0+r+1
+        # Check if the index is within the grid
+        if idx < 1 || idx > nx
             continue
         end
-        ddij = modd_2D(xs[i], ys[j], x0, y0, r, β, dx, dy)
-        if ddij != 0.0
-            push!(dd_coeffs, (i, j, ddij))
+        # Compute coefficient using modified band limited delta function
+        if mirror
+            coe = modd_mirror(xs[idx], x0, xbl, xbr, r, β, dx)
+        else
+            coe = modd_refl(xs[idx], x0, xbl, xbr, r, β, dx)
+        end
+        # Store non-zero coefficients
+        if !(coe ≈ 0)
+            push!(idxs, idx)
+            push!(coeffs, coe)
         end
     end
-
-    return dd_coeffs
+    return idxs, coeffs
 end
 
-function spread2D(spacing::NTuple{2, T}, size::NTuple{2, Int}, positions::Matrix{T}, npositions; r::Int=4, β::Int=10, xstart::T=0, zstart::T=0) where {T}
-    coeij = Vector{Matrix{Int}}(undef, npositions)
-    coeval = Vector{Vector{T}}(undef, npositions)
-    for p in 1:npositions
-        x0, y0 = positions[p, 1], positions[p, 2]
-        dd_coeffs = modd_2D_grid(x0, y0, spacing[1], spacing[2], size[1], size[2], r, β, xstart, zstart)
-        coeij[p] = zeros(Int, length(dd_coeffs), 2)
-        coeval[p] = zeros(T, length(dd_coeffs))
-        for (idx, (i, j, val)) in enumerate(dd_coeffs)
-            coeij[p][idx, :] .= (i, j)
-            coeval[p][idx] = val
+"""
+Computes coefficients and indices of the grid for arbitrarely placed sources or receivers using band limited delta functions coefficients.
+
+# Parameters
+
+  - `grid`: grid object
+  - `positions`: matrix of source or receiver positions
+  - `shifts`: shift of the source or receiver positions
+  - `mirror`: controls if the delta function is mirrored over the boundary or not
+  - `r`: cut-off radius in number of grid points (default = 4)
+  - `β`: Kaiser shape coefficient (default = 6.31)
+"""
+function spread_positions(
+    grid::SeismicWaves.UniformFiniteDifferenceGrid{N, T},
+    positions::Matrix{T};
+    shift::NTuple{N, T}=ntuple(_ -> 0.0, N),
+    mirror::Bool=false,
+    r::Int=4,
+    β::T=6.31
+) where {N, T}
+    # Get number of positions to spread
+    npos = size(positions, 1)
+    # Spread each position
+    idxs = Vector{Matrix{Int}}(undef, npos)
+    coeffs = Vector{Vector{T}}(undef, npos)
+    for p in 1:npos
+        # For each dimension
+        idxs_dims = Vector{Vector{Int}}(undef, N)
+        coeffs_dims = Vector{Vector{T}}(undef, N)
+        for n in 1:N
+            # Compute coefficients in n-th dimension
+            idxs_nth, coeffs_nth = coeffsinc1D(positions[p, n], grid.spacing[n], grid.size[n], r, β, shift[n], mirror, 0.0, grid.extent[n])
+            idxs_dims[n] = idxs_nth
+            coeffs_dims[n] = coeffs_nth
+        end
+        # Compute tensor product of indices and coefficients
+        totlen = prod(length.(idxs_dims))
+        idxs[p] = zeros(Int, totlen, N)
+        coeffs[p] = zeros(T, totlen)
+        for (ii, idx_comb) in enumerate(Iterators.product(idxs_dims...))
+            idxs[p][ii, :] .= idx_comb
+        end
+        for (ii, coeff_comb) in enumerate(Iterators.product(coeffs_dims...))
+            coeffs[p][ii] = prod(coeff_comb)
         end
     end
-    return coeij, coeval
+    return idxs, coeffs
 end
 
 #####################################################################

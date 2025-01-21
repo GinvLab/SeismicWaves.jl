@@ -52,10 +52,10 @@ include("traits/grid.jl")
 
 # Utils
 include("utils/interpolations.jl")
+include("utils/grids.jl")
 include("utils/utils.jl")
 include("utils/checks.jl")
 include("utils/fields.jl")
-include("utils/grids.jl")
 include("utils/checkpointers.jl")
 include("utils/snapshotter.jl")
 

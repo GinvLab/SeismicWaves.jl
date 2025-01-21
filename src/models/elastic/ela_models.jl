@@ -7,14 +7,14 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalFor
     if sincinterp
         # interpolation coefficients for sources in vx
         nsrcs = size(shot.srcs.positions, 1)
-        srccoeij_vx, srccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=model.grid.spacing[1]/2, zstart=0.0)
+        srccoeij_vx, srccoeval_vx = spread_positions(model.grid, shot.srcs.positions; shift=(model.grid.spacing[1]/2, 0.0), mirror=false)
         # interpolation coefficients for sources in vz
-        srccoeij_vz, srccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=0.0, zstart=model.grid.spacing[2]/2)
+        srccoeij_vz, srccoeval_vz = spread_positions(model.grid, shot.srcs.positions; shift=(0.0, model.grid.spacing[2]/2), mirror=false)
         nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_vx, reccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=model.grid.spacing[1]/2, zstart=0.0)
+        reccoeij_vx, reccoeval_vx = spread_positions(model.grid, shot.recs.positions; shift=(model.grid.spacing[1]/2, 0.0), mirror=false)
         # interpolation coefficients for receivers in vz
-        reccoeij_vz, reccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=0.0, zstart=model.grid.spacing[2]/2)
+        reccoeij_vz, reccoeval_vz = spread_positions(model.grid, shot.recs.positions; shift=(0.0, model.grid.spacing[2]/2), mirror=false)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
@@ -37,14 +37,14 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTenso
     if sincinterp
         nsrcs = size(shot.srcs.positions, 1)
         # interpolation coefficients for sources in σxx and σzz
-        srccoeij_xx, srccoeval_xx = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=0.0, zstart=0.0)
+        srccoeij_xx, srccoeval_xx = spread_positions(model.grid, shot.srcs.positions; shift=(0.0, 0.0), mirror=true)
         # interpolation coefficients for sources in σxz
-        srccoeij_xz, srccoeval_xz = spread2D(model.grid.spacing, model.grid.size, shot.srcs.positions, nsrcs; xstart=model.grid.spacing[1]/2, zstart=model.grid.spacing[2]/2)
+        srccoeij_xz, srccoeval_xz = spread_positions(model.grid, shot.srcs.positions; shift=(model.grid.spacing[1]/2, model.grid.spacing[2]/2), mirror=true)
         nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_vx, reccoeval_vx = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=model.grid.spacing[1]/2, zstart=0.0)
+        reccoeij_vx, reccoeval_vx = spread_positions(model.grid, shot.recs.positions; shift=(model.grid.spacing[1]/2, 0.0), mirror=false)
         # interpolation coefficients for receivers in vz
-        reccoeij_vz, reccoeval_vz = spread2D(model.grid.spacing, model.grid.size, shot.recs.positions, nrecs; xstart=0.0, zstart=model.grid.spacing[2]/2)
+        reccoeij_vz, reccoeval_vz = spread_positions(model.grid, shot.recs.positions; shift=(0.0, model.grid.spacing[2]/2), mirror=false)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
