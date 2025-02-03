@@ -13,10 +13,10 @@ Literate.markdown(
 
 println("Building documentation...")
 
-makedocs(; repo=Remotes.GitLab("JuliaGeoph", "SeismicWaves.jl"), # "https://gitlab.com/JuliaGeoph/SeismicWaves.jl/blob/{commit}{path}#{line}",
+makedocs(; repo=Remotes.GitHub("GinvLab", "SeismicWaves.jl"), 
     sitename="SeismicWaves.jl",
     modules=[SeismicWaves],
-    authors="Andrea Zunino, Giacomo Aloisi",
+    authors="Giacomo Aloisi, Andrea Zunino",
     format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"),
     pages=[
         "Home" => "index.md",
@@ -28,8 +28,8 @@ makedocs(; repo=Remotes.GitLab("JuliaGeoph", "SeismicWaves.jl"), # "https://gitl
 )
 
 deploydocs(;
-    repo="gitlab.com/JuliaGeoph/SeismicWaves.jl.git",
+    repo="github.com/GinvLab/SeismicWaves.jl.git",
     devbranch="main",
-    deploy_config=Documenter.GitLab(),
-    branch="gl-pages"
+    deploy_config=Documenter.GitHubActions(),
+    branch="gh-pages"
 )
