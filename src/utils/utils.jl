@@ -82,7 +82,7 @@ Band limited delta function by combining Kaiser window and sinc function.
   - `Δx`: grid spacing
 """
 modd(x, x0, r, β, Δx) = begin
-    res = 1 / Δx * kaiser(x - x0, r * Δx, β) * sinc((x - x0) / Δx)
+    res = kaiser(x - x0, r * Δx, β) * sinc((x - x0) / Δx)
     return res ≈ 0 ? 0.0 : res
 end
 

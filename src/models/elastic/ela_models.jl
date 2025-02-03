@@ -30,7 +30,7 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalFor
         reccoeval_vz = [ones(T, 1) for _ in 1:nrecs]
     end
 
-    return srccoeij_vx, srccoeval_vx, srccoeij_vz, srccoeval_vz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, shot.srcs.tf
+    return srccoeij_vx, srccoeval_vx, srccoeij_vz, srccoeval_vz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, shot.srcs.tf ./ prod(model.grid.spacing)
 end
 
 function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
@@ -60,7 +60,7 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTenso
         reccoeval_vz = [ones(T, 1) for _ in 1:nrecs]
     end
 
-    return srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, shot.srcs.tf
+    return srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz, reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz, shot.srcs.tf ./ prod(model.grid.spacing)
 end
 
 
