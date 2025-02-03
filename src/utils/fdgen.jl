@@ -58,7 +58,11 @@ function fdidxs(deriv::Int, order::Int, dim::Int, I...)
     return Is
 end
 
-function ∂ⁿ_(A, dim::Int; I=(:i,), _Δ=1.0, deriv::Int=1, order::Int=2, bdcheck::Bool=true, mirror=(false, false))
+function convert_float_literals(DT, ex)
+    MacroTools.postwalk(x->typeof(x) <: AbstractFloat ? DT(x) : x, ex)
+end
+
+function ∂ⁿ_(A, dim::Int; I=(:i,), _Δ=1.0, deriv::Int=1, order::Int=2, bdcheck::Bool=true, mirror=(false, false), DataType=Float64)
     coeffs = fdcoeffs(deriv, order)
     Is = fdidxs(deriv, order, dim, I...)
     N = length(I)
@@ -124,13 +128,13 @@ function ∂ⁿ_(A, dim::Int; I=(:i,), _Δ=1.0, deriv::Int=1, order::Int=2, bdch
                         checks_recursive(coeffs, Is, A, dim, _Δ, 1)                                                             # boundary checks
                     )
                 )
-        return expr
+        return convert_float_literals(DataType, expr)
     end
     # without boundary checks
-    return Expr(:call, :*, Expr(:call, :+, [:($c * $A[$(Is[i]...)]) for (i, c) in enumerate(coeffs)]...), _Δ)
+    return convert_float_literals(DataType, Expr(:call, :*, Expr(:call, :+, [:($c * $A[$(Is[i]...)]) for (i, c) in enumerate(coeffs)]...), _Δ))
 end
 
-function ∂̃_(A, a, b, ψ, dim::Int; I=(:i,), halo=:halo, halfgrid=true, kwargs...)
+function ∂̃_(A, a, b, ψ, dim::Int; I=(:i,), halo=:halo, halfgrid=true, DataType=Float64,  kwargs...)
     ∂Atemp = gensym(:∂A)
     iidim = gensym(:i)
     stencil = ∂ⁿ_(A, dim; I=I, deriv=1, kwargs...)
@@ -139,7 +143,8 @@ function ∂̃_(A, a, b, ψ, dim::Int; I=(:i,), halo=:halo, halfgrid=true, kwarg
     ndim = :( size($A, $dim) + $plusone )
     Iψ  = [i == dim ?  idim : I[i] for i in eachindex(I)]
     IIψ = [i == dim ? iidim : I[i] for i in eachindex(I)]
-    return quote
+    return convert_float_literals(DataType,
+    quote
         $∂Atemp = $stencil
         if $idim <= ($halo + $plusone)
             $ψ[$(Iψ...)]  = $b[$idim ] * $ψ[$(Iψ...)] + $a[$idim ] * $∂Atemp
@@ -152,9 +157,10 @@ function ∂̃_(A, a, b, ψ, dim::Int; I=(:i,), halo=:halo, halfgrid=true, kwarg
             $∂Atemp
         end
     end
+    )
 end
 
-function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, kwargs...)
+function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, DataType=Float64, kwargs...)
     ∂²Atemp = gensym(:∂²A)
     ∂ψtemp = gensym(:∂ψ)
     iidim = gensym(:i)
@@ -167,7 +173,8 @@ function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, kwargs...)
     IIξ = [i == dim ? iidim : I[i] for i in eachindex(I)]
     ψstencil_left  = ∂ⁿ_(ψ, dim; I=Iψ, deriv=1, kwargs..., bdcheck=false)
     ψstencil_right = ∂ⁿ_(ψ, dim; I=IIψ, deriv=1, kwargs..., bdcheck=false)
-    return quote
+    return convert_float_literals(DataType,
+    quote
         $∂²Atemp = $Astencil
         if $idim <= $halo
             $∂ψtemp = $ψstencil_left
@@ -182,6 +189,7 @@ function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, kwargs...)
             $∂²Atemp
         end
     end
+    )
 end
 
 function ∇ⁿ_(args...; I=(), _Δ=(), kwargs...)
@@ -212,7 +220,19 @@ function extract_kwargs(args...)
     for arg in args
         if isa(arg, Expr) && arg.head == :(=) && length(arg.args) == 2 && isa(arg.args[1], Symbol)
             rightarghead = isa(arg.args[2], Expr) ? arg.args[2].head : nothing
-            kwargs[arg.args[1]] = rightarghead == :tuple ? Tuple(arg.args[2].args) : arg.args[2]
+            if rightarghead == :tuple
+                kwargs[arg.args[1]] = Tuple(arg.args[2].args)
+            elseif arg.args[1] == :DataType
+                if arg.args[2] == :Float32
+                    kwargs[arg.args[1]] = Float32
+                elseif arg.args[2] == :Float64
+                    kwargs[arg.args[1]] = Float64
+                else
+                    error("Only Float32 and Float64 are supported")
+                end
+            else
+                kwargs[arg.args[1]] = arg.args[2]
+            end
         else
             push!(positional, arg)
         end
