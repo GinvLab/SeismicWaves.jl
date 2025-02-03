@@ -20,6 +20,7 @@ Return a vector of `Dict` containing for each shot the snapshots of the fields c
 - `parall::Symbol = :threads`: controls which backend is used for computation:
     - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
     - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
+    - the `Metal.jl` GPU backend performing automatic domain decomposition if set to `:Metal`
     - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`

@@ -8,7 +8,7 @@ function select_backend(
     wavesim_type::Type{<:WaveSimulation},
     ::Type{Val{parall}}
 ) where {parall}
-    parasym = [:serial, :threads, :CUDA, :AMDGPU, :threadpersrc]
+    parasym = [:serial, :threads, :CUDA, :AMDGPU, :Metal, :threadpersrc]
     error(
         "No backend found for model of type $(wavesim_type) and `parall =` $(parall). Argument `parall` must be one of the following symbols: $parasym."
     )

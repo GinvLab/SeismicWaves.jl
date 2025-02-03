@@ -14,6 +14,7 @@ Receivers traces are stored in the receivers for each shot.
 - `parall::Symbol = :threads`: controls which backend is used for computation:
     - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
     - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
+    - the `Metal.jl` GPU backend performing automatic domain decomposition if set to `:Metal`
     - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
@@ -57,6 +58,7 @@ Receivers traces are stored in the receivers for each shot. See also [`build_wav
 - `parall::Symbol = :threads`: controls which backend is used for computation:
     - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
     - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
+    - the `Metal.jl` GPU backend performing automatic domain decomposition if set to `:Metal`
     - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`

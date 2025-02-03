@@ -21,6 +21,7 @@ Bigger values speed up computation at the cost of using more memory.
 - `parall::Symbol = :threads`: controls which backend is used for computation:
     - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
     - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
+    - the `Metal.jl` GPU backend performing automatic domain decomposition if set to `:Metal`
     - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`
@@ -79,6 +80,7 @@ Bigger values speed up computation at the cost of using more memory.
 - `parall::Symbol = :threads`: controls which backend is used for computation:
     - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
     - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
+    - the `Metal.jl` GPU backend performing automatic domain decomposition if set to `:Metal`
     - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
     - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
     - otherwise the serial version if set to `:serial`

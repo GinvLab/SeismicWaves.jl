@@ -13,6 +13,16 @@ if "CUDA" in ARGS
     using CUDA
     filter!(e -> e != "CUDA", ARGS)
 end
+# Load AMDGPU only if requested for testing
+if "AMDGPU" in ARGS
+    using AMDGPU
+    filter!(e -> e != "AMDGPU", ARGS)
+end
+# Load Metal only if requested for testing
+if "Metal" in ARGS
+    using Metal
+    filter!(e -> e != "Metal", ARGS)
+end
 
 include("utils/setup_models.jl")
 
