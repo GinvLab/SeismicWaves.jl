@@ -1,7 +1,7 @@
 swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     swgradient_1shot!(BoundaryConditionTrait(model), model, args...; kwargs...)
 
-@views function swgradient_1shot!(
+function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimulation{T, N},
     shot::ScalarShot{T},
@@ -29,7 +29,7 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
+        backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
@@ -53,7 +53,7 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        backend.adjoint_onestep_CPML!(grid, posrecs_bk, residuals_bk, it)
+        backend.adjoint_onestep_CPML!(model, posrecs_bk, residuals_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Backward iteration: %d", it)
@@ -69,7 +69,7 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
             recover!(
                 checkpointer,
                 recit -> begin
-                    backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
+                    backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
                     return ["pcur" => grid.fields["pcur"]]
                 end
             )
@@ -94,7 +94,7 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     return Dict("vp" => gradient)
 end
 
-@views function swgradient_1shot!(
+function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticVDStaggeredCPMLWaveSimulation{T, N},
     shot::ScalarShot{T},
@@ -122,7 +122,7 @@ end
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
+        backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
@@ -147,7 +147,7 @@ end
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        backend.adjoint_onestep_CPML!(grid, posrecs_bk, residuals_bk, it)
+        backend.adjoint_onestep_CPML!(model, posrecs_bk, residuals_bk, it)
         # Print timestep info
         if it % model.infoevery == 0
             @info @sprintf("Backward iteration: %d", it)
@@ -163,7 +163,7 @@ end
             recover!(
                 checkpointer,
                 recit -> begin
-                    backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
+                    backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
                     return ["pcur" => grid.fields["pcur"]]
                 end
             )
@@ -181,9 +181,8 @@ end
     # Get gradients
     copyto!(gradient_m0, grid.fields["grad_m0"].value)
     for i in eachindex(grid.fields["grad_m1_stag"].value)
-        # Accumulate and interpolate staggered gradients
-        gradient_m1[CartesianIndices(Tuple(j == i ? (2:grid.size[j]-1) : (1:grid.size[j]) for j in 1:N))] .+=
-            interp(model.matprop.interp_method, Array(grid.fields["grad_m1_stag"].value[i]), i)
+        # Accumulate and back interpolate staggered gradients
+        gradient_m1 .+= back_interp(model.matprop.interp_method, 1 ./ model.matprop.rho, Array(grid.fields["grad_m1_stag"].value[i]), i)
     end
     # Smooth gradients
     backend.smooth_gradient!(gradient_m0, possrcs, model.smooth_radius)

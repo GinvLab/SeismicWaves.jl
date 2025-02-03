@@ -100,6 +100,20 @@ function exacouprob(parall=:serial)
         logger=logger)
     #snapevery=snapevery)
 
+    seis = copy(shots[1].recs.seismograms)
+
+    @time snapshots = swforward!(params,
+        matprop,
+        shots;
+        parall=parall,
+        infoevery=infoevery,
+        logger=logger)
+    #snapevery=snapevery)
+
+    seis2 = copy(shots[1].recs.seismograms)
+
+    @assert all(seis .== seis2)
+
     ##===============================================
     ## compute the gradient
     shots_grad = Vector{ScalarShot{Float64}}()
@@ -107,7 +121,7 @@ function exacouprob(parall=:serial)
         seis = shots[i].recs.seismograms
         nt = size(seis, 1)
         recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
-            invcov=Diagonal(ones(nt)))
+            invcov=1.0 * I(nt))
         push!(shots_grad, ScalarShot(; srcs=shots[i].srcs, recs=recs_grad))
     end
 

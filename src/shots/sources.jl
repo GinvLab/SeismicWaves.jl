@@ -70,8 +70,22 @@ struct MomentTensorSources{T, N, M <: MomentTensor{T, N}} <: Sources{T}
     function MomentTensorSources(positions::Matrix{T}, tf::Matrix{T}, momtens::Vector{M}, domfreq::T) where {T, N, M <: MomentTensor{T, N}}
         @assert size(positions, 1) > 0 "There must be at least one source!"
         @assert size(positions, 1) == size(tf, 2) "Number of sources do not match between positions and time-functions!"
-        @assert length(momtens) == size(positions, 1)
+        @assert length(momtens) == size(positions, 1) "Number of moment tensors must match number of sources!"
         return new{T, N, M}(positions, tf, momtens, domfreq)
+    end
+end
+
+struct ExternalForceSources{T, N} <: Sources{T}
+    positions::Matrix{T}
+    tf::Array{T, 3}
+    domfreq::T
+
+    function ExternalForceSources(positions::Matrix{T}, tf::Array{T, 3}, domfreq::T) where {T}
+        @assert size(positions, 1) > 0 "There must be at least one source!"
+        @assert size(positions, 1) == size(tf, 3) "Number of sources do not match between positions and time-functions!"
+        @assert size(tf, 2) == size(positions, 2) "Number of components do not match between time-functions and positions!"
+        N = size(tf, 2)
+        return new{T, N}(positions, tf, domfreq)
     end
 end
 

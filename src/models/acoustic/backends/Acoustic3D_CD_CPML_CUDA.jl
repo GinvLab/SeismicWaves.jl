@@ -4,6 +4,8 @@ using CUDA
 using ParallelStencil
 using ParallelStencil.FiniteDifferences3D
 
+using SeismicWaves.FiniteDifferencesMacros
+
 @init_parallel_stencil(package = CUDA, ndims = 3, inbounds = true)
 
 include("shared/standard_xPU.jl")

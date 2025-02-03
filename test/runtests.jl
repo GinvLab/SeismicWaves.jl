@@ -11,11 +11,12 @@ using SeismicWaves
 # Load CUDA only if requested for testing
 if "CUDA" in ARGS
     using CUDA
+    filter!(e -> e != "CUDA", ARGS)
 end
 
 include("utils/setup_models.jl")
 
 # Run all tests
 @testset ExtendedTestSet "SeismicWaves Tests" begin
-    @includetests
+    @includetests ARGS
 end

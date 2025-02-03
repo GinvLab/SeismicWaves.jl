@@ -11,8 +11,10 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :CUDA)
     end
     if @isdefined(AMDGPU) && AMDGPU.functional()
-            push!(test_backends, :AMDGPU)
+        push!(test_backends, :AMDGPU)
     end
+
+    @testset "Test gradient (acoustic VD)" begin
 
     for parall in test_backends
         @testset "Test 1D $(parall) swgradient! with compute misfit" begin
@@ -168,5 +170,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test grad["vp"] ≈ grad_check["vp"]
             @test grad["rho"] ≈ grad_check["rho"]
         end
+    end
+
     end
 end

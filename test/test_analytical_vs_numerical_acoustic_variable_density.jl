@@ -11,8 +11,10 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :CUDA)
     end
     if @isdefined(AMDGPU) && AMDGPU.functional()
-            push!(test_backends, :AMDGPU)
+        push!(test_backends, :AMDGPU)
     end
+
+    @testset "Test analytical vs numerical solution (acoustic VD)" begin
 
     for parall in test_backends
         @testset "Test 1D $(parall) analytical solution" begin
@@ -114,5 +116,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
                 @test integrate(times, abs.(numerical_trace .- Gc)) <= maximum(abs.(Gc)) * 0.01 * (dt * nt)
             end
         end
+    end
+
     end
 end

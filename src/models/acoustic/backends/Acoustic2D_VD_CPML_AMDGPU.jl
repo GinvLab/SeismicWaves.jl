@@ -3,7 +3,8 @@ module Acoustic2D_VD_CPML_AMDGPU
 using AMDGPU
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
-include("shared/fourth_order_FiniteDifferences2D.jl")
+
+using SeismicWaves.FiniteDifferencesMacros
 
 @init_parallel_stencil(package = AMDGPU, ndims = 2, inbounds = true)
 

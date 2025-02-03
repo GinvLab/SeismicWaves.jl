@@ -6,6 +6,7 @@ using Printf
 using ParallelStencil
 using Logging
 using DocStringExtensions
+using Interpolations
 
 # main struct for wave simulation
 export WaveSimulation
@@ -19,14 +20,27 @@ export MaterialProperties
 export VpAcousticCDMaterialProperties, VpRhoAcousticVDMaterialProperties
 export ElasticIsoMaterialProperties
 # export sources, receivers and shots
-export Shot, ScalarShot, MomentTensorShot
-export Sources, ScalarSources, MomentTensorSources
+export Shot, ScalarShot, MomentTensorShot, ExternalForceShot
+export Sources, ScalarSources, MomentTensorSources, ExternalForceSources
 export MomentTensor2D, MomentTensor3D
 export Receivers, ScalarReceivers, VectorReceivers
 # forward, misfit and gradient functions
 export build_wavesim, swforward!, swmisfit!, swgradient!
 # source time functions
 export gaussstf, gaussderivstf, rickerstf
+
+module FiniteDifferencesMacros
+    include("utils/fdgen.jl")
+    export @∂, @∂², @∂ⁿ
+    export @∂x, @∂y, @∂z
+    export @∂²x, @∂²y, @∂²z
+    export @∂ⁿx, @∂ⁿy, @∂ⁿz
+    export @∇, @div, @∇²
+    export @∂̃, @∂̃x, @∂̃y, @∂̃z
+    export @∂̃², @∂̃²x, @∂̃²y, @∂̃²z
+    export @∇̃, @diṽ, @∇̃²
+
+end
 
 include("utils/abstract_types.jl")
 
@@ -37,10 +51,11 @@ include("traits/snappable.jl")
 include("traits/grid.jl")
 
 # Utils
+include("utils/interpolations.jl")
+include("utils/grids.jl")
 include("utils/utils.jl")
 include("utils/checks.jl")
 include("utils/fields.jl")
-include("utils/grids.jl")
 include("utils/checkpointers.jl")
 include("utils/snapshotter.jl")
 
@@ -68,7 +83,7 @@ include("models/elastic/ela_params.jl")
 include("models/elastic/ela_material_properties.jl")
 include("models/elastic/ela_models.jl")
 include("models/elastic/ela_forward.jl")
-#include("models/elastic/ela_gradient.jl")
+include("models/elastic/ela_gradient.jl")
 include("models/elastic/ela_init_bc.jl")
 
 # Backend selection
@@ -84,7 +99,6 @@ include("apis/utils.jl")
 include("apis/forward.jl")
 include("apis/misfit.jl")
 include("apis/gradient.jl")
-
 
 # Acoustic serial backend
 include("models/acoustic/backends/Acoustic1D_CD_CPML_Serial.jl")
@@ -106,7 +120,9 @@ include("models/elastic/backends/Elastic2D_Iso_CPML_Threads.jl")
 
 ## HMC stuff
 include("HMCseiswaves.jl")
+
 using .HMCseiswaves
 export AcouWavCDProb
+export FiniteDifferencesMacros
 
 end # module

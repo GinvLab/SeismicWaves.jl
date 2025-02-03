@@ -14,9 +14,9 @@ warn_logger = ConsoleLogger(stderr, Logging.Warn)
 error_logger = ConsoleLogger(stderr, Logging.Error)
 debug_logger = ConsoleLogger(stderr, Logging.Debug)
 
-include("../../models.jl")
-include("../../geometries.jl")
-include("../../plotting_utils.jl")
+include("../../../models.jl")
+include("../../../geometries.jl")
+include("../../../plotting_utils.jl")
 
 function setup(nt, c0, c0max, rho0, rho0max, r, dx, dy, dt, halo, rcoef, nx, ny, parall)
     ##========================================
@@ -96,7 +96,7 @@ function gradient_fd_check(wavesim, shots, matprop_const, matprop_gauss)
             copy(shots[i].recs.positions),
             nt;
             observed=copy(shots[i].recs.seismograms),
-            invcov=Diagonal(ones(nt))
+            invcov=1.0 * I(nt)
         )
         # add pair as shot
         push!(shots_obs, ScalarShot(; srcs=shots[i].srcs, recs=recs)) # srcs => recs)

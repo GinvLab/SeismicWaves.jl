@@ -4,6 +4,8 @@ using AMDGPU
 using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
 
+using SeismicWaves.FiniteDifferencesMacros
+
 @init_parallel_stencil(package = AMDGPU, ndims = 2, inbounds = true)
 
 include("shared/standard_xPU.jl")

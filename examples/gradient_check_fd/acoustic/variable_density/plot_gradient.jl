@@ -1,8 +1,8 @@
 using Serialization
 
-include("../../models.jl")
-include("../../geometries.jl")
-include("../../plotting_utils.jl")
+include("../../../models.jl")
+include("../../../geometries.jl")
+include("../../../plotting_utils.jl")
 
 # Numerical parameters
 nt = 1000

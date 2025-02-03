@@ -34,7 +34,7 @@ See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@r
 See also [`swforward!`](@ref) and [`swmisfit!`](@ref) and [`Shot`](@ref).
 """
 function swgradient!(
-    params::InputParameters{T,N},
+    params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
     parall::Symbol=:threads,
@@ -45,7 +45,7 @@ function swgradient!(
     smooth_radius::Int=5,
     logger::Union{Nothing, AbstractLogger}=nothing
 )::Union{Dict{String, Array{T, N}},
-         Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
+    Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -91,9 +91,9 @@ Bigger values speed up computation at the cost of using more memory.
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 See also [`swforward!`](@ref) and [`swmisfit!`](@ref) and [`Shot`](@ref).
 """
-function swgradient!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}};
+function swgradient!(wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}};
     logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::Union{Dict{String, Array{T, N}},
-                                                                      Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
+    Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
     if logger === nothing
         logger = current_logger()
     end
@@ -105,7 +105,7 @@ end
 #######################################################
 
 ## single WaveSimulation object
-@views function run_swgradient!(
+function run_swgradient!(
     model::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
@@ -149,7 +149,7 @@ end
 end
 
 ## :threadpersrc, multiple WaveSimulation objects
-@views function run_swgradient!(
+function run_swgradient!(
     model::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
