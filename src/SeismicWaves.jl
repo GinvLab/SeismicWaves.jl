@@ -30,6 +30,7 @@ export build_wavesim, swforward!, swmisfit!, swgradient!
 export gaussstf, gaussderivstf, rickerstf
 
 module FiniteDifferencesMacros
+    using MacroTools
     include("utils/fdgen.jl")
     export @∂, @∂², @∂ⁿ
     export @∂x, @∂y, @∂z
