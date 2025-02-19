@@ -167,7 +167,11 @@ function swgradient_1shot!(
     gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf"].value), 1) .+
                    back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
     gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
-    # TODO smooth gradients
+    # Smooth gradients
+    nearest_grdpts_src = find_nearest_grid_points(model, shot.srcs.positions)
+    backend.smooth_gradient!(gradient_ρ, nearest_grdpts_src, model.smooth_radius)
+    backend.smooth_gradient!(gradient_λ, nearest_grdpts_src, model.smooth_radius)
+    backend.smooth_gradient!(gradient_μ, nearest_grdpts_src, model.smooth_radius)
     # Compute regularization if needed
     ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
     # Return gradients
@@ -336,7 +340,11 @@ function swgradient_1shot!(
     gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf"].value), 1) .+
                    back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
     gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
-    # TODO smooth gradients
+    # Smooth gradients
+    nearest_grdpts_src = find_nearest_grid_points(model, shot.srcs.positions)
+    backend.smooth_gradient!(gradient_ρ, nearest_grdpts_src, model.smooth_radius)
+    backend.smooth_gradient!(gradient_λ, nearest_grdpts_src, model.smooth_radius)
+    backend.smooth_gradient!(gradient_μ, nearest_grdpts_src, model.smooth_radius)
     # Compute regularization if needed
     ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
     # Return gradients
