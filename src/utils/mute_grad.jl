@@ -37,7 +37,7 @@ function mutearoundpoint!(inparr::Array{T,N},xyzpt::Vector{T},grid::UniformFinit
             ijkmin[d] = ijkpt - radiuspx
             ijkmax[d] = ijkpt + radiuspx
         else
-            error("mutearoundpoint(): The point lies outside the grid on dimension $d at position $(xyzpt[d]).")
+            error("mutearoundpoint!(): The point lies outside the grid on dimension $d at position $(xyzpt[d]).")
         end
     end
 
