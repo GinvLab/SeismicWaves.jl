@@ -708,7 +708,6 @@ function correlate_gradients!(grid, vcurr, vold, dt, freetop)
     )
 end
 
-include("shared/smooth_gradient_2D.jl")
 
 #########################################
 end  # end module

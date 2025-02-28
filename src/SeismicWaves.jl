@@ -7,6 +7,7 @@ using ParallelStencil
 using Logging
 using DocStringExtensions
 using Interpolations
+using StaticArrays
 
 # main struct for wave simulation
 export WaveSimulation
@@ -58,6 +59,7 @@ include("utils/checks.jl")
 include("utils/fields.jl")
 include("utils/checkpointers.jl")
 include("utils/snapshotter.jl")
+include("utils/mute_grad.jl")
 
 # Shots
 include("shots/sources.jl")

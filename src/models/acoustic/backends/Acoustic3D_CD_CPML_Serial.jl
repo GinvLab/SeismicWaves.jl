@@ -3,7 +3,6 @@ module Acoustic3D_CD_CPML_Serial
 
 using SeismicWaves.FiniteDifferencesMacros
 
-include("shared/smooth_gradient_3D.jl")
 
 # Dummy data module
 module Data
