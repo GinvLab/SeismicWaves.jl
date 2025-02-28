@@ -1,16 +1,26 @@
 
 
+function mutearoundmultiplepoints!(inparr::Array{T,N},xyzpts::Matrix{T},grid::UniformFiniteDifferenceGrid{N,T},
+                                   radiuspx::Integer) where {T,N}
+    for i=1:size(xyzpts,1)
+        mutearoundpoint!(inparr,xyzpts[i,:],grid,radiuspx)
+    end
+    return
+end
+
+
+
 function mutearoundpoint!(inparr::Array{T,N},xyzpt::Vector{T},grid::UniformFiniteDifferenceGrid{N,T},
                           radiuspx::Integer) where {T,N}
- 
+
     @assert size(inparr) == grid.size
     ety = eltype(inparr)
     Ndim = ndims(inparr)
-    rmax::ety = radiuspx*maximum(NTuple(grid.spacing))
+    rmax::T = radiuspx*maximum(NTuple(grid.spacing))
 
     # This is just for the future, in case an offset of the grid
     #   coordinates could be specified
-    #gridinit = @SVector zeros(ety,Ndim)
+    #gridinit = @SVector zeros(T,Ndim)
 
     ijkmin = MVector{Ndim,Int64}(undef)
     ijkmax = MVector{Ndim,Int64}(undef)
@@ -19,9 +29,9 @@ function mutearoundpoint!(inparr::Array{T,N},xyzpt::Vector{T},grid::UniformFinit
         # with offset
         # if gridinit[d] <= xyzpt[d] <= grid.extent[d]
         # no offset
-        if zero(ety) <= xyzpt[d] <= grid.extent[d]
+        if zero(T) <= xyzpt[d] <= grid.extent[d]
             # with offset
-            #xyzres = div(xyzpt-gridinit[d],grid.spacing[d])
+            # xyzres = div(xyzpt-gridinit[d],grid.spacing[d])
             # no offset
             xyzres = div(xyzpt[d],grid.spacing[d])
             ijkpt = floor(Int64,xyzres) + 1 # .+1 julia indexing...
@@ -67,4 +77,10 @@ function mutearoundpoint!(inparr::Array{T,N},xyzpt::Vector{T},grid::UniformFinit
 end
 
 
+# nx,ny = 20,20
+# grd = UniformFiniteDifferenceGrid((nx,ny),(1.0,1.0))
+# inparr = ones(20,20)
+# xyzpt = [10.0,10.0]
+# radiuspx = 5
+# mutearoundpoint!(inparr,xyzpt,grd,radiuspx)
 
