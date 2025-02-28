@@ -77,10 +77,3 @@ function mutearoundpoint!(inparr::Array{T,N},xyzpt::Vector{T},grid::UniformFinit
 end
 
 
-# nx,ny = 20,20
-# grd = UniformFiniteDifferenceGrid((nx,ny),(1.0,1.0))
-# inparr = ones(20,20)
-# xyzpt = [10.0,10.0]
-# radiuspx = 5
-# mutearoundpoint!(inparr,xyzpt,grd,radiuspx)
-
