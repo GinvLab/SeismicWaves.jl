@@ -14,17 +14,15 @@ function mutearoundpoint!(inparr::Array{T,N},xyzpt::Vector{T},grid::UniformFinit
                           radiuspx::Integer) where {T,N}
 
     @assert size(inparr) == grid.size
-    ety = eltype(inparr)
-    Ndim = ndims(inparr)
     rmax::T = radiuspx*maximum(NTuple(grid.spacing))
 
     # This is just for the future, in case an offset of the grid
     #   coordinates could be specified
-    #gridinit = @SVector zeros(T,Ndim)
+    #gridinit = @SVector zeros(T,N)
 
-    ijkmin = MVector{Ndim,Int64}(undef)
-    ijkmax = MVector{Ndim,Int64}(undef)
-    for d=1:Ndim
+    ijkmin = MVector{N,Int64}(undef)
+    ijkmax = MVector{N,Int64}(undef)
+    for d=1:N
         # check that the point is inside the grid
         # with offset
         # if gridinit[d] <= xyzpt[d] <= grid.extent[d]
@@ -39,19 +37,19 @@ function mutearoundpoint!(inparr::Array{T,N},xyzpt::Vector{T},grid::UniformFinit
             ijkmin[d] = ijkpt - radiuspx
             ijkmax[d] = ijkpt + radiuspx
         else
-            error("smootharoundpoint(): The point lies outside the grid on dimension $d at position $(xyzpt[d]).")
+            error("mutearoundpoint(): The point lies outside the grid on dimension $d at position $(xyzpt[d]).")
         end
     end
 
-    inpcart = [ijkmin[d]:ijkmax[d] for d=1:Ndim]
-    xyzcur = zeros(Ndim)
-    caind = CartesianIndices(NTuple{Ndim,UnitRange{Int64}}(inpcart))
+    inpcart = [ijkmin[d]:ijkmax[d] for d=1:N]
+    xyzcur = zeros(N)
+    caind = CartesianIndices(NTuple{N,UnitRange{Int64}}(inpcart))
 
     withinbounds::Bool = true
     for caind in caind
         idxs = caind.I
 
-        for d=1:Ndim
+        for d=1:N
             withinbounds = 1 <= idxs[d] <= grid.size[d]
             if !withinbounds
                 break
