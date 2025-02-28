@@ -171,7 +171,9 @@ function swgradient_1shot!(
     mutearoundmultiplepoints!(gradient_ρ,shot.srcs.positions,grid,model.smooth_radius)
     mutearoundmultiplepoints!(gradient_λ,shot.srcs.positions,grid,model.smooth_radius)
     mutearoundmultiplepoints!(gradient_μ,shot.srcs.positions,grid,model.smooth_radius)
-
+    mutearoundmultiplepoints!(gradient_ρ,shot.recs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_λ,shot.recs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_μ,shot.recs.positions,grid,model.smooth_radius)
     # Compute regularization if needed
     ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
     # Return gradients
@@ -344,6 +346,9 @@ function swgradient_1shot!(
     mutearoundmultiplepoints!(gradient_ρ,shot.srcs.positions,grid,model.smooth_radius)
     mutearoundmultiplepoints!(gradient_λ,shot.srcs.positions,grid,model.smooth_radius)
     mutearoundmultiplepoints!(gradient_μ,shot.srcs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_ρ,shot.recs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_λ,shot.recs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_μ,shot.recs.positions,grid,model.smooth_radius)
     
     # Compute regularization if needed
     ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)

@@ -85,6 +85,7 @@ function swgradient_1shot!(
     gradient = Array(grid.fields["grad_vp"].value)
     # smooth gradient
     mutearoundmultiplepoints!(gradient,shot.srcs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient,shot.recs.positions,grid,model.smooth_radius)
     # rescale gradient
     gradient .= (convert(T, 2.0) ./ (model.matprop.vp .^ 3)) .* gradient
     # add regularization if needed
@@ -187,6 +188,8 @@ function swgradient_1shot!(
     # Smooth gradients
     mutearoundmultiplepoints!(gradient_m0,shot.srcs.positions,grid,model.smooth_radius)
     mutearoundmultiplepoints!(gradient_m1,shot.srcs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_m0,shot.recs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_m1,shot.recs.positions,grid,model.smooth_radius)
 
     # compute regularization if needed
     dχ_dvp, dχ_drho = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
