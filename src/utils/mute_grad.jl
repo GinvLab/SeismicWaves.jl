@@ -12,6 +12,12 @@ end
 
 function mutearoundpoint!(inparr::Array{T,N},xyzpt::Vector{T},grid::UniformFiniteDifferenceGrid{N,T},
                           radiuspx::Integer) where {T,N}
+    # Do not do anything if smoothing radius is zero
+    if radiuspx == 0
+        return nothing
+    end
+
+    @assert radiuspx > 0 "mutearoundpoint!(): The smoothing radius must be positive."
 
     @assert size(inparr) == grid.size
     rmax::T = radiuspx*maximum(NTuple(grid.spacing))
