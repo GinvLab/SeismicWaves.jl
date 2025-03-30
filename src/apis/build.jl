@@ -19,7 +19,7 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 - `snapevery::Union{<:Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays (only for forward simulations).
 - `infoevery::Union{<:Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-function build_wavesim(params::InputParameters{T, N}, matprop::MaterialProperties{T, N}; parall::Symbol, kwargs...) where {T, N}
+function build_wavesim(params::InputParameters{T, N}, matprop::MaterialProperties{T, N}; parall::Symbol=:threads, kwargs...) where {T, N}
     if parall == :threadpersrc
         nthr = Threads.nthreads()
         wsim = [build_concrete_wavesim(params, matprop, params.boundcond; parall=parall, kwargs...) for _ in 1:nthr]

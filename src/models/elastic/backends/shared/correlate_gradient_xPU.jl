@@ -6,12 +6,12 @@ end
 
 @parallel_indices (i, j) function correlate_gradient_λ_μ_kernel!(grad_λ, grad_μ, adjσxx, adjσzz, vx, vz, λ, μ, _dx, _dz, freetop)
     # compute derivatives
-    ∂vx∂x     = @∂x order=4 I=(i-1,j) _Δ=_dx bdcheck=true vx
+    ∂vx∂x     = @∂x(vx, order=4, I=(i-1,j), _Δ=_dx)
     if freetop && j == 1
         # on the free surface, using boundary condition to calculate ∂vz∂z
         ∂vz∂z = -(λ[i, j] / (λ[i, j] + 2*μ[i, j])) * ∂vx∂x
     else
-        ∂vz∂z = @∂y order=4 I=(i,j-1) _Δ=_dz bdcheck=true vz
+        ∂vz∂z = @∂y(vz, order=4, I=(i,j-1), _Δ=_dz)
     end
     # correlate
     grad_λ[i, j] += (-(∂vx∂x + ∂vz∂z) * (adjσxx[i, j] + adjσzz[i, j]))
@@ -22,8 +22,8 @@ end
 
 @parallel_indices (i, j) function correlate_gradient_μ_ihalf_jhalf_kernel!(grad_μ_ihalf_jhalf, adjσxz, vx, vz, _dx, _dz, freetop)
     # compute derivatives
-    ∂vx∂z = @∂y order=4 I=(i,j) _Δ=_dz bdcheck=true vx
-    ∂vz∂x = @∂x order=4 I=(i,j) _Δ=_dx bdcheck=true vz
+    ∂vx∂z = @∂y(vx, order=4, I=(i,j), _Δ=_dz)
+    ∂vz∂x = @∂x(vz, order=4, I=(i,j), _Δ=_dx)
     # correlate
     grad_μ_ihalf_jhalf[i, j] += -(∂vx∂z + ∂vz∂x) * adjσxz[i, j]
 

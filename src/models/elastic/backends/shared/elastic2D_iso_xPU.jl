@@ -44,7 +44,7 @@ end
                     order=4, I=(i,j), _Δ=_dx,
                     halo=halo, halfgrid=true)
     ∂adjσxz∂z = @∂̃y(adjσxz, a_z, b_z, adjψ_∂σxz∂z,
-                    order=4, I=(i,j-1), _Δ=_dz,
+                    order=4, I=(i,j-1), _Δ=_dz, mirror=(true, false),
                     halo=halo, halfgrid=false)
 
     # Update adjoint velocity
@@ -101,7 +101,7 @@ end
                     order=4, I=(i,j), _Δ=_dz,
                     halo=halo, halfgrid=true)
     ∂adjσxz∂x = @∂̃x(adjσxz, a_x, b_x, adjψ_∂σxz∂x,
-                    order=4, I=(i-1,j), _Δ=_dx,
+                    order=4, I=(i-1,j), _Δ=_dx, mirror=(true, false),
                     halo=halo, halfgrid=false)
 
     # Update adjoint velocity

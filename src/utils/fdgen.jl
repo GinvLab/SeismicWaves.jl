@@ -165,8 +165,8 @@ function ∂̃²_(A, a, b, ψ, ξ, dim::Int; I=(:i,), halo=:halo, kwargs...)
     IIψ = [i == dim ?  :($iidim - 1) : I[i] for i in eachindex(I)]
     Iξ  = [i == dim ?  idim : I[i] for i in eachindex(I)]
     IIξ = [i == dim ? iidim : I[i] for i in eachindex(I)]
-    ψstencil_left  = ∂ⁿ_(ψ, dim; I=Iψ, deriv=1, kwargs..., bdcheck=false)
-    ψstencil_right = ∂ⁿ_(ψ, dim; I=IIψ, deriv=1, kwargs..., bdcheck=false)
+    ψstencil_left  = ∂ⁿ_(ψ, dim; I=Iψ, deriv=1, kwargs...)
+    ψstencil_right = ∂ⁿ_(ψ, dim; I=IIψ, deriv=1, kwargs...)
     return quote
         $∂²Atemp = $Astencil
         if $idim <= $halo
