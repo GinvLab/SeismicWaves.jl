@@ -196,12 +196,12 @@ end
 ∂̃²z4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 3, halo; half=half, kwargs...)
 
 # Vector derivatives with CPML damping
-function ∇̃4th(x, a, b, ψs, ξs, I, _Δs; halo=halo, half=false, kwargs...)
+function ∇̃4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
     ntuple(i -> ∂̃4th(x, a[i], b[i], ψs[i], I, _Δs[i], i, halo; half=half, kwargs...), Val(length(_Δs)))
 end
-function diṽ4th(x, a, b, ψs, ξs, I, _Δs; halo=halo, half=false, kwargs...)
+function diṽ4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
     sum(∂̃4th(x, a[i], b[i], ψs[i], I, _Δs[i], i, halo; half=half, kwargs...) for i in eachindex(_Δs))
 end
-function ∇̃²4th(x, a, b, ψs, ξs, I, _Δs; halo=halo, half=false, kwargs...)
+function ∇̃²4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
     sum(∂̃²4th(x, a[i], b[i], ψs[i], ξs[i], I, _Δs[i], i, halo; half=half, kwargs...) for i in eachindex(_Δs))
 end
