@@ -145,9 +145,9 @@ div4th(x, I, _Δs; kwargs...) = sum(∂4th(x, I, _Δs[i], i; kwargs...) for i in
 # Scalar derivatives with CPML damping
 function ∂̃4th(x, a, b, ψ, I, _Δ, dir, halo; half=false, kwargs...)
     ndim = size(x, dir)
-    plusone = half ? 0 : 1
+    plusone = half ? 1 : 0
     idim = I[dir] + plusone
-    iidim = idim - (ndim - halo) + 1 + (halo + plusone)
+    iidim = I[dir] - (ndim - halo) + 1 + (halo + plusone)
     Iψ = ntuple(i -> i == dir ? idim : I[i], Val(length(I)))
     IIψ = ntuple(i -> i == dir ? iidim : I[i], Val(length(I)))
     ∂x = ∂4th(x, I, _Δ, dir; half=half, kwargs...)
@@ -163,15 +163,15 @@ function ∂̃4th(x, a, b, ψ, I, _Δ, dir, halo; half=false, kwargs...)
     end
 end
 
-∂̃x4th(x, a, b, ψ, I, _Δ; halo=halo, half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 1, halo; half=half, kwargs...)
-∂̃y4th(x, a, b, ψ, I, _Δ; halo=halo, half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 2, halo; half=half, kwargs...)
-∂̃z4th(x, a, b, ψ, I, _Δ; halo=halo, half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 3, halo; half=half, kwargs...)
+∂̃x4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 1, halo; half=half, kwargs...)
+∂̃y4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 2, halo; half=half, kwargs...)
+∂̃z4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 3, halo; half=half, kwargs...)
 
 
 function ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, dir, halo; half=false, kwargs...)
     ndim = size(x, dir)
     idim = I[dir]
-    iidim = idim - (ndim - halo) + 1 + halo
+    iidim = I[dir] - (ndim - halo) + 1 + halo
     Iψ = ntuple(i -> i == dir ? idim-1 : I[i], Val(length(I)))
     IIψ = ntuple(i -> i == dir ? iidim-1 : I[i], Val(length(I)))
     Iξ = ntuple(i -> i == dir ? idim : I[i], Val(length(I)))
@@ -191,9 +191,9 @@ function ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, dir, halo; half=false, kwargs...)
     end
 end
 
-∂̃²x4th(x, a, b, ψ, ξ, I, _Δ; halo=halo, half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 1, halo; half=half, kwargs...)
-∂̃²y4th(x, a, b, ψ, ξ, I, _Δ; halo=halo, half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 2, halo; half=half, kwargs...)
-∂̃²z4th(x, a, b, ψ, ξ, I, _Δ; halo=halo, half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 3, halo; half=half, kwargs...)
+∂̃²x4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 1, halo; half=half, kwargs...)
+∂̃²y4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 2, halo; half=half, kwargs...)
+∂̃²z4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 3, halo; half=half, kwargs...)
 
 # Vector derivatives with CPML damping
 function ∇̃4th(x, a, b, ψs, ξs, I, _Δs; halo=halo, half=false, kwargs...)

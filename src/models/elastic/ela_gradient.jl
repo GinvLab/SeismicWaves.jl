@@ -9,7 +9,7 @@ function swgradient_1shot!(
 )::Dict{String, Array{T, 2}} where {T}
     # scale source time function
     srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz,
-    reccoeij_vx, reccoeval_vx, reccoeij_vz, reccoeval_vz,
+    reccoeij_ux, reccoeval_ux, reccoeij_uz, reccoeval_uz,
     scal_srctf = possrcrec_scaletf(model, shot; sincinterp=model.sincinterp)
     # moment tensors
     momtens = shot.srcs.momtens
@@ -28,14 +28,14 @@ function swgradient_1shot!(
     srccoeval_xx = [backend.Data.Array(srccoeval_xx[i]) for i in 1:nsrcs]
     srccoeij_xz  = [backend.Data.Array( srccoeij_xz[i]) for i in 1:nsrcs]
     srccoeval_xz = [backend.Data.Array(srccoeval_xz[i]) for i in 1:nsrcs]
-    reccoeij_vx  = [backend.Data.Array( reccoeij_vx[i]) for i in 1:nrecs]
-    reccoeval_vx = [backend.Data.Array(reccoeval_vx[i]) for i in 1:nrecs]
-    reccoeij_vz  = [backend.Data.Array( reccoeij_vz[i]) for i in 1:nrecs]
-    reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in 1:nrecs]
+    reccoeij_ux  = [backend.Data.Array( reccoeij_ux[i]) for i in 1:nrecs]
+    reccoeval_ux = [backend.Data.Array(reccoeval_ux[i]) for i in 1:nrecs]
+    reccoeij_uz  = [backend.Data.Array( reccoeij_uz[i]) for i in 1:nrecs]
+    reccoeval_uz = [backend.Data.Array(reccoeval_uz[i]) for i in 1:nrecs]
     srctf_bk = backend.Data.Array(scal_srctf)
     reduced_buf = [backend.zeros(T, nrecs), backend.zeros(T, nrecs)]
-    traces_vx_bk_buf = [backend.zeros(T, size(reccoeij_vx[i], 1)) for i in 1:nrecs]
-    traces_vz_bk_buf = [backend.zeros(T, size(reccoeij_vz[i], 1)) for i in 1:nrecs]
+    traces_ux_bk_buf = [backend.zeros(T, size(reccoeij_ux[i], 1)) for i in 1:nrecs]
+    traces_uz_bk_buf = [backend.zeros(T, size(reccoeij_uz[i], 1)) for i in 1:nrecs]
     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
     ## ONLY 2D for now!!!
@@ -56,14 +56,14 @@ function swgradient_1shot!(
             srccoeval_xx,
             srccoeij_xz,
             srccoeval_xz,
-            reccoeij_vx,
-            reccoeval_vx,
-            reccoeij_vz,
-            reccoeval_vz,
+            reccoeij_ux,
+            reccoeval_ux,
+            reccoeij_uz,
+            reccoeval_uz,
             srctf_bk,
             reduced_buf,
-            traces_vx_bk_buf,
-            traces_vz_bk_buf,
+            traces_ux_bk_buf,
+            traces_uz_bk_buf,
             traces_bk,
             it,
             Mxx_bk, Mzz_bk, Mxz_bk;
@@ -103,10 +103,10 @@ function swgradient_1shot!(
         # Compute one adjoint step
         backend.adjoint_onestep_CPML!(
             model,
-            reccoeij_vx,
-            reccoeval_vx,
-            reccoeij_vz,
-            reccoeval_vz,
+            reccoeij_ux,
+            reccoeval_ux,
+            reccoeij_uz,
+            reccoeval_uz,
             residuals_bk,
             it
         )
@@ -133,14 +133,14 @@ function swgradient_1shot!(
                         srccoeval_xx,
                         srccoeij_xz,
                         srccoeval_xz,
-                        reccoeij_vx,
-                        reccoeval_vx,
-                        reccoeij_vz,
-                        reccoeval_vz,
+                        reccoeij_ux,
+                        reccoeval_ux,
+                        reccoeij_uz,
+                        reccoeval_uz,
                         srctf_bk,
                         reduced_buf,
-                        traces_vx_bk_buf,
-                        traces_vz_bk_buf,
+                        traces_ux_bk_buf,
+                        traces_uz_bk_buf,
                         traces_bk,
                         recit,
                         Mxx_bk, Mzz_bk, Mxz_bk;
@@ -185,10 +185,10 @@ function swgradient_1shot!(
     misfit::AbstractMisfit
 )::Dict{String, Array{T, 2}} where {T}
     # scale source time function
-    srccoeij_vx, srccoeval_vx,
-    srccoeij_vz, srccoeval_vz,
-    reccoeij_vx, reccoeval_vx,
-    reccoeij_vz, reccoeval_vz,
+    srccoeij_ux, srccoeval_ux,
+    srccoeij_uz, srccoeval_uz,
+    reccoeij_ux, reccoeval_ux,
+    reccoeij_uz, reccoeval_uz,
     scal_srctf = possrcrec_scaletf(model, shot; sincinterp=model.sincinterp)
 
     # Get computational grid, checkpointer and backend
@@ -201,18 +201,18 @@ function swgradient_1shot!(
     # Wrap sources and receivers arrays
     nsrcs = size(shot.srcs.positions, 1)
     nrecs = size(shot.recs.positions, 1)
-    srccoeij_vx  = [backend.Data.Array( srccoeij_vx[i]) for i in 1:nsrcs]
-    srccoeval_vx = [backend.Data.Array(srccoeval_vx[i]) for i in 1:nsrcs]
-    srccoeij_vz  = [backend.Data.Array( srccoeij_vz[i]) for i in 1:nsrcs]
-    srccoeval_vz = [backend.Data.Array(srccoeval_vz[i]) for i in 1:nsrcs]
-    reccoeij_vx  = [backend.Data.Array( reccoeij_vx[i]) for i in 1:nrecs]
-    reccoeval_vx = [backend.Data.Array(reccoeval_vx[i]) for i in 1:nrecs]
-    reccoeij_vz  = [backend.Data.Array( reccoeij_vz[i]) for i in 1:nrecs]
-    reccoeval_vz = [backend.Data.Array(reccoeval_vz[i]) for i in 1:nrecs]
+    srccoeij_ux  = [backend.Data.Array( srccoeij_ux[i]) for i in 1:nsrcs]
+    srccoeval_ux = [backend.Data.Array(srccoeval_ux[i]) for i in 1:nsrcs]
+    srccoeij_uz  = [backend.Data.Array( srccoeij_uz[i]) for i in 1:nsrcs]
+    srccoeval_uz = [backend.Data.Array(srccoeval_uz[i]) for i in 1:nsrcs]
+    reccoeij_ux  = [backend.Data.Array( reccoeij_ux[i]) for i in 1:nrecs]
+    reccoeval_ux = [backend.Data.Array(reccoeval_ux[i]) for i in 1:nrecs]
+    reccoeij_uz  = [backend.Data.Array( reccoeij_uz[i]) for i in 1:nrecs]
+    reccoeval_uz = [backend.Data.Array(reccoeval_uz[i]) for i in 1:nrecs]
     srctf_bk = backend.Data.Array(scal_srctf)
     reduced_buf = [backend.zeros(T, nrecs), backend.zeros(T, nrecs)]
-    traces_vx_bk_buf = [backend.zeros(T, size(reccoeij_vx[i], 1)) for i in 1:nrecs]
-    traces_vz_bk_buf = [backend.zeros(T, size(reccoeij_vz[i], 1)) for i in 1:nrecs]
+    traces_ux_bk_buf = [backend.zeros(T, size(reccoeij_ux[i], 1)) for i in 1:nrecs]
+    traces_uz_bk_buf = [backend.zeros(T, size(reccoeij_uz[i], 1)) for i in 1:nrecs]
     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
     # Reset wavesim
@@ -223,18 +223,18 @@ function swgradient_1shot!(
         # Compute one forward step
         backend.forward_onestep_CPML!(
             model,
-            srccoeij_vx,
-            srccoeval_vx,
-            srccoeij_vz,
-            srccoeval_vz,
-            reccoeij_vx,
-            reccoeval_vx,
-            reccoeij_vz,
-            reccoeval_vz,
+            srccoeij_ux,
+            srccoeval_ux,
+            srccoeij_uz,
+            srccoeval_uz,
+            reccoeij_ux,
+            reccoeval_ux,
+            reccoeij_uz,
+            reccoeval_uz,
             srctf_bk,
             reduced_buf,
-            traces_vx_bk_buf,
-            traces_vz_bk_buf,
+            traces_ux_bk_buf,
+            traces_uz_bk_buf,
             traces_bk,
             it;
             save_trace=true
@@ -273,10 +273,10 @@ function swgradient_1shot!(
         # Compute one adjoint step
         backend.adjoint_onestep_CPML!(
             model,
-            reccoeij_vx,
-            reccoeval_vx,
-            reccoeij_vz,
-            reccoeval_vz,
+            reccoeij_ux,
+            reccoeval_ux,
+            reccoeij_uz,
+            reccoeval_uz,
             residuals_bk,
             it
         )
@@ -299,18 +299,18 @@ function swgradient_1shot!(
                 recit -> begin
                     backend.forward_onestep_CPML!(
                         model,
-                        srccoeij_vx,
-                        srccoeval_vx,
-                        srccoeij_vz,
-                        srccoeval_vz,
-                        reccoeij_vx,
-                        reccoeval_vx,
-                        reccoeij_vz,
-                        reccoeval_vz,
+                        srccoeij_ux,
+                        srccoeval_ux,
+                        srccoeij_uz,
+                        srccoeval_uz,
+                        reccoeij_ux,
+                        reccoeval_ux,
+                        reccoeij_uz,
+                        reccoeval_uz,
                         srctf_bk,
                         reduced_buf,
-                        traces_vx_bk_buf,
-                        traces_vz_bk_buf,
+                        traces_ux_bk_buf,
+                        traces_uz_bk_buf,
                         traces_bk,
                         recit;
                         save_trace=false

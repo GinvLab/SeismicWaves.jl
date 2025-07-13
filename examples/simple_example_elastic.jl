@@ -173,18 +173,18 @@ function plotstuff(par, matprop, shots)
 
     fig = Figure(; size=(1000, 1200))
 
-    ax1 = Axis(fig[1, 1]; title="Vx")
-    ax2 = Axis(fig[2, 1]; title="Vz")
+    ax1 = Axis(fig[1, 1]; title="Ux")
+    ax2 = Axis(fig[2, 1]; title="Uz")
     ax3 = Axis(fig[3, 1]; title="Source time function")
     ax4 = Axis(fig[4, 1]; xlabel="x [m]", ylabel="z [m]")
 
     for r in lsrec
-        lines!(ax1, shots[1].recs.seismograms[:, 1, r]; label="Vx #$r")
+        lines!(ax1, shots[1].recs.seismograms[:, 1, r]; label="Ux #$r")
     end
     axislegend(ax1)
 
     for r in lsrec
-        lines!(ax2, shots[1].recs.seismograms[:, 2, r]; label="Vz #$r")
+        lines!(ax2, shots[1].recs.seismograms[:, 2, r]; label="Uz #$r")
     end
     axislegend(ax2)
 
@@ -202,7 +202,7 @@ function plotstuff(par, matprop, shots)
     end
     ax4.yreversed = true
 
-    save("vx_vz_vp_example.png", fig)
+    save("ux_uz_vp_example.png", fig)
     return fig
 end
 
@@ -214,8 +214,8 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     xsrc = shots[1].srcs.positions[:, 1]
     ysrc = shots[1].srcs.positions[:, 2]
 
-    vxsnap = [snapsh[1][kk]["v"].value[1] for kk in sort(keys(snapsh[1]))]
-    vzsnap = [snapsh[1][kk]["v"].value[2] for kk in sort(keys(snapsh[1]))]
+    vxsnap = [snapsh[1][kk]["ucur"].value[1] for kk in sort(keys(snapsh[1]))]
+    vzsnap = [snapsh[1][kk]["ucur"].value[2] for kk in sort(keys(snapsh[1]))]
     @show size(vxsnap), size(vzsnap)
 
     curvx = Observable(vxsnap[1])
@@ -248,7 +248,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     cmapwavefield = :vik #:cyclic_grey_15_85_c0_n256_s25 #:balance
 
     ax1 = Axis(fig[1, 1]; aspect=DataAspect(),
-        xlabel="x [m]", ylabel="z [m]", title="Vx, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
+        xlabel="x [m]", ylabel="z [m]", title="Ux, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
     #poly!(ax4,Rect(rect...),color=:green,alpha=0.3)
     extx = extrema.([vxsnap[i] for i in 1:length(vxsnap)])
     extx = map(p -> max(abs(p[1]), abs(p[2])), extx)
@@ -256,7 +256,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     vminmax = scalamp .* (-vmax, vmax)
     hm = heatmap!(ax1, xgrd, ygrd, curvx; colormap=cmapwavefield,
         colorrange=vminmax) #,alpha=0.7)
-    Colorbar(fig[1, 2], hm; label="x partic. vel.")
+    Colorbar(fig[1, 2], hm; label="x displ.")
 
     lines!(ax1, Rect(rectpml...); color=:green)
     scatter!(ax1, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
@@ -265,7 +265,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     ax1.yreversed = true
 
     ax2 = Axis(fig[2, 1]; aspect=DataAspect(),
-        xlabel="x [m]", ylabel="z [m]", title="Vz, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
+        xlabel="x [m]", ylabel="z [m]", title="Uz, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
     #poly!(ax4,Rect(rect...),color=:green,alpha=0.3)
     extx = extrema.([vzsnap[i] for i in 1:length(vzsnap)])
     extx = map(p -> max(abs(p[1]), abs(p[2])), extx)
@@ -273,7 +273,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     vminmax = scalamp .* (-vmax, vmax)
     hm = heatmap!(ax2, xgrd, ygrd, curvz; colormap=cmapwavefield,
         colorrange=vminmax) #,alpha=0.7)
-    Colorbar(fig[2, 2], hm; label="z partic. vel.")
+    Colorbar(fig[2, 2], hm; label="z displ.")
 
     lines!(ax2, Rect(rectpml...); color=:green)
     scatter!(ax2, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
@@ -299,8 +299,8 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     function updatefunction(curax1, curax2, vxsnap, vzsnap, it)
         cvx = vxsnap[it]
         cvz = vzsnap[it]
-        curax1.title = "Vx, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
-        curax2.title = "Vz, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
+        curax1.title = "Ux, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
+        curax2.title = "Uz, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
         return cvx, cvz
     end
 
