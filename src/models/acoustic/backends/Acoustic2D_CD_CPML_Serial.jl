@@ -2,6 +2,7 @@
 module Acoustic2D_CD_CPML_Serial
 
 using SeismicWaves.FiniteDifferencesMacros
+using SeismicWaves.FDGeneratedFunctions
 
 include("shared/smooth_gradient_2D.jl")
 

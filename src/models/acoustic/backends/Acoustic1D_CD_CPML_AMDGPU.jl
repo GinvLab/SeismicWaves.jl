@@ -5,6 +5,7 @@ using ParallelStencil
 using ParallelStencil.FiniteDifferences1D
 
 using SeismicWaves.FiniteDifferencesMacros
+using SeismicWaves.FDGeneratedFunctions
 
 @init_parallel_stencil(package = AMDGPU, ndims = 1, inbound = true)
 

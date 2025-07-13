@@ -40,7 +40,14 @@ module FiniteDifferencesMacros
     export @∂̃, @∂̃x, @∂̃y, @∂̃z
     export @∂̃², @∂̃²x, @∂̃²y, @∂̃²z
     export @∇̃, @diṽ, @∇̃²
+end
 
+module FDGeneratedFunctions
+    using StaticArrays
+    include("utils/fdgenerated.jl")
+    export ∂̃x4th, ∂̃y4th, ∂̃z4th
+    export ∂̃²x4th, ∂̃²y4th, ∂̃²z4th
+    export ∇̃4th, diṽ4th, ∇̃²4th
 end
 
 include("utils/abstract_types.jl")
@@ -125,5 +132,6 @@ include("HMCseiswaves.jl")
 using .HMCseiswaves
 export AcouWavCDProb
 export FiniteDifferencesMacros
+export FDGeneratedFunctions
 
 end # module

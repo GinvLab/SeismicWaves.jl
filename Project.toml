@@ -12,6 +12,7 @@ MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 ParallelStencil = "94395366-693c-11ea-3b26-d9b7aac5d958"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [weakdeps]
 AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
@@ -24,6 +25,7 @@ SeismicWaves_CUDABackendExt = "CUDA"
 SeismicWaves_MetalBackendExt = "Metal"
 
 [compat]
+StaticArrays = "1.9.13"
 julia = ">=1.9"
 
 [extras]
