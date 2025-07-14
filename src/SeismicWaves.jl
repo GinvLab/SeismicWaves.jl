@@ -45,8 +45,11 @@ end
 module FDGeneratedFunctions
     using StaticArrays
     include("utils/fdgenerated.jl")
+    export ∂x4th, ∂y4th, ∂z4th
     export ∂̃x4th, ∂̃y4th, ∂̃z4th
+    export ∂²x4th, ∂²y4th, ∂²z4th
     export ∂̃²x4th, ∂̃²y4th, ∂̃²z4th
+    export ∇4th, div4th, ∇²4th
     export ∇̃4th, diṽ4th, ∇̃²4th
 end
 

@@ -7,14 +7,14 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalFor
     if sincinterp
         # interpolation coefficients for sources in vx
         nsrcs = size(shot.srcs.positions, 1)
-        srccoeij_ux, srccoeval_ux = spread_positions(model.grid, shot.srcs.positions; shift=(model.grid.spacing[1]/2, 0.0), mirror=false)
+        srccoeij_ux, srccoeval_ux = spread_positions(model.grid, shot.srcs.positions; shift=(model.grid.spacing[1]/2, zero(T)), mirror=false)
         # interpolation coefficients for sources in vz
-        srccoeij_uz, srccoeval_uz = spread_positions(model.grid, shot.srcs.positions; shift=(0.0, model.grid.spacing[2]/2), mirror=false)
+        srccoeij_uz, srccoeval_uz = spread_positions(model.grid, shot.srcs.positions; shift=(zero(T), model.grid.spacing[2]/2), mirror=false)
         nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_ux, reccoeval_ux = spread_positions(model.grid, shot.recs.positions; shift=(model.grid.spacing[1]/2, 0.0), mirror=false)
+        reccoeij_ux, reccoeval_ux = spread_positions(model.grid, shot.recs.positions; shift=(model.grid.spacing[1]/2, zero(T)), mirror=false)
         # interpolation coefficients for receivers in vz
-        reccoeij_uz, reccoeval_uz = spread_positions(model.grid, shot.recs.positions; shift=(0.0, model.grid.spacing[2]/2), mirror=false)
+        reccoeij_uz, reccoeval_uz = spread_positions(model.grid, shot.recs.positions; shift=(zero(T), model.grid.spacing[2]/2), mirror=false)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
@@ -37,14 +37,14 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTenso
     if sincinterp
         nsrcs = size(shot.srcs.positions, 1)
         # interpolation coefficients for sources in σxx and σzz
-        srccoeij_xx, srccoeval_xx = spread_positions(model.grid, shot.srcs.positions; shift=(0.0, 0.0), mirror=true)
+        srccoeij_xx, srccoeval_xx = spread_positions(model.grid, shot.srcs.positions; shift=(zero(T), zero(T)), mirror=true)
         # interpolation coefficients for sources in σxz
         srccoeij_xz, srccoeval_xz = spread_positions(model.grid, shot.srcs.positions; shift=(model.grid.spacing[1]/2, model.grid.spacing[2]/2), mirror=true)
         nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_ux, reccoeval_ux = spread_positions(model.grid, shot.recs.positions; shift=(model.grid.spacing[1]/2, 0.0), mirror=false)
+        reccoeij_ux, reccoeval_ux = spread_positions(model.grid, shot.recs.positions; shift=(model.grid.spacing[1]/2, zero(T)), mirror=false)
         # interpolation coefficients for receivers in vz
-        reccoeij_uz, reccoeval_uz = spread_positions(model.grid, shot.recs.positions; shift=(0.0, model.grid.spacing[2]/2), mirror=false)
+        reccoeij_uz, reccoeval_uz = spread_positions(model.grid, shot.recs.positions; shift=(zero(T), model.grid.spacing[2]/2), mirror=false)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
@@ -299,16 +299,14 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
                     ]
                 ))
                 # CPML memory variables
-                    addfield!(grid, "adjψ_∂σ∂x" => MultiVariableField(
+                addfield!(grid, "adjψ_∂σ∂x" => MultiVariableField(
                     [
                         backend.zeros(T, 2halo    , gridsize[2]  ), # ψ_∂σxx∂x
-                        backend.zeros(T, 2halo    , gridsize[2]  ), # ψ_∂σzz∂x
                         backend.zeros(T, 2(halo+1), gridsize[2]-1)  # ψ_∂σxz∂x
                     ]
                 ))
                 addfield!(grid, "adjψ_∂σ∂z" => MultiVariableField(
                     [
-                        backend.zeros(T, gridsize[1]  , 2halo    ), # ψ_∂σxx∂z
                         backend.zeros(T, gridsize[1]  , 2halo    ), # ψ_∂σzz∂z
                         backend.zeros(T, gridsize[1]-1, 2(halo+1))  # ψ_∂σxz∂z
                     ]

@@ -197,10 +197,10 @@ Computes coefficients and indices of the grid for arbitrarely placed sources or 
 function spread_positions(
     grid::SeismicWaves.UniformFiniteDifferenceGrid{N, T},
     positions::Matrix{T};
-    shift::NTuple{N, T}=ntuple(_ -> 0.0, N),
+    shift::NTuple{N, T}=ntuple(_ -> zero(T), N),
     mirror::Bool=false,
     r::Int=4,
-    β::T=6.31
+    β::T=T.(6.31)
 ) where {N, T}
     # Get number of positions to spread
     npos = size(positions, 1)
@@ -213,7 +213,7 @@ function spread_positions(
         coeffs_dims = Vector{Vector{T}}(undef, N)
         for n in 1:N
             # Compute coefficients in n-th dimension
-            idxs_nth, coeffs_nth = coeffsinc1D(positions[p, n], grid.spacing[n], grid.size[n], r, β, shift[n], mirror, 0.0, grid.extent[n])
+            idxs_nth, coeffs_nth = coeffsinc1D(positions[p, n], grid.spacing[n], grid.size[n], r, β, shift[n], mirror, zero(T), grid.extent[n])
             idxs_dims[n] = idxs_nth
             coeffs_dims[n] = coeffs_nth
         end
