@@ -307,8 +307,8 @@ function adjoint_onestep_CPML!(
     for r in 1:nrecs
         nrecspts_ux = size(reccoeij_ux[r], 1)
         nrecspts_uz = size(reccoeij_uz[r], 1)
-        @parallel (1:nrecspts_ux) inject_external_sources2D_ux!(uxcur, residuals_bk, reccoeij_ux[r], reccoeval_ux[r], ρ_ihalf, it, r, Δt)
-        @parallel (1:nrecspts_uz) inject_external_sources2D_uz!(uzcur, residuals_bk, reccoeij_uz[r], reccoeval_uz[r], ρ_jhalf, it, r, Δt)
+        @parallel (1:nrecspts_ux) inject_external_sources2D_ux!(uxnew, residuals_bk, reccoeij_ux[r], reccoeval_ux[r], ρ_ihalf, it, r, Δt)
+        @parallel (1:nrecspts_uz) inject_external_sources2D_uz!(uznew, residuals_bk, reccoeij_uz[r], reccoeval_uz[r], ρ_jhalf, it, r, Δt)
     end
 
     # Swap old and current displacements
