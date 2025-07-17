@@ -20,12 +20,13 @@ Builds a wave similation based on the input paramters `params` and keyword argum
 - `snapevery::Union{<:Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays (only for forward simulations).
 - `infoevery::Union{<:Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 """
-function build_wavesim(params::InputParameters{T, N}, matprop::MaterialProperties{T, N}; parall::Symbol, kwargs...) where {T, N}
-    if parall == :threadpersrc
+function build_wavesim(params::InputParameters{T, N}, matprop::MaterialProperties{T, N};
+                       runparams::RunParameters, kwargs...) where {T, N}
+    if runparams.parall == :threadpersrc
         nthr = Threads.nthreads()
-        wsim = [build_concrete_wavesim(params, matprop, params.boundcond; parall=parall, kwargs...) for _ in 1:nthr]
+        wsim = [build_concrete_wavesim(params, matprop, params.boundcond; runparams, kwargs...) for _ in 1:nthr]
     else
-        wsim = build_concrete_wavesim(params, matprop, params.boundcond; parall=parall, kwargs...)
+        wsim = build_concrete_wavesim(params, matprop, params.boundcond; runparams, kwargs...)
     end
     return wsim
 end
@@ -34,11 +35,13 @@ build_concrete_wavesim(
     params::InputParametersAcoustic{T, N},
     matprop::VpAcousticCDMaterialProperties{T, N},
     cpmlparams::CPMLBoundaryConditionParameters{T};
+    runparams::RunParameters,
     kwargs...
 ) where {T, N} = AcousticCDCPMLWaveSimulation(
     params,
     matprop,
     cpmlparams;
+    runparams=runparams,
     kwargs...
 )
 
@@ -46,11 +49,13 @@ build_concrete_wavesim(
     params::InputParametersAcoustic{T, N},
     matprop::VpRhoAcousticVDMaterialProperties{T, N},
     cpmlparams::CPMLBoundaryConditionParameters;
+    runparams::RunParameters,
     kwargs...
 ) where {T, N} = AcousticVDStaggeredCPMLWaveSimulation(
     params,
     matprop,
     cpmlparams;
+    runparams=runparams,
     kwargs...
 )
 
@@ -58,11 +63,13 @@ build_concrete_wavesim(
     params::InputParametersElastic{T, N},
     matprop::ElasticIsoMaterialProperties{T, N},
     cpmlparams::CPMLBoundaryConditionParameters{T};
+    runparams::RunParameters,
     kwargs...
 ) where {T, N} = ElasticIsoCPMLWaveSimulation(
     params,
     matprop,
     cpmlparams;
+    runparams=runparams,
     kwargs...
 )
 

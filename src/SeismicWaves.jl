@@ -12,6 +12,7 @@ using Interpolations
 export WaveSimulation
 # input parameters
 export InputParameters, InputParametersAcoustic, InputParametersElastic
+export RunParameters
 # boundary conditions
 export InputBoundaryConditionParameters
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
@@ -55,6 +56,7 @@ end
 
 include("utils/abstract_types.jl")
 
+
 # Traits
 include("traits/boundarycondition.jl")
 include("traits/shooting.jl")
@@ -69,6 +71,7 @@ include("utils/checks.jl")
 include("utils/fields.jl")
 include("utils/checkpointers.jl")
 include("utils/snapshotter.jl")
+include("utils/runparameters.jl")
 
 # Shots
 include("shots/sources.jl")

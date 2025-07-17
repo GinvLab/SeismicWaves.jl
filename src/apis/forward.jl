@@ -34,17 +34,18 @@ function swforward!(
     params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
-    parall::Symbol=:threads,
-    snapevery::Union{Int, Nothing}=nothing,
-    infoevery::Union{Int, Nothing}=nothing,
-    logger::Union{Nothing, AbstractLogger}=nothing
+    runparams::RunParameters
+    # parall::Symbol=:threads,
+    # snapevery::Union{Int, Nothing}=nothing,
+    # infoevery::Union{Int, Nothing}=nothing,
+    # logger::Union{Nothing, AbstractLogger}=nothing
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
-    if logger === nothing
-        logger = current_logger()
-    end
-    return with_logger(logger) do
+   
+    return with_logger(runparams.logger) do
         # Build wavesim
-        wavesim = build_wavesim(params, matprop; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
+        wavesim = build_wavesim(params, matprop;
+                                runparams=runparams,
+                                gradient=false)
         # Solve simulation
         run_swforward!(wavesim, matprop, shots)
     end
@@ -73,14 +74,14 @@ function swforward!(
     wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
-    logger::Union{Nothing, AbstractLogger}=nothing,
-    kwargs...
+    #logger::Union{Nothing, AbstractLogger}=nothing,
+    #kwargs...
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
-    if logger === nothing
-        logger = current_logger()
-    end
-    return with_logger(logger) do
-        run_swforward!(wavesim, matprop, shots; kwargs...)
+    # if logger === nothing
+    #     logger = current_logger()
+    # end
+    return with_logger(wavesim.runparams.logger) do
+        run_swforward!(wavesim, matprop, shots)   #; kwargs...)
     end
 end
 
@@ -88,23 +89,23 @@ end
 
 ## single WaveSimulation object
 function run_swforward!(
-    model::WaveSimulation{T, N},
+    wavesim::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-    check_sim_consistency(model, matprop, shots)
+    check_sim_consistency(wavesim, matprop, shots)
 
     # Set wavesim material properties
     # Remark: matprop in wavesim are mutated
     @debug "Setting wavesim material properties"
-    set_wavesim_matprop!(model, matprop)
+    set_wavesim_matprop!(wavesim, matprop)
     # Now onwards matprop from "outside" should not be used anymore!!!
 
     # Snapshots setup
-    takesnapshots = snapenabled(model)
+    takesnapshots = snapenabled(wavesim)
     if takesnapshots
         snapshots_per_shot = []
     end
@@ -114,14 +115,14 @@ function run_swforward!(
         @info "Shot #$s"
         # Initialize shot
         @debug "Initializing shot"
-        init_shot!(model, singleshot)
+        init_shot!(wavesim, singleshot)
         # Compute forward solver
         @info "Computing forward solver"
-        swforward_1shot!(model, singleshot)
+        swforward_1shot!(wavesim, singleshot)
         # Save shot's snapshots
         if takesnapshots
             @info "Saving snapshots"
-            push!(snapshots_per_shot, deepcopy(model.snapshotter.snapshots))
+            push!(snapshots_per_shot, deepcopy(wavesim.snapshotter.snapshots))
         end
     end
 
@@ -133,11 +134,11 @@ end
 
 ## :threadpersrc, multiple WaveSimulation objects
 function run_swforward!(
-    model::Vector{<:WaveSimulation{T, N}},
+    wavesim::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}, Nothing}} where {T, N}
-    nwsim = length(model)
+    nwsim = length(wavesim)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
     @assert nthr == nwsim
@@ -146,15 +147,15 @@ function run_swforward!(
     for w in 1:nwsim
         # Check wavesim consistency
         @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-        check_sim_consistency(model[w], matprop, shots)
+        check_sim_consistency(wavesim[w], matprop, shots)
         # Set wavesim material properties
         # Remark: matprop in wavesim are mutated
         @debug "Setting wavesim material properties"
-        set_wavesim_matprop!(model[w], matprop)
+        set_wavesim_matprop!(wavesim[w], matprop)
         # Now onwards matprop from outside should not be used anymore!!!
 
         # Snapshots setup
-        if snapenabled(model[w])
+        if snapenabled(wavesim[w])
             snapshots_per_shot[w] = []
         end
     end
@@ -170,14 +171,14 @@ function run_swforward!(
             singleshot = shots[s]
             # Initialize shot
             @debug "Initializing shot"
-            init_shot!(model[w], singleshot)
+            init_shot!(wavesim[w], singleshot)
             # Compute forward solver
             @info "Computing forward solver"
-            swforward_1shot!(model[w], singleshot)
+            swforward_1shot!(wavesim[w], singleshot)
             # Save shot's snapshots
-            if snapenabled(model[w])
+            if snapenabled(wavesim[w])
                 @info "Saving snapshots"
-                push!(snapshots_per_shot[w], deepcopy(model.snapshotter.snapshots))
+                push!(snapshots_per_shot[w], deepcopy(wavesim.snapshotter.snapshots))
             end
         end
     end

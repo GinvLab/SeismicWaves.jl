@@ -35,7 +35,7 @@ end
 function savesnapshot!(snapshotter::LinearSnapshotter{T, N}, field::Pair{String, <:AbstractField{T}}, it::Int) where {T, N}
     # Save field in snapshots
     if it % snapshotter.snapevery == 0
-        @info @sprintf("Field: %s, snapping iteration: %d", field.first, it)
+        @debug @sprintf("Field: %s, snapping iteration: %d", field.first, it)
         copyto!(snapshotter.snapshots[it][field.first], field.second)
     end
 end

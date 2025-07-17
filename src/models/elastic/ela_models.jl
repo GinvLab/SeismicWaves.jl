@@ -79,10 +79,11 @@ function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIs
     tmp = sqrt.(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp * 7 / 6  # 7/6 comes from the higher order stencil
     @info "Courant number: $(courant)"
-    if courant > 1
+    if model.runparams.erroronCFL
+        @assert courant > 1
+    elseif courant > 1
         @warn "Courant condition not satisfied! [$(courant)]"
     end
-
     return
 end
 
@@ -101,10 +102,14 @@ function check_numerics(
     h_max = maximum(model.grid.spacing)
     fmax = shot.srcs.domfreq * 2.0
     ppw = vel_min / (fmax * h_max)
+    
     @info "Points per wavelength: $(ppw)"
-
     dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
-    @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
+    if model.runparams.erroronPPW
+        @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
+    elseif ppw >= min_ppw
+        @warn "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
+    end
     return
 end
 
@@ -172,14 +177,19 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         params::InputParametersElastic{T, N},
         matprop::ElasticIsoMaterialProperties{T, N},
         cpmlparams::CPMLBoundaryConditionParameters{T};
-        parall::Symbol=:threads,
+        runparams::RunParameters,
         gradient::Bool=false,
         check_freq::Union{Int, Nothing}=nothing,
-        snapevery::Union{Int, Nothing}=nothing,
-        infoevery::Union{Int, Nothing}=nothing,
-        smooth_radius::Int=5,
+        smooth_radius::Int=0,
         sincinterp::Bool=true
+        #parall::Symbol=:threads,
+        #snapevery::Union{Int, Nothing}=nothing,
+        #infoevery::Union{Int, Nothing}=nothing,
     ) where {T, N}
+        # Run parameters
+        parall=runparams.parall
+        snapevery=runparams.snapevery
+        infoevery=runparams.infoevery
         # Extract params
         nt = params.ntimesteps
         dt = params.dt
