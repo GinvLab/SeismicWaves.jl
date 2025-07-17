@@ -8,14 +8,8 @@ end
     # Compute bulk strain tensor components
     ε_xx     = ∂x4th(ux,    (i-1, j), _Δx; half=true)
     ε_xx_adj = ∂x4th(adjux, (i-1, j), _Δx; half=true)
-    ε_zz     = ∂y4th(uz,    (i, j-1), _Δz; half=true)
-    ε_zz_adj = ∂y4th(adjuz, (i, j-1), _Δz; half=true)
-    # Free surface boundary condition
-    if freetop && j == 1
-        boundary_factor = -(λ[i,j] / (λ[i,j] + 2*μ[i,j]))
-        ε_zz = boundary_factor * ε_xx
-        ε_zz_adj = boundary_factor * ε_xx_adj
-    end
+    ε_zz     = ∂y4th(uz,    (i, j-1), _Δz; half=true, mlb=freetop)
+    ε_zz_adj = ∂y4th(adjuz, (i, j-1), _Δz; half=true, mlb=freetop)
     # Compute divergence of displacement
     div_u = ε_xx + ε_zz
     div_u_adj = ε_xx_adj + ε_zz_adj
@@ -26,12 +20,12 @@ end
     return nothing
 end
 
-@parallel_indices (i, j) function correlate_gradient_μ_ihalf_jhalf_kernel!(grad_μ_ihalf_jhalf, adjux, adjuz, ux, uz, _Δx, _Δz)
+@parallel_indices (i, j) function correlate_gradient_μ_ihalf_jhalf_kernel!(grad_μ_ihalf_jhalf, adjux, adjuz, ux, uz, _Δx, _Δz, freetop)
     # Compute shear strain tensor components
     ε_xz     = (∂x4th(uz,    (i, j), _Δx; half=false) +
-                ∂y4th(ux,    (i, j), _Δz; half=false)) / 2
+                ∂y4th(ux,    (i, j), _Δz; half=false, mlb=freetop)) / 2
     ε_xz_adj = (∂x4th(adjuz, (i, j), _Δx; half=false) +
-                ∂y4th(adjux, (i, j), _Δz; half=false)) / 2
+                ∂y4th(adjux, (i, j), _Δz; half=false, mlb=freetop)) / 2
     ε_zx = ε_xz
     ε_zx_adj = ε_xz_adj
     # Accumulate gradients
@@ -69,6 +63,7 @@ function correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, dt, freetop
         grid.fields["grad_μ_ihalf_jhalf"].value,
         grid.fields["adjucur"].value...,
         ucur_corr...,
-        (1 ./ grid.spacing)...
+        (1 ./ grid.spacing)...,
+        freetop
     )
 end
