@@ -14,7 +14,7 @@ function swgradient_1shot!(
     # Get computational grid, checkpointer and backend
     grid = model.grid
     checkpointer = model.checkpointer
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -26,21 +26,22 @@ function swgradient_1shot!(
     # Reset wavesim
     reset!(model)
 
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
         backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjforw)
         # Save checkpoint
         savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], it)
         savecheckpoint!(checkpointer, "ψ" => grid.fields["ψ"], it)
         savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], it)
     end
 
-    @info "Saving seismograms"
+    @debug "Saving seismograms"
     copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
@@ -55,9 +56,7 @@ function swgradient_1shot!(
         # Compute one adjoint step
         backend.adjoint_onestep_CPML!(model, posrecs_bk, residuals_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Backward iteration: %d", it)
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjback)
         # Check if out of save buffer
         if !issaved(checkpointer, "pcur", it - 2)
             @debug @sprintf("Out of save buffer at iteration: %d", it)
@@ -119,14 +118,15 @@ function swgradient_1shot!(
     # Reset wavesim
     reset!(model)
 
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
         backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjforw)
         # Save checkpoint
         savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], it)
         savecheckpoint!(checkpointer, "vcur" => grid.fields["vcur"], it)
@@ -134,7 +134,7 @@ function swgradient_1shot!(
         savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], it)
     end
 
-    @info "Saving seismograms"
+    @debug "Saving seismograms"
     copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
@@ -149,9 +149,7 @@ function swgradient_1shot!(
         # Compute one adjoint step
         backend.adjoint_onestep_CPML!(model, posrecs_bk, residuals_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Backward iteration: %d", it)
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjback)
         # Check if out of save buffer
         if !issaved(checkpointer, "pcur", it - 1)
             @debug @sprintf("Out of save buffer at iteration: %d", it)

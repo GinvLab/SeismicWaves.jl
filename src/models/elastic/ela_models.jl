@@ -80,7 +80,7 @@ function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIs
     courant = vel_max * model.dt * tmp * 7 / 6  # 7/6 comes from the higher order stencil
     @info "Courant number: $(courant)"
     if model.runparams.erroronCFL
-        @assert courant > 1
+        @assert courant < 1
     elseif courant > 1
         @warn "Courant condition not satisfied! [$(courant)]"
     end
@@ -107,7 +107,7 @@ function check_numerics(
     dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
     if model.runparams.erroronPPW
         @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
-    elseif ppw >= min_ppw
+    elseif ppw <= min_ppw
         @warn "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
     end
     return
@@ -156,8 +156,10 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # Logging parameters
-    infoevery::Int
+    # # Logging parameters
+    # infoevery::Int
+    # Run parameters
+    runparams::RunParameters
     # Material properties
     matprop::ElasticIsoMaterialProperties{T, N}
     # CPML coefficients
@@ -170,8 +172,8 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     sincinterp::Bool
     # Snapshotter setup
     snapshotter::Union{Nothing, LinearSnapshotter{T, N, Array{T, N}}}
-    # Parallelization type
-    parall::Symbol
+    # # Parallelization type
+    # parall::Symbol
 
     function ElasticIsoCPMLWaveSimulation(
         params::InputParametersElastic{T, N},
@@ -186,10 +188,6 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         #snapevery::Union{Int, Nothing}=nothing,
         #infoevery::Union{Int, Nothing}=nothing,
     ) where {T, N}
-        # Run parameters
-        parall=runparams.parall
-        snapevery=runparams.snapevery
-        infoevery=runparams.infoevery
         # Extract params
         nt = params.ntimesteps
         dt = params.dt
@@ -203,7 +201,7 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         @assert all(n -> n >= 2halo + 3, gridsize_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
-        backend = select_backend(ElasticIsoCPMLWaveSimulation{T, N}, parall)
+        backend = select_backend(ElasticIsoCPMLWaveSimulation{T, N}, runparams.parall)
         A = backend.Data.Array{T, N}
         V = backend.Data.Array{T, 1}
         # Initialize computational grid
@@ -370,9 +368,9 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             error("Only elastic 2D is currently implemented.")
         end
 
-        if snapevery !== nothing
+        if runparams.snapevery !== nothing
             # Initialize snapshotter
-            snapshotter = LinearSnapshotter{Array{T, N}}(nt, snapevery, Dict(
+            snapshotter = LinearSnapshotter{Array{T, N}}(nt, runparams.snapevery, Dict(
                 "ucur" => MultiVariableField(
                     [
                         backend.zeros(T, (gridsize .- [1, 0])...),  # ux
@@ -390,10 +388,10 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         end
 
         # Check infoevery
-        if infoevery === nothing
-            infoevery = nt + 2  # never reach it
+        if runparams.infoevery === nothing
+            runparams.infoevery = nt + 2  # never reach it
         else
-            @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
+            @assert runparams.infoevery >= 1 && runparams.infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
         # Deep copy the material properties
@@ -405,14 +403,15 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             nt,
             dt,
             grid,
-            infoevery,
+            runparams,
+            #infoevery,
             matprop,
             cpmlcoeffs,
             gradient ? checkpointer : nothing,
             smooth_radius,
             sincinterp,
-            snapevery === nothing ? nothing : snapshotter,
-            parall
+            runparams.snapevery === nothing ? nothing : snapshotter,
+            #parall
         )
     end
 end

@@ -83,31 +83,29 @@ function exacouprob(parall=:serial)
     ##============================================
     ## Input parameters for acoustic simulation
     snapevery = 50
-    infoevery = 500
+    infoevery = 200
     boundcond = CPMLBoundaryConditionParameters(; halo=20, rcoef=0.0001, freeboundtop=true)
     params = InputParametersAcoustic(nt, dt, (nx, nz), (dh, dh), boundcond)
 
     #@show (boundcond.halo-1)*dh
     ##===============================================
     ##parall = :threads
-    logger = ConsoleLogger(Error)
+    logger = ConsoleLogger(Info)
+    runparams = RunParameters(parall=:threads,infoevery=infoevery,snapevery=snapevery,logger=logger)
+
     ## compute the seismograms
     @time snapshots = swforward!(params,
-        matprop,
-        shots;
-        parall=parall,
-        infoevery=infoevery,
-        logger=logger)
-    #snapevery=snapevery)
-
+                                 matprop,
+                                 shots;
+                                 runparams=runparams
+                                 )
     seis = copy(shots[1].recs.seismograms)
 
     @time snapshots = swforward!(params,
-        matprop,
-        shots;
-        parall=parall,
-        infoevery=infoevery,
-        logger=logger)
+                                 matprop,
+                                 shots;
+                                 runparams=runparams
+                                 )
     #snapevery=snapevery)
 
     seis2 = copy(shots[1].recs.seismograms)
@@ -132,8 +130,7 @@ function exacouprob(parall=:serial)
     @time grad = swgradient!(params,
         matprop_grad,
         shots_grad;
-        parall=parall,
-        logger=logger)
+        runparams=runparams)
 
     return params, velmod, shots#, snapshots, grad
 end

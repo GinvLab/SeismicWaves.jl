@@ -14,7 +14,7 @@ function swforward_1shot!(
     momtens = shot.srcs.momtens
 
     # Get computational grid and backend
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -45,6 +45,9 @@ function swforward_1shot!(
     # Reset wavesim
     reset!(model)
 
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+
     # Time loop
     for it in 1:nt
         backend.forward_onestep_CPML!(model,
@@ -66,17 +69,7 @@ function swforward_1shot!(
             save_trace=true)
 
         # Print timestep info
-        if it % model.infoevery == 0
-            # Move the cursor to the beginning to overwrite last line
-            # ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
-            # REPL.Terminals.clear_line(ter)
-            # REPL.Terminals.cmove_line_up(ter)
-            @info @sprintf(
-                "Iteration: %d/%d, simulation time: %g s",
-                it, nt,
-                model.dt * (it - 1)
-            )
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:forw)
 
         # Save snapshot
         if snapenabled(model)
@@ -103,7 +96,7 @@ end
 #     scal_srctf = possrcrec_scaletf(model, shot; sincinterp=model.sincinterp)
 
 #     # Get computational grid and backend
-#     backend = select_backend(typeof(model), model.parall)
+#     backend = select_backend(typeof(model), model.runparams.parall)
 
 #     # Numerics
 #     nt = model.nt
@@ -128,7 +121,10 @@ end
 #     # Reset wavesim
 #     reset!(model)
 
-#     # Time loop
+#     # Setup the print output 
+#     ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+
+# Time loop
 #     for it in 1:nt
 #         backend.forward_onestep_CPML!(
 #             model,
@@ -149,17 +145,7 @@ end
 #             save_trace=true)
 
 #         # Print timestep info
-#         if it % model.infoevery == 0
-#             # Move the cursor to the beginning to overwrite last line
-#             # ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
-#             # REPL.Terminals.clear_line(ter)
-#             # REPL.Terminals.cmove_line_up(ter)
-#             @info @sprintf(
-#                 "Iteration: %d/%d, simulation time: %g s",
-#                 it, nt,
-#                 model.dt * (it - 1)
-#             )
-#         end
+#         printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:forw)
 
 #         # Save snapshot
 #         if snapenabled(model)

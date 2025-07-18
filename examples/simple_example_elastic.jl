@@ -124,12 +124,16 @@ function exelaprob()
 
     ##===============================================
     ## compute the seismograms
+    runparams = RunParameters(parall=:threads,infoevery=infoevery,snapevery=snapevery)
+
     snapshots = swforward!(params,
-        matprop,
-        shots;
-        parall=:threads,
-        infoevery=infoevery,
-        snapevery=snapevery)
+                           matprop,
+                           shots;
+                           runparams=runparams,
+                           # parall=:threads,
+                           # infoevery=infoevery,
+                           # snapevery=snapevery
+                           )
 
     # ##===============================================
     # ## compute the gradient
@@ -206,6 +210,7 @@ function plotstuff(par, matprop, shots)
     return fig
 end
 
+
 function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     xgrd = [par.gridspacing[1] * (i - 1) for i in 1:par.gridsize[1]]
     ygrd = [par.gridspacing[2] * (i - 1) for i in 1:par.gridsize[2]]
@@ -241,7 +246,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     end
 
     ##=====================================
-    fig = Figure(; size=(800, 1500))
+    fig = Figure(; size=(800, 1200))
 
     nframes = length(vxsnap)
 
@@ -292,7 +297,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     # ax3.yreversed = true
 
     ##
-    display(fig)
+    #display(fig)
     save("first_frame.png", fig)
     ##=====================================
 
@@ -319,6 +324,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
         curvx[], curvz[] = updatefunction(ax1, ax2, vxsnap, vzsnap, it)
         # yield() -> not required with record
     end
+    return fig
 end
 
 ##################################################################
@@ -326,21 +332,16 @@ end
 # global_logger(debug_logger)
 # error_logger = ConsoleLogger(stderr, Logging.Error)
 # global_logger(error_logger)
-info_logger = ConsoleLogger(stderr, Logging.Info)
-global_logger(info_logger)
+# info_logger = ConsoleLogger(stderr, Logging.Info)
+# global_logger(info_logger)
 
 par, matprop, shots, snapsh = exelaprob()
 
 snapanimate(par, matprop, shots, snapsh; scalamp=0.02)
 
 fig = plotstuff(par, matprop, shots)
+display(fig)
 
-# with_logger(error_logger) do
-#     p, v, s, snaps = exacouprob()
-# end
 
-# using Plots
-# heatmap(snaps[6][:,:,20]'; aspect_ratio=:equal, cmap=:RdBu)
-# yaxis!(flip=true)
 
 ##################################################################

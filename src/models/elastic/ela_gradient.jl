@@ -17,7 +17,7 @@ function swgradient_1shot!(
     # Get computational grid, checkpointer and backend
     grid = model.grid
     checkpointer = model.checkpointer
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -71,17 +71,8 @@ function swgradient_1shot!(
         )
 
         # Print timestep info
-        if it % model.infoevery == 0
-            # Move the cursor to the beginning to overwrite last line
-            # ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
-            # REPL.Terminals.clear_line(ter)
-            # REPL.Terminals.cmove_line_up(ter)
-            @info @sprintf(
-                "Iteration: %d/%d, simulation time: %g s",
-                it, nt,
-                model.dt * (it - 1)
-            )
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjforw)
+
         # Save checkpoint
         savecheckpoint!(checkpointer, "ucur" => grid.fields["ucur"], it)
         savecheckpoint!(checkpointer, "ψ_∂σ∂x" => grid.fields["ψ_∂σ∂x"], it)
@@ -111,9 +102,8 @@ function swgradient_1shot!(
             it
         )
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Backward iteration: %d", it)
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjback)
+
         # Check if out of save buffer
         if !issaved(checkpointer, "ucur", it - 2)
             @debug @sprintf("Out of save buffer at iteration: %d", it)
@@ -196,7 +186,7 @@ end
 #     # Get computational grid, checkpointer and backend
 #     grid = model.grid
 #     checkpointer = model.checkpointer
-#     backend = select_backend(typeof(model), model.parall)
+#     backend = select_backend(typeof(model), model.runparams.parall)
 
 #     # Numerics
 #     nt = model.nt
@@ -243,17 +233,8 @@ end
 #         )
 
 #         # Print timestep info
-#         if it % model.infoevery == 0
-#             # Move the cursor to the beginning to overwrite last line
-#             # ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
-#             # REPL.Terminals.clear_line(ter)
-#             # REPL.Terminals.cmove_line_up(ter)
-#             @info @sprintf(
-#                 "Iteration: %d/%d, simulation time: %g s",
-#                 it, nt,
-#                 model.dt * (it - 1)
-#             )
-#         end
+#         printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjforw)
+
 #         # Save checkpoint
 #         savecheckpoint!(checkpointer, "σ" => grid.fields["σ"], it)
 #         savecheckpoint!(checkpointer, "v" => grid.fields["v"], it)
@@ -283,9 +264,8 @@ end
 #             it
 #         )
 #         # Print timestep info
-#         if it % model.infoevery == 0
-#             @info @sprintf("Backward iteration: %d", it)
-#         end
+#         printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjback)
+
 #         # Check if out of save buffer
 #         if !issaved(checkpointer, "v", it - 1)
 #             @debug @sprintf("Out of save buffer at iteration: %d", it)

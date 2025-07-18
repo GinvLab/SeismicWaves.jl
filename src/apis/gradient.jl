@@ -121,6 +121,8 @@ function run_swgradient!(
 )::Union{Dict{String, Array{T, N}},
     Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
 
+    @info ">=====  Gradient computation  ======<"
+
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
     check_sim_consistency(wavesim, matprop, shots)
@@ -168,6 +170,8 @@ function run_swgradient!(
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
     @assert Threads.nthreads() == nwsim
+
+    @info ">=====  Gradient computation  ======<"
 
     for w in 1:nwsim
         # Check wavesim consistency

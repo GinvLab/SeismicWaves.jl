@@ -94,6 +94,8 @@ function run_swforward!(
     shots::Vector{<:Shot{T}};
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
 
+    @info ">=====  Forward simulation  ======<"
+
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
     check_sim_consistency(wavesim, matprop, shots)
@@ -112,12 +114,12 @@ function run_swforward!(
 
     # Shots loop
     for (s, singleshot) in enumerate(shots)
-        @info "Shot #$s"
+        @info "-- Shot #$s --"
         # Initialize shot
         @debug "Initializing shot"
         init_shot!(wavesim, singleshot)
         # Compute forward solver
-        @info "Computing forward solver"
+        @debug "Forward solver"
         swforward_1shot!(wavesim, singleshot)
         # Save shot's snapshots
         if takesnapshots
@@ -143,6 +145,8 @@ function run_swforward!(
     # make sure the number of threads has not changed!
     @assert nthr == nwsim
 
+    @info ">=====  Forward simulation  ======<"
+
     snapshots_per_shot = Dict{Int, Vector}()
     for w in 1:nwsim
         # Check wavesim consistency
@@ -167,13 +171,13 @@ function run_swforward!(
     Threads.@threads for w in 1:nwsim
         # loop on the subset of shots per each WaveSimulation 
         for s in grpshots[w]
-            @info "Shot #$s"
+            @info "-- Shot #$s --"
             singleshot = shots[s]
             # Initialize shot
             @debug "Initializing shot"
             init_shot!(wavesim[w], singleshot)
             # Compute forward solver
-            @info "Computing forward solver"
+            @debug "Forward solver"
             swforward_1shot!(wavesim[w], singleshot)
             # Save shot's snapshots
             if snapenabled(wavesim[w])
