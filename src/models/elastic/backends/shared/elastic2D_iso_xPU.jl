@@ -5,11 +5,8 @@
 )
     # Compute partial derivatives
     ∂σxx∂x = ∂̃x4th(σxx, a_x_half, b_x_half, ψ_∂σxx∂x, (i, j), _Δx, halo; half=false)
-    if freetop # if free surface, mirror the top boundary
-        ∂σxz∂z = ∂̃y4th(σxz, a_z, b_z, ψ_∂σxz∂z, (i, j-1), _Δz, halo; half=true, mlb=true)
-    else
-        ∂σxz∂z = ∂̃y4th(σxz, a_z, b_z, ψ_∂σxz∂z, (i, j-1), _Δz, halo; half=true)
-    end
+    # if free surface, mirror the top boundary
+    ∂σxz∂z = ∂̃y4th(σxz, a_z, b_z, ψ_∂σxz∂z, (i, j-1), _Δz, halo; half=true, mlb=freetop)
     # Update displacement
     uxnew[i, j] = 2*uxcur[i, j] - uxold[i, j] + Δt^2 / ρ_ihalf[i,j] * (∂σxx∂x + ∂σxz∂z)
 
@@ -23,11 +20,8 @@ end
 )
     # Compute partial derivatives
     ∂σxz∂x = ∂̃x4th(σxz, a_x, b_x, ψ_∂σxz∂x, (i-1, j), _Δx, halo; half=true)
-    if freetop # if free surface, mirror the top boundary
-        ∂σzz∂z = ∂̃y4th(σzz, a_z_half, b_z_half, ψ_∂σzz∂z, (i, j), _Δz, halo; half=false, mlb=true)
-    else
-        ∂σzz∂z = ∂̃y4th(σzz, a_z_half, b_z_half, ψ_∂σzz∂z, (i, j), _Δz, halo; half=false)
-    end
+    # if free surface, mirror the top boundary
+    ∂σzz∂z = ∂̃y4th(σzz, a_z_half, b_z_half, ψ_∂σzz∂z, (i, j), _Δz, halo; half=false, mlb=freetop)
     # Update displacement
     uznew[i, j] = 2*uzcur[i, j] - uzold[i, j] + Δt^2 / ρ_jhalf[i,j] * (∂σzz∂z + ∂σxz∂x)
 
@@ -41,30 +35,24 @@ end
 )
     # Compute partial derivatives
     ∂ux∂x = ∂̃x4th(ux, a_x, b_x, ψ_∂ux∂x, (i-1, j), _Δx, halo; half=true)
-    ∂uz∂z = ∂̃y4th(uz, a_z, b_z, ψ_∂uz∂z, (i, j-1), _Δz, halo; half=true)
-    # Free surface boundary conditions
-    if freetop && j == 1
-        boundary_factor = -(λ[i,j] / (λ[i,j] + 2*μ[i,j]))
-        ∂uz∂z = boundary_factor * ∂ux∂x
-        σxx[i, j] = (λ[i,j] + 2*μ[i,j]) * ∂ux∂x + λ[i,j] * ∂uz∂z
-        σzz[i, j] = 0
-    else
-        σxx[i, j] = (λ[i,j] + 2*μ[i,j]) * ∂ux∂x + λ[i,j] * ∂uz∂z
-        σzz[i, j] = λ[i,j] * ∂ux∂x + (λ[i,j] + 2*μ[i,j]) * ∂uz∂z
-    end
+    ∂uz∂z = ∂̃y4th(uz, a_z, b_z, ψ_∂uz∂z, (i, j-1), _Δz, halo; half=true, mlb=freetop)
+    # Update normal stress
+    σxx[i, j] = (λ[i,j] + 2*μ[i,j]) * ∂ux∂x + λ[i,j] * ∂uz∂z
+    σzz[i, j] = λ[i,j] * ∂ux∂x + (λ[i,j] + 2*μ[i,j]) * ∂uz∂z
 
     return nothing
 end
 
 @parallel_indices (i, j) function update_σxz!(
     σxz, ux, uz, μ_ihalf_jhalf, _Δx, _Δz,
-    halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x
+    halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
+    freetop
 )
     # Compute partial derivatives
-    ∂ux∂y = ∂̃y4th(ux, a_z_half, b_z_half, ψ_∂ux∂z, (i, j), _Δz, halo; half=false)
+    ∂ux∂z = ∂̃y4th(ux, a_z_half, b_z_half, ψ_∂ux∂z, (i, j), _Δz, halo; half=false, mlb=freetop)
     ∂uz∂x = ∂̃x4th(uz, a_x_half, b_x_half, ψ_∂uz∂x, (i, j), _Δx, halo; half=false)
     # Update shear stress
-    σxz[i, j] = μ_ihalf_jhalf[i,j] * (∂ux∂y + ∂uz∂x)
+    σxz[i, j] = μ_ihalf_jhalf[i,j] * (∂ux∂z + ∂uz∂x)
 
     return nothing
 end
@@ -179,7 +167,8 @@ function forward_onestep_CPML!(
     # Update shear stress
     @parallel (1:nx-1, 1:nz-1) update_σxz!(
         σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz,
-        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x
+        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
+        freetop
     )
 
     # Inject sources (moment tensor type of internal force)
@@ -287,7 +276,8 @@ function adjoint_onestep_CPML!(
     # Update shear stress
     @parallel (1:nx-1, 1:nz-1) update_σxz!(
         σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz,
-        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x
+        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
+        freetop
     )
 
     # Update displacements

@@ -61,7 +61,7 @@ function get_coeffs_shifted_indices(
     c::NTuple{O, T}, s::NTuple{O, Int},
     i::Int, lb::Int, ub::Int, mlb::Bool, mub::Bool, half::Bool
 )::Tuple{NTuple{O, T}, NTuple{O, Int}} where {T, O}
-    new_coeffs = ntuple(j -> lb <= i + s[j] <= ub ? c[j] : (i + s[j] < lb ? (!mlb ? zero(T) : -c[j]) : (!mub ? zero(T) : -c[j])), Val(O))
+    new_coeffs = ntuple(j -> lb <= i + s[j] <= ub ? c[j] : (i + s[j] < lb ? (!mlb ? zero(T) : (!half ? -c[j] : c[j]) ) : (!mub ? zero(T) : (!half ? -c[j] : c[j]))), Val(O))
     shifted_indices = ntuple(j -> lb <= i + s[j] <= ub ? i + s[j] : (i + s[j] < lb ? (!mlb ? lb : (!half ? lb + (lb - (i + s[j])) : lb + (lb - (i + s[j])) - 1)) : (!mub ? ub : (!half ? ub - (i + s[j] - ub) : ub - (i + s[j] - ub) + 1))), Val(O))
     return new_coeffs, shifted_indices
 end
