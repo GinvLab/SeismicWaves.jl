@@ -20,7 +20,7 @@ function calcmisfit(shotmisfit::L2Misfit,recs::ScalarReceivers{T}) where {T}
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
     mask = ones(T, size(residuals, 1))
-    if length(recs.windows) > 0
+    if length(shotmisfit.windows) > 0
         for wnd in  shotmisfit.windows
             mask[wnd.first:wnd.second] .= 2
         end
@@ -41,7 +41,7 @@ function calcmisfit(shotmisfit::L2Misfit,recs::VectorReceivers{T, N}) where {T, 
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
     mask = ones(T, size(residuals, 1))
-    if length(recs.windows) > 0
+    if length(shotmisfit.windows) > 0
         for wnd in shotmisfit.windows
             mask[wnd.first:wnd.second] .= 2
         end

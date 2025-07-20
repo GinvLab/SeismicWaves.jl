@@ -1,8 +1,3 @@
-using Test
-using DSP, NumericalIntegration, LinearAlgebra
-using CUDA: CUDA
-using Logging
-using SeismicWaves
 
 with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     test_backends = [:threads]
@@ -14,9 +9,13 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :AMDGPU)
     end
 
+
     @testset "Test gradient (elastic homogeneous)" begin
 
     for parall in test_backends
+        # parallelisation
+        runparams = RunParameters(parall=parall)
+
         @testset "Test 2D (P-SV) $(parall) swgradient! with compute misfit" begin
             # Physics
             ρ0 = 2100.0
@@ -34,19 +33,20 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = ceil(Int, T / dt)
             halo = 20
             rcoef = 0.0001
-            params, shots, matprop = setup_constant_elastic_2D_CPML(nt, dt, nx, nz, dx, dz, ρ0, λ0, μ0, halo, rcoef, f0)
+            params, shots, misfitobj, matprop = setup_constant_elastic_2D_CPML(nt, dt, nx, nz, dx, dz, ρ0, λ0, μ0, halo, rcoef, f0)
 
             # Compute gradient and misfit
             grad, misfit = swgradient!(
                 params,
                 matprop,
-                shots;
-                parall=parall,
+                shots,
+                misfitobj;
+                runparams=runparams,
                 check_freq=nothing,
                 compute_misfit=true
             )
             # Compute only misfit
-            misfit_check = swmisfit!(params, matprop, shots; parall=parall)
+            misfit_check = swmisfit!(params, matprop, shots, misfitobj; runparams=runparams)
 
             # Check that gradient is non zero
             @test !all(g -> g == 0.0, grad["rho"])
@@ -59,7 +59,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test misfit ≈ misfit_check
         end
 
-        @testset "Test 2D (P-SV) $(parall) swgradient! checkpointing" begin
+        @testset "Test 2D (P-SV) $(runparams.parall) swgradient! checkpointing" begin
             # Physics
             ρ0 = 2100.0
             vp0 = 3210.5
@@ -76,14 +76,15 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = ceil(Int, T / dt)
             halo = 20
             rcoef = 0.0001
-            params, shots, matprop = setup_constant_elastic_2D_CPML(nt, dt, nx, nz, dx, dz, ρ0, λ0, μ0, halo, rcoef, f0)
+            params, shots, misfitobj, matprop = setup_constant_elastic_2D_CPML(nt, dt, nx, nz, dx, dz, ρ0, λ0, μ0, halo, rcoef, f0)
 
             # Compute gradient and misfit with checkpointing
             grad, misfit = swgradient!(
                 params,
                 matprop,
-                shots;
-                parall=parall,
+                shots,
+                misfitobj;
+                runparams=runparams,
                 check_freq=floor(Int, sqrt(nt)),
                 compute_misfit=true
             )
@@ -91,8 +92,9 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             grad_check, misfit_check = swgradient!(
                 params,
                 matprop,
-                shots;
-                parall=parall,
+                shots,
+                misfitobj;
+                runparams=runparams,
                 check_freq=nothing,
                 compute_misfit=true
             )

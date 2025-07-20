@@ -1,7 +1,7 @@
 
 
 function printinfoiter(ter::REPL.Terminals.TTYTerminal,it::Integer,nt::Integer,
-                       infoevery::Integer,dt::Real,kind::Symbol)
+                       infoevery::Union{Integer,Nothing},dt::Real,kind::Symbol)
     
     if kind==:forw || kind==:adjforw
         pit = it
@@ -9,7 +9,7 @@ function printinfoiter(ter::REPL.Terminals.TTYTerminal,it::Integer,nt::Integer,
         pit = nt-it+1
     end
 
-    if pit % infoevery == 0 || pit==1
+    if infoevery!=nothing  && (pit % infoevery == 0 || pit==1) 
         if pit!=1
             REPL.Terminals.clear_line(ter)
             REPL.Terminals.cmove_line_up(ter)

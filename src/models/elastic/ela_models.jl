@@ -80,7 +80,7 @@ function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIs
     courant = vel_max * model.dt * tmp * 7 / 6  # 7/6 comes from the higher order stencil
     @info "Courant number: $(courant)"
     if model.runparams.erroronCFL
-        @assert courant < 1
+        @assert courant < 1 "Courant condition not satisfied! [$(courant)]"
     elseif courant > 1
         @warn "Courant condition not satisfied! [$(courant)]"
     end
@@ -107,7 +107,7 @@ function check_numerics(
     dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
     if model.runparams.erroronPPW
         @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
-    elseif ppw <= min_ppw
+    elseif ppw < min_ppw
         @warn "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
     end
     return
@@ -388,12 +388,10 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         end
 
         # Check infoevery
-        if runparams.infoevery === nothing
-            runparams.infoevery = nt + 2  # never reach it
-        else
+        if runparams.infoevery != nothing
             @assert runparams.infoevery >= 1 && runparams.infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
-
+        
         # Deep copy the material properties
         matprop = deepcopy(matprop)
 

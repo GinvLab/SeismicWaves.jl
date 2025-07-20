@@ -8,7 +8,7 @@ function check_courant_condition(model::AcousticWaveSimulation{T, N}, vp::Array{
     courant = vel_max * model.dt * tmp
     @info "Courant number: $(courant)"
     if model.runparams.erroronCFL
-        @assert courant < 1
+        @assert courant < 1 "Courant condition not satisfied! [$(courant)]"
     elseif courant > 1
         @warn "Courant condition not satisfied! [$(courant)]"
     end
@@ -30,7 +30,7 @@ function check_numerics(
     dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
     if model.runparams.erroronPPW
         @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
-    elseif ppw <= min_ppw
+    elseif ppw < min_ppw
         @warn "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
     end
     return
@@ -184,9 +184,8 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             snapshotter = LinearSnapshotter{Array{T, N}}(nt, runparams.snapevery, filter(p -> p.first in ["pcur"], grid.fields))
         end
 
-        if runparams.infoevery === nothing
-            runparams.infoevery = nt + 2  # never reach it
-        else
+        # Check infoevery
+        if runparams.infoevery != nothing
             @assert runparams.infoevery >= 1 && runparams.infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
@@ -253,7 +252,7 @@ function check_courant_condition(model::AcousticVDStaggeredWaveSimulation{T, N},
     courant = vel_max * model.dt * tmp * 7 / 6    # 7/6 comes from the higher order stencil
     @info "Courant number: $(courant)"
     if model.runparams.erroronCFL
-        @assert courant > 1
+        @assert courant < 1 "Courant number: $(courant)"
     elseif courant > 1
         @warn "Courant condition not satisfied! [$(courant)]"
     end
@@ -268,13 +267,14 @@ function check_numerics(
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
     h_max = maximum(model.grid.spacing)
-    ppw = vel_min / shot.srcs.domfreq / h_max
+    fmax = shot.srcs.domfreq * 2.0
+    ppw = vel_min / (fmax * h_max)
     
     @info "Points per wavelength: $(ppw)"
     dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
     if model.runparams.erroronPPW
         @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
-    elseif ppw >= min_ppw
+    elseif ppw < min_ppw
         @warn "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
     end
 end
@@ -368,7 +368,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
-        backend = select_backend(AcousticCDCPMLWaveSimulation{T, N}, parall)
+        backend = select_backend(AcousticCDCPMLWaveSimulation{T, N}, runparams.parall)
         A = backend.Data.Array{T, N}
         V = backend.Data.Array{T, 1}
         # Initialize computational grid
@@ -445,9 +445,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         end
 
         # Check infoevery
-        if runparams.infoevery === nothing
-            runparams.infoevery = nt + 2  # never reach it
-        else
+        if runparams.infoevery != nothing
             @assert runparams.infoevery >= 1 && runparams.infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
@@ -466,7 +464,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             cpmlcoeffs,
             gradient ? checkpointer : nothing,
             smooth_radius,
-            snapevery === nothing ? nothing : snapshotter,
+            runparams.snapevery === nothing ? nothing : snapshotter,
             #parall
         )
     end

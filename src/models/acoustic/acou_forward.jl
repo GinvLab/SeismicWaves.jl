@@ -91,7 +91,7 @@ function swforward_1shot!(
 
     # Get computational grid and backend
     grid = model.grid
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -102,6 +102,9 @@ function swforward_1shot!(
     traces_bk = backend.Data.Array(shot.recs.seismograms)
     # Reset wavesim
     reset!(model)
+    
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
 
     # Time loop
     for it in 1:nt

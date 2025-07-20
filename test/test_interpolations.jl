@@ -1,4 +1,4 @@
-using Test
+
 using SeismicWaves: interpolate, interp, ArithmeticAverageInterpolation, HarmonicAverageInterpolation
 using SeismicWaves: ∂f∂m, back_interp
 

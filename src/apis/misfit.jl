@@ -26,19 +26,18 @@ See also [`swforward!`](@ref) and [`swgradient!`](@ref) and [`Shot`](@ref).
 function swmisfit!(
     params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot{T}};
-    parall::Symbol=:threads,
-    misfit::AbstractMisfit=L2Misfit(nothing),
-    logger::Union{Nothing, AbstractLogger}=nothing
+    shots::Vector{<:Shot{T}},
+    misfit::Vector{<:AbstractMisfit};
+    runparams::RunParameters
 )::T where {T, N}
-    if logger === nothing
-        logger = current_logger()
-    end
-    return with_logger(logger) do
+    # if logger === nothing
+    #     logger = current_logger()
+    # end
+    return with_logger(runparams.logger) do
         # Build wavesim
-        wavesim = build_wavesim(params, matprop; parall=parall, gradient=false)
+        wavesim = build_wavesim(params, matprop; runparams=runparams, gradient=false)
         # Compute misfit
-        run_swmisfit!(wavesim, matprop, shots; misfit=misfit)
+        run_swmisfit!(wavesim, matprop, shots, misfit)
     end
 end
 
@@ -66,13 +65,15 @@ Receivers traces are stored in the receivers for each shot. See also [`build_wav
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 See also [`swforward!`](@ref) and [`swgradient!`](@ref) and [`Shot`](@ref).
 """
-function swmisfit!(wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}};
-    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::T where {T, N}
-    if logger === nothing
-        logger = current_logger()
-    end
-    return with_logger(logger) do
-        run_swmisfit!(wavesim, matprop, shots; kwargs...)
+function swmisfit!(wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}}, matprop::MaterialProperties{T, N},
+                   shots::Vector{<:Shot{T}},
+                   misfit::Vector{<:AbstractMisfit}
+    )::T where {T, N}
+    # if logger === nothing
+    #     logger = current_logger()
+    # end
+    return with_logger(wavesim.runparams.logger) do
+        run_swmisfit!(wavesim, matprop, shots, misfit)
     end
 end
 
@@ -82,27 +83,29 @@ end
 
 ## single or multiple WaveSimulation objects
 function run_swmisfit!(
-    model::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
+    wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot{T}};
-    misfit::AbstractMisfit=L2Misfit(nothing)
+    shots::Vector{<:Shot{T}},
+    misfit::Vector{<:AbstractMisfit};
 )::T where {T, N}
 
     # Solve forward model for all shots
-    run_swforward!(model, matprop, shots)
+    run_swforward!(wavesim, matprop, shots)
     # Compute total misfit for all shots
     @info "Computing misfit"
     totmisfitval = 0
-    for singleshot in shots
+    for s in length(shots)
+        singleshot = shots[1]
+        singlemisfit = misfit[1]
         @debug "Checking invcov matrix"
-        if typeof(model) <: Vector{<:WaveSimulation}
-            for i in eachindex(model)
-                check_invcov_matrix(model[i], singleshot.recs.invcov)
+        if typeof(wavesim) <: Vector{<:WaveSimulation}
+            for i in eachindex(wavesim)
+                check_invcov_matrix(wavesim[i], singlemisfit.invcov)
             end
         else
-            check_invcov_matrix(model, singleshot.recs.invcov)
+            check_invcov_matrix(wavesim, singlemisfit.invcov)
         end
-        totmisfitval += misfit(singleshot.recs, matprop)
+        totmisfitval += calcmisfit(singlemisfit, singleshot.recs)
     end
 
     return totmisfitval

@@ -29,6 +29,8 @@ export MomentTensor2D, MomentTensor3D
 export Receivers, ScalarReceivers, VectorReceivers
 # forward, misfit and gradient functions
 export build_wavesim, swforward!, swmisfit!, swgradient!
+# misfits
+export L2Misfit
 # source time functions
 export gaussstf, gaussderivstf, rickerstf
 

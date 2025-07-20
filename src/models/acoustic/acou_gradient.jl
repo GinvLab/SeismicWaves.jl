@@ -107,7 +107,7 @@ function swgradient_1shot!(
     # Get computational grid, checkpointer and backend
     grid = model.grid
     checkpointer = model.checkpointer
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -189,11 +189,9 @@ function swgradient_1shot!(
     mutearoundmultiplepoints!(gradient_m0,shot.recs.positions,grid,model.smooth_radius)
     mutearoundmultiplepoints!(gradient_m1,shot.recs.positions,grid,model.smooth_radius)
 
-    # compute regularization if needed
-    # dχ_dvp, dχ_drho = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
     # Rescale gradients with respect to material properties (chain rule)
     return Dict(
-        "vp" => .-convert(T, 2.0) .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp
-        "rho" => .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho .+ dχ_drho   # grad wrt rho
+        "vp" => .-convert(T, 2.0) .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho), 
+        "rho" => .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho # grad wrt rho
     )
 end

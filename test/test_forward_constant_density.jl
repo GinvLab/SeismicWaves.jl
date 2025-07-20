@@ -1,8 +1,3 @@
-using Test
-using DSP, NumericalIntegration, LinearAlgebra
-using CUDA: CUDA
-using Logging
-using SeismicWaves
 
 with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     test_backends = [:serial, :threads]
@@ -17,21 +12,24 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     @testset "Test forward (acoustic CD)" begin
 
     for parall in test_backends
+        # parallelisation
+        runparams = RunParameters(parall=parall)
+
         @testset "Test 1D $(parall) single precision" begin
             # constant velocity setup
             c0 = 1000.0f0
             nt = 500
             nx = 501
             dx = 2.5f0
-            dt = dx / c0
+            dt = 0.99 * dx / c0
             halo = 0
             rcoef = 1.0f0
             f0 = 5.0f0
-            params, shots, vel = setup_constant_vel_1D_CPML_Float32(nt, dt, nx, dx, c0, f0, halo, rcoef)
+            params, shots, _, vel = setup_constant_vel_1D_CPML_Float32(nt, dt, nx, dx, c0, f0, halo, rcoef)
             times, Gc = analytical_solution_constant_vel_1D(c0, dt, nt, shots[1].srcs, shots[1].recs)
 
             # numerical solution
-            swforward!(params, vel, shots; parall=parall)
+            swforward!(params, vel, shots; runparams=runparams)
             numerical_trace = shots[1].recs.seismograms[:, 1]
 
             @test numerical_trace isa Vector{Float32}
@@ -53,14 +51,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 500
             dx = 2.5
             lx = (nx - 1) * dx
-            dt = dx / c0max
+            dt = 0.99 * dx / c0max
             halo = 20
             rcoef = 0.0001
             f0 = 5.0
             # wave simulation
             params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params, matprop; parall=parall)
+            wavesim = build_wavesim(params, matprop; runparams=runparams)
 
             # single source at 10 grid points from CPML boundary
             times = collect(range(0.0; step=dt, length=nt))
@@ -106,14 +104,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 500
             dx = 2.5
             lx = (nx - 1) * dx
-            dt = dx / c0max
+            dt = 0.99 * dx / c0max
             halo = 20
             rcoef = 0.0001
             f0 = 5.0
             # wave simulation
             params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params, matprop; parall=parall)
+            wavesim = build_wavesim(params, matprop; runparams=runparams)
 
             # multiple sources at differece distances
             times = collect(range(0.0; step=dt, length=nt))
@@ -163,14 +161,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 700
             dx = dy = 2.5
             lx, ly = (nx - 1) * dx, (ny - 1) * dy
-            dt = dx / c0max / sqrt(2)
+            dt = 0.99 * dx / c0max / sqrt(2)
             halo = 20
             rcoef = 0.0001
             f0 = 5.0
             # wave simulation
             params = InputParametersAcoustic(nt, dt, (nx, ny), (dx, dy),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params, matprop; parall=parall)
+            wavesim = build_wavesim(params, matprop; runparams=runparams)
 
             # single source at 10 grid points from top CPML boundary
             times = collect(range(0.0; step=dt, length=nt))
@@ -219,14 +217,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 700
             dx = dy = 2.5
             lx, ly = (nx - 1) * dx, (ny - 1) * dy
-            dt = dx / c0max / sqrt(2)
+            dt = 0.99 * dx / c0max / sqrt(2)
             halo = 20
             rcoef = 0.0001
             f0 = 5.0
             # wave simulation
             params = InputParametersAcoustic(nt, dt, (nx, ny), (dx, dy),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params, matprop; parall=parall)
+            wavesim = build_wavesim(params, matprop; runparams=runparams)
 
             # multiple sources at differece distances
             times = collect(range(0.0; step=dt, length=nt))
