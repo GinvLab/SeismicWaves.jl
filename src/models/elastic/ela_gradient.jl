@@ -163,10 +163,12 @@ function swgradient_1shot!(
                    back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
     gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
     # Smooth gradients
-    nearest_grdpts_src = find_nearest_grid_points(model, shot.srcs.positions)
-    backend.smooth_gradient!(gradient_ρ, nearest_grdpts_src, model.smooth_radius)
-    backend.smooth_gradient!(gradient_λ, nearest_grdpts_src, model.smooth_radius)
-    backend.smooth_gradient!(gradient_μ, nearest_grdpts_src, model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_ρ,shot.srcs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_λ,shot.srcs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_μ,shot.srcs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_ρ,shot.recs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_λ,shot.recs.positions,grid,model.smooth_radius)
+    mutearoundmultiplepoints!(gradient_μ,shot.recs.positions,grid,model.smooth_radius)
     # Compute regularization if needed
     ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
     # Return gradients
@@ -254,25 +256,23 @@ end
 #     @info "Saving seismograms"
 #     copyto!(shot.recs.seismograms, traces_bk)
 
-#     @debug "Computing residuals"
-#     adjoint_src = backend.Data.Array(dχ_du(misfit, shot.recs))
-
 #     @debug "Computing gradients"
 #     # Adjoint time loop (backward in time)
 #     for it in nt:-1:1
 #         # Compute one adjoint step
 #         backend.adjoint_onestep_CPML!(
 #             model,
-#             reccoeij_ux,
-#             reccoeval_ux,
-#             reccoeij_uz,
-#             reccoeval_uz,
-#             adjoint_src,
+#             reccoeij_vx,
+#             reccoeval_vx,
+#             reccoeij_vz,
+#             reccoeval_vz,
+#             residuals_bk,
 #             it
 #         )
 #         # Print timestep info
-#         printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjback)
-
+#         if it % model.infoevery == 0
+#             @info @sprintf("Backward iteration: %d", it)
+#         end
 #         # Check if out of save buffer
 #         if !issaved(checkpointer, "v", it - 1)
 #             @debug @sprintf("Out of save buffer at iteration: %d", it)
@@ -288,18 +288,18 @@ end
 #                 recit -> begin
 #                     backend.forward_onestep_CPML!(
 #                         model,
-#                         srccoeij_ux,
-#                         srccoeval_ux,
-#                         srccoeij_uz,
-#                         srccoeval_uz,
-#                         reccoeij_ux,
-#                         reccoeval_ux,
-#                         reccoeij_uz,
-#                         reccoeval_uz,
+#                         srccoeij_vx,
+#                         srccoeval_vx,
+#                         srccoeij_vz,
+#                         srccoeval_vz,
+#                         reccoeij_vx,
+#                         reccoeval_vx,
+#                         reccoeij_vz,
+#                         reccoeval_vz,
 #                         srctf_bk,
 #                         reduced_buf,
-#                         traces_ux_bk_buf,
-#                         traces_uz_bk_buf,
+#                         traces_vx_bk_buf,
+#                         traces_vz_bk_buf,
 #                         traces_bk,
 #                         recit;
 #                         save_trace=false
@@ -325,15 +325,18 @@ end
 #     gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf"].value), 1) .+
 #                    back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
 #     gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
-#    # Smooth gradients
-#    nearest_grdpts_src = find_nearest_grid_points(model, shot.srcs.positions)
-#    backend.smooth_gradient!(gradient_ρ, nearest_grdpts_src, model.smooth_radius)
-#    backend.smooth_gradient!(gradient_λ, nearest_grdpts_src, model.smooth_radius)
-#    backend.smooth_gradient!(gradient_μ, nearest_grdpts_src, model.smooth_radius)
-#    Compute regularization if needed
-#    ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
-#    # Return gradients
-#    return Dict(
+#     # Smooth gradients
+#     mutearoundmultiplepoints!(gradient_ρ,shot.srcs.positions,grid,model.smooth_radius)
+#     mutearoundmultiplepoints!(gradient_λ,shot.srcs.positions,grid,model.smooth_radius)
+#     mutearoundmultiplepoints!(gradient_μ,shot.srcs.positions,grid,model.smooth_radius)
+#     mutearoundmultiplepoints!(gradient_ρ,shot.recs.positions,grid,model.smooth_radius)
+#     mutearoundmultiplepoints!(gradient_λ,shot.recs.positions,grid,model.smooth_radius)
+#     mutearoundmultiplepoints!(gradient_μ,shot.recs.positions,grid,model.smooth_radius)
+    
+#     # Compute regularization if needed
+#     ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
+#     # Return gradients
+#     return Dict(
 #         "rho" => gradient_ρ .+ ∂χ_∂ρ,
 #         "lambda" => gradient_λ .+ ∂χ_∂λ,
 #         "mu" => gradient_μ .+ ∂χ_∂μ

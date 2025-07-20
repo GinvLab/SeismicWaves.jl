@@ -12,6 +12,6 @@ using SeismicWaves.FDGeneratedFunctions
 include("shared/standard_xPU.jl")
 include("shared/correlate_gradient_xPU.jl")
 include("shared/acoustic1D_xPU.jl")
-include("shared/smooth_gradient_1D.jl")
+
 
 end

@@ -8,6 +8,7 @@ using Logging
 using DocStringExtensions
 using Interpolations
 using REPL
+using StaticArrays
 
 # main struct for wave simulation
 export WaveSimulation
@@ -74,6 +75,7 @@ include("utils/checkpointers.jl")
 include("utils/snapshotter.jl")
 include("utils/runparameters.jl")
 include("utils/printinfo.jl")
+include("utils/mute_grad.jl")
 
 # Shots
 include("shots/sources.jl")
