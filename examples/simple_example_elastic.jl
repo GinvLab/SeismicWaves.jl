@@ -11,7 +11,7 @@ function exelaprob()
 
     ##========================================
     # time stuff
-    nt = 3000 #1500
+    nt = 1500 #1500
     dt = 0.0008
     t = collect(Float64, range(0.0; step=dt, length=nt)) # seconds
     #@show dt,(nt-1)*dt
@@ -112,7 +112,7 @@ function exelaprob()
 
     ##============================================
     ## Input parameters for elastic simulation
-    snapevery = 5
+    snapevery = 200
     infoevery = 100
     freetop = true
     halo = 20
@@ -135,27 +135,28 @@ function exelaprob()
                            # snapevery=snapevery
                            )
 
-    # ##===============================================
-    # ## compute the gradient
-    # shots_grad = Vector{ScalarShot{Float64}}()
-    # for i in 1:nshots
-    #     seis = shots[i].recs.seismograms
-    #     nt = size(seis,1)
-    #     recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
-    #                                 invcov=Diagonal(ones(nt)))
-    #     push!(shots_grad, MomentTensorShot(; srcs=shots[i].srcs, recs=recs_grad))
-    # end
+    ##===============================================
+    ## compute the gradient
+    misfit = Vector{SeismicWaves.L2Misfit}()
+    for i in 1:nshots
+        seis = shots[i].recs.seismograms
+        nt = size(seis,1)
+        invcov = Diagonal(ones(nt))
+        push!(misfit,SeismicWaves.L2Misfit(observed=seis,invcov=invcov))
+    end
 
-    # newvelmod = matprop.vp .- 0.2
-    # newvelmod[30:40,33:44] *= 0.9
-    # matprop_grad = ElasticIsoMaterialProperties(newvelmod)
 
-    # grad = swgradient!(params,
-    #                    matprop_grad,
-    #                    shots_grad;
-    #                    parall=:threads )
+    #@show fieldnames(typeof(matprop))
+    matprop.λ = matprop.λ .* 0.98
 
-    return params, matprop, shots, snapshots#, grad
+    grad = swgradient!(params,
+                       matprop,
+                       shots,
+                       misfit;
+                       runparams=runparams)
+                       
+
+    return params, matprop, shots, snapshots, grad
 end
 
 ##################################################################

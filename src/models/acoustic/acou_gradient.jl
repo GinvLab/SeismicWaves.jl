@@ -5,7 +5,7 @@ function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimulation{T, N},
     shot::ScalarShot{T},
-    misfit
+    misfit::AbstractMisfit
 )::Dict{String, Array{T, N}} where {T, N}
 
     # scale source time function, etc.
@@ -86,10 +86,10 @@ function swgradient_1shot!(
     backend.smooth_gradient!(gradient, possrcs, model.smooth_radius)
     # rescale gradient
     gradient .= (convert(T, 2.0) ./ (model.matprop.vp .^ 3)) .* gradient
-    # add regularization if needed
-    if misfit.regularization !== nothing
-        gradient .+= dχ_dm(misfit.regularization, model.matprop)
-    end
+    # # add regularization if needed
+    # if misfit.regularization !== nothing
+    #     gradient .+= dχ_dm(misfit.regularization, model.matprop)
+    # end
     return Dict("vp" => gradient)
 end
 
@@ -97,7 +97,7 @@ function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticVDStaggeredCPMLWaveSimulation{T, N},
     shot::ScalarShot{T},
-    misfit
+    misfit::AbstractMisfit
 )::Dict{String, Array{T, N}} where {T, N}
 
     # scale source time function, etc.

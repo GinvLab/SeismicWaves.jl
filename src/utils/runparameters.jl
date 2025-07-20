@@ -2,8 +2,8 @@
 
 struct RunParameters
     parall::Symbol
-    snapevery::Int
-    infoevery::Int
+    snapevery::Union{Int, Nothing}
+    infoevery::Union{Int, Nothing}
     logger::AbstractLogger
     erroronCFL::Bool
     erroronPPW::Bool

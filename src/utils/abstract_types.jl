@@ -79,6 +79,13 @@ abstract type MomentTensor{T, N} end
 
 abstract type AbstractInterpolationMethod end
 
+@doc """
+
+$(TYPEDEF)
+
+An abstract type to represent misfit functions and related parameters.
+
+"""
 abstract type AbstractMisfit end
 
 abstract type AbstractRegularization end

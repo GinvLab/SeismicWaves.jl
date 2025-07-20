@@ -5,7 +5,7 @@ function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::ElasticIsoCPMLWaveSimulation{T, 2},
     shot::MomentTensorShot{T, 2, MomentTensor2D{T}},
-    misfit::AbstractMisfit
+    misfitshot::AbstractMisfit
 )::Dict{String, Array{T, 2}} where {T}
     # scale source time function
     srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz,
@@ -47,6 +47,9 @@ function swgradient_1shot!(
     # Reset wavesim
     reset!(model)
 
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
@@ -81,11 +84,11 @@ function swgradient_1shot!(
         savecheckpoint!(checkpointer, "ψ_∂u∂z" => grid.fields["ψ_∂u∂z"], it)
     end
 
-    @info "Saving seismograms"
+    @debug "Saving seismograms"
     copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    residuals_bk = backend.Data.Array(.-dχ_du(misfit, shot.recs))
+    adjoint_src = backend.Data.Array(.-∂χ_∂u(misfitshot, shot.recs))
 
     @debug "Computing gradients"
     # Adjoint time loop (backward in time)
@@ -97,7 +100,7 @@ function swgradient_1shot!(
             reccoeval_ux,
             reccoeij_uz,
             reccoeval_uz,
-            residuals_bk,
+            adjoint_src,
             reduced_buf,
             it
         )
@@ -159,14 +162,15 @@ function swgradient_1shot!(
     gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf"].value), 1) .+
                    back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
     gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
-    # TODO smooth gradients
-    # Compute regularization if needed
-    ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
+    # smooth gradient
+    @warn "Gradient smoothing not yet implemented"
+    # # Compute regularization if needed
+    # ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
     # Return gradients
     return Dict(
-        "rho" => gradient_ρ .+ ∂χ_∂ρ,
-        "lambda" => gradient_λ .+ ∂χ_∂λ,
-        "mu" => gradient_μ .+ ∂χ_∂μ
+        "rho" => gradient_ρ, #.+ ∂χ_∂ρ,
+        "lambda" => gradient_λ, #.+ ∂χ_∂λ,
+        "mu" => gradient_μ #.+ ∂χ_∂μ
     )
 end
 
@@ -248,7 +252,7 @@ end
 #     copyto!(shot.recs.seismograms, traces_bk)
 
 #     @debug "Computing residuals"
-#     residuals_bk = backend.Data.Array(dχ_du(misfit, shot.recs))
+#     adjoint_src = backend.Data.Array(dχ_du(misfit, shot.recs))
 
 #     @debug "Computing gradients"
 #     # Adjoint time loop (backward in time)
@@ -260,7 +264,7 @@ end
 #             reccoeval_ux,
 #             reccoeij_uz,
 #             reccoeval_uz,
-#             residuals_bk,
+#             adjoint_src,
 #             it
 #         )
 #         # Print timestep info
@@ -318,8 +322,12 @@ end
 #     gradient_ρ .+= back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_ihalf"].value), 1) .+
 #                    back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
 #     gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
-#     # TODO smooth gradients
-#     # Compute regularization if needed
+#    # smooth gradient
+#    @warn "Gradient smoothing not yet implemented"
+#    backend.smooth_gradient!(gradient_ρ, possrcs, model.smooth_radius)
+#    backend.smooth_gradient!(gradient_λ, possrcs, model.smooth_radius)
+#    backend.smooth_gradient!(gradient_μ, possrcs, model.smooth_radius)
+# Compute regularization if needed
 #     ∂χ_∂ρ, ∂χ_∂λ, ∂χ_∂μ = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0, 0)
 #     # Return gradients
 #     return Dict(
