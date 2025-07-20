@@ -1,3 +1,4 @@
+
 module Elastic2D_Iso_CPML_AMDGPU
 
 using AMDGPU
@@ -12,6 +13,5 @@ using SeismicWaves.FDGeneratedFunctions
 include("shared/standard_xPU.jl")
 include("shared/elastic2D_iso_xPU.jl")
 include("shared/correlate_gradient_xPU.jl")
-include("shared/smooth_gradient_2D.jl")
 
 end

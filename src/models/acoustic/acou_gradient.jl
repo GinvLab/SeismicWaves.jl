@@ -45,16 +45,16 @@ function swgradient_1shot!(
     copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    residuals_bk = backend.Data.Array(dχ_du(misfit, shot.recs))
+    adjointsource_bk = backend.Data.Array(.-∂χ_∂u(misfit, shot.recs))
 
     # Prescale residuals (fact = vel^2 * dt^2)
-    backend.prescale_residuals!(residuals_bk, posrecs_bk, grid.fields["fact"].value)
+    backend.prescale_residuals!(adjointsource_bk, posrecs_bk, grid.fields["fact"].value)
 
     @debug "Computing gradients"
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        backend.adjoint_onestep_CPML!(model, posrecs_bk, residuals_bk, it)
+        backend.adjoint_onestep_CPML!(model, posrecs_bk, adjointsource_bk, it)
         # Print timestep info
         printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjback)
         # Check if out of save buffer
@@ -139,16 +139,16 @@ function swgradient_1shot!(
     copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    residuals_bk = backend.Data.Array(dχ_du(misfit, shot.recs))
+    adjointsource_bk = backend.Data.Array(.-∂χ_∂u(misfit, shot.recs))
 
     # Prescale residuals (fact = vel^2 * rho * dt)
-    backend.prescale_residuals!(residuals_bk, posrecs_bk, grid.fields["fact_m0"].value)
+    backend.prescale_residuals!(adjointsource_bk, posrecs_bk, grid.fields["fact_m0"].value)
 
     @debug "Computing gradients"
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        backend.adjoint_onestep_CPML!(model, posrecs_bk, residuals_bk, it)
+        backend.adjoint_onestep_CPML!(model, posrecs_bk, adjointsource_bk, it)
         # Print timestep info
         printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjback)
         # Check if out of save buffer
@@ -190,7 +190,7 @@ function swgradient_1shot!(
     mutearoundmultiplepoints!(gradient_m1,shot.recs.positions,grid,model.smooth_radius)
 
     # compute regularization if needed
-    dχ_dvp, dχ_drho = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
+    # dχ_dvp, dχ_drho = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
     # Rescale gradients with respect to material properties (chain rule)
     return Dict(
         "vp" => .-convert(T, 2.0) .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp

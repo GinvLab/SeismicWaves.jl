@@ -57,7 +57,7 @@ function calcmisfit(shotmisfit::L2Misfit,recs::VectorReceivers{T, N}) where {T, 
     return msf
 end
 
-function ∂dχ_∂u(shotmisfit::L2Misfit, recs::ScalarReceivers{T}) where {T}
+function ∂χ_∂u(shotmisfit::L2Misfit, recs::ScalarReceivers{T}) where {T}
     # Compute residuals
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask

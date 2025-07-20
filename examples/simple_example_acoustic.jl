@@ -99,38 +99,27 @@ function exacouprob(parall=:serial)
                                  shots;
                                  runparams=runparams
                                  )
-    seis = copy(shots[1].recs.seismograms)
-
-    @time snapshots = swforward!(params,
-                                 matprop,
-                                 shots;
-                                 runparams=runparams
-                                 )
-    #snapevery=snapevery)
-
-    seis2 = copy(shots[1].recs.seismograms)
-
-    @assert all(seis .== seis2)
 
     ##===============================================
     ## compute the gradient
-    shots_grad = Vector{ScalarShot{Float64}}()
+    misfit = Vector{SeismicWaves.L2Misfit}()
     for i in 1:nshots
         seis = shots[i].recs.seismograms
-        nt = size(seis, 1)
-        recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
-            invcov=1.0 * I(nt))
-        push!(shots_grad, ScalarShot(; srcs=shots[i].srcs, recs=recs_grad))
+        nt = size(seis,1)
+        invcov = Diagonal(ones(nt))
+        push!(misfit,SeismicWaves.L2Misfit(observed=seis,invcov=invcov))
     end
 
+ 
     newvelmod = matprop.vp .- 0.2
     newvelmod[30:40, 33:44] *= 0.9
     matprop_grad = VpAcousticCDMaterialProperties(newvelmod)
 
     @time grad = swgradient!(params,
-        matprop_grad,
-        shots_grad;
-        runparams=runparams)
+                             matprop_grad,
+                             shots,
+                             misfit;
+                             runparams=runparams)
 
     return params, velmod, shots#, snapshots, grad
 end
