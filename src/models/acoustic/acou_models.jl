@@ -73,34 +73,26 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # # Logging parameters
-    # infoevery::Int
-     # Run parameters
+    # Run parameters
     runparams::RunParameters
+    # Gradient parameters
+    gradparams::Union{GradParameters,Nothing}
     # Material properties
     matprop::VpAcousticCDMaterialProperties{T, N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficientsAxis{T, V}}
     # Checkpointing setup
     checkpointer::Union{Nothing, LinearCheckpointer{T}}
-    # Smooth radius for gradient
-    smooth_radius::Int
     # Snapshotter setup
     snapshotter::Union{Nothing, LinearSnapshotter{T, N, Array{T, N}}}
-    # # Parallelization type
-    # parall::Symbol
 
     function AcousticCDCPMLWaveSimulation(
         params::InputParametersAcoustic{T, N},
         matprop::VpAcousticCDMaterialProperties{T, N},
         cpmlparams::CPMLBoundaryConditionParameters{T};
         runparams::RunParameters,
+        gradparams::Union{GradParameters,Nothing},
         gradient::Bool=false,
-        check_freq::Union{Int, Nothing}=nothing,
-        smooth_radius::Int=0
-        #parall::Symbol=:threads,
-        #snapevery::Union{Int, Nothing}=nothing,
-        #infoevery::Union{Int, Nothing}=nothing,
     ) where {T, N}
         # Extract params
         nt = params.ntimesteps
@@ -167,7 +159,7 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             # Initialize checkpointer
             checkpointer = LinearCheckpointer(
                 nt,
-                check_freq === nothing ? 1 : check_freq,
+                gradparams.check_freq,
                 filter(p -> p.first in ["pcur", "ψ", "ξ"], grid.fields),
                 ["pcur"];
                 widths=Dict("pcur" => 2)
@@ -198,14 +190,12 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             nt,
             dt,
             grid,
-            #infoevery,
             runparams,
+            gradparams,
             matprop,
             cpmlcoeffs,
             gradient ? checkpointer : nothing,
-            smooth_radius,
             runparams.snapevery === nothing ? nothing : snapshotter,
-            #parall
         )
     end
 end
@@ -326,34 +316,26 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # # Logging parameters
-    # infoevery::Int
     # Run parameters
     runparams::RunParameters
+    # Grad parameters
+    gradparams::Union{GradParameters,Nothing}
     # Material properties
     matprop::VpRhoAcousticVDMaterialProperties{T, N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficientsAxis{T, V}}
     # Checkpointing setup
     checkpointer::Union{Nothing, LinearCheckpointer{T}}
-    # Smooth radius for gradient
-    smooth_radius::Int
     # Snapshotter setup
     snapshotter::Union{Nothing, LinearSnapshotter{T, N, Array{T, N}}}
-    # # Parallelization type
-    # parall::Symbol
 
     function AcousticVDStaggeredCPMLWaveSimulation(
         params::InputParametersAcoustic{T, N},
         matprop::VpRhoAcousticVDMaterialProperties{T, N},
         cpmlparams::CPMLBoundaryConditionParameters{T};
         runparams::RunParameters,
+        gradparams::Union{GradParameters,Nothing},
         gradient::Bool=false,
-        check_freq::Union{Int, Nothing}=nothing,
-        smooth_radius::Int=5
-        #parall::Symbol=:threads,
-        #snapevery::Union{Int, Nothing}=nothing,
-        #infoevery::Union{Int, Nothing}=nothing,
     ) where {T, N}
         # Extract params
         nt = params.ntimesteps
@@ -427,7 +409,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             # Initialize checkpointer
             checkpointer = LinearCheckpointer(
                 nt,
-                check_freq === nothing ? 1 : check_freq,
+                gradparams.check_freq,
                 filter(p -> p.first in ["pcur", "vcur", "ψ", "ξ"], grid.fields),
                 ["pcur"];
                 widths=Dict("pcur" => 1)
@@ -458,14 +440,12 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             nt,
             dt,
             grid,
-            #infoevery,
             runparams,
+            gradparams,
             matprop,
             cpmlcoeffs,
             gradient ? checkpointer : nothing,
-            smooth_radius,
             runparams.snapevery === nothing ? nothing : snapshotter,
-            #parall
         )
     end
 end

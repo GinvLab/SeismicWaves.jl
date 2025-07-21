@@ -14,7 +14,7 @@ using StaticArrays
 export WaveSimulation
 # input parameters
 export InputParameters, InputParametersAcoustic, InputParametersElastic
-export RunParameters
+export RunParameters,GradParameters
 # boundary conditions
 export InputBoundaryConditionParameters
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
@@ -33,6 +33,7 @@ export build_wavesim, swforward!, swmisfit!, swgradient!
 export L2Misfit
 # source time functions
 export gaussstf, gaussderivstf, rickerstf
+
 
 module FiniteDifferencesMacros
     using MacroTools
@@ -75,7 +76,6 @@ include("utils/checks.jl")
 include("utils/fields.jl")
 include("utils/checkpointers.jl")
 include("utils/snapshotter.jl")
-include("utils/runparameters.jl")
 include("utils/printinfo.jl")
 include("utils/mute_grad.jl")
 
@@ -87,6 +87,7 @@ include("shots/shot.jl")
 # General models
 include("models/bdc_params.jl")
 include("models/cpmlcoeffs.jl")
+include("models/genparameters.jl")
 
 # Acoustic
 include("models/acoustic/acou_abstract_types.jl")
@@ -111,7 +112,6 @@ include("models/backend_selection.jl")
 
 # Inversion 
 include("inversion/misfits/L2Misfit.jl")
-include("inversion/regularizations/ZerothOrderTikhonovRegularization.jl")
 
 # APIs
 include("apis/build.jl")

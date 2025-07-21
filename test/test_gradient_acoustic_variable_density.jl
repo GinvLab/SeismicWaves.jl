@@ -30,14 +30,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             params, shots, misfitobj, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
 
             # Compute gradient and misfit
+            gradparams = GradParameters(compute_misfit=true)
             grad, misfit = swgradient!(
                 params,
                 matprop,
                 shots,
                 misfitobj;
                 runparams=runparams,
-                check_freq=nothing,
-                compute_misfit=true
+                gradparams=gradparams
             )
             # Compute only misfit
             misfit_check = swmisfit!(params, matprop, shots, misfitobj; runparams=runparams )
@@ -68,14 +68,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             params, shots, misfitobj, matprop = setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0, halo, rcoef)
 
             # Compute gradient and misfit
+            gradparams = GradParameters(compute_misfit=true)
             grad, misfit = swgradient!(
                 params,
                 matprop,
                 shots,
                 misfitobj;
                 runparams=runparams,
-                check_freq=nothing,
-                compute_misfit=true
+                gradparams=gradparams
             )
             # Compute only misfit
             misfit_check = swmisfit!(params, matprop, shots, misfitobj; runparams=runparams )
@@ -106,22 +106,24 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             params, shots, misfitobj, matprop = setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
 
             # Solve gradient without checkpointing
+            gradparams = GradParameters()
             grad = swgradient!(
                 params,
                 matprop,
                 shots,
                 misfitobj;
                 runparams=runparams,
-                check_freq=nothing
+                gradparams=gradparams
             )
             # Solve gradient with (optimal) checkpointing
+            gradparams = GradParameters(check_freq=floor(Int, sqrt(nt)))
             grad_check = swgradient!(
                 params,
                 matprop,
                 shots,
                 misfitobj;
                 runparams=runparams,
-                check_freq=floor(Int, sqrt(nt))
+                gradparams=gradparams
             )
 
             # Check that gradient is non zero
@@ -148,22 +150,24 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             params, shots, misfitobj, matprop = setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0, halo, rcoef)
 
             # Solve gradient without checkpointing
+            gradparams = GradParameters()
             grad = swgradient!(
                 params,
                 matprop,
                 shots,
                 misfitobj;
                 runparams=runparams,
-                check_freq=nothing
+                gradparams=gradparams
             )
             # Solve gradient with (optimal) checkpointing
+            gradparams = GradParameters(check_freq=floor(Int, sqrt(nt)))
             grad_check = swgradient!(
                 params,
                 matprop,
                 shots,
                 misfitobj;
                 runparams=runparams,
-                check_freq=floor(Int, sqrt(nt))
+                gradparams=gradparams
             )
 
             # Check that gradient is non zero

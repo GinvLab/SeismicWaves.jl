@@ -17,16 +17,7 @@ Return a vector of `Dict` containing for each shot the snapshots of the fields c
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
 # Keyword arguments
-- `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
-    - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
-    - the `Metal.jl` GPU backend performing automatic domain decomposition if set to `:Metal`
-    - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
-    - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
-    - otherwise the serial version if set to `:serial`
-- `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays.  
-- `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
-- `logger::Union{Nothing, AbstractLogger} = nothing`: if specified, uses the given `logger` object to print logs, otherwise it uses the logger returned from `current_logger()`.
+- `runparams::RunParameters`: a struct containing parameters related to forward calculations. See [`RunParameters`](@ref) for details. In case of a forward simulation, `gradparams` is set to `nothing`.
 
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 """
@@ -65,21 +56,14 @@ Return a vector of `Dict` containing for each shot the snapshots of the fields c
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation type.
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
-# Keyword arguments
-- `logger::Union{Nothing, AbstractLogger} = nothing`: if specified, uses the given `logger` object to print logs, otherwise it uses the logger returned from `current_logger()`.
-
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 """
 function swforward!(
     wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
-    #logger::Union{Nothing, AbstractLogger}=nothing,
-    #kwargs...
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
-    # if logger === nothing
-    #     logger = current_logger()
-    # end
+
     return with_logger(wavesim.runparams.logger) do
         run_swforward!(wavesim, matprop, shots)   #; kwargs...)
     end

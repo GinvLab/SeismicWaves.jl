@@ -156,37 +156,29 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # # Logging parameters
-    # infoevery::Int
     # Run parameters
     runparams::RunParameters
+    # Gradient parameters
+    gradparams::Union{GradParameters,Nothing}
     # Material properties
     matprop::ElasticIsoMaterialProperties{T, N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficientsAxis{T, V}}
     # Checkpointing setup
     checkpointer::Union{Nothing, LinearCheckpointer{T}}
-    # Smooth radius for gradient
-    smooth_radius::Int
     # Sinc source receiver interpolation
     sincinterp::Bool
     # Snapshotter setup
     snapshotter::Union{Nothing, LinearSnapshotter{T, N, Array{T, N}}}
-    # # Parallelization type
-    # parall::Symbol
 
     function ElasticIsoCPMLWaveSimulation(
         params::InputParametersElastic{T, N},
         matprop::ElasticIsoMaterialProperties{T, N},
         cpmlparams::CPMLBoundaryConditionParameters{T};
         runparams::RunParameters,
+        gradparams::Union{GradParameters,Nothing},
         gradient::Bool=false,
-        check_freq::Union{Int, Nothing}=nothing,
-        smooth_radius::Int=0,
         sincinterp::Bool=true
-        #parall::Symbol=:threads,
-        #snapevery::Union{Int, Nothing}=nothing,
-        #infoevery::Union{Int, Nothing}=nothing,
     ) where {T, N}
         # Extract params
         nt = params.ntimesteps
@@ -351,7 +343,7 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
                 # Initialize checkpointer
                 checkpointer = LinearCheckpointer(
                     nt,
-                    check_freq === nothing ? 1 : check_freq,
+                    gradparams.check_freq,
                     filter(p -> p.first in ["ucur", "ψ_∂σ∂x", "ψ_∂σ∂z", "ψ_∂u∂x", "ψ_∂u∂z"], grid.fields),
                     ["ucur"];
                     widths=Dict("ucur" => 2)
@@ -402,14 +394,12 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             dt,
             grid,
             runparams,
-            #infoevery,
+            gradparams,
             matprop,
             cpmlcoeffs,
             gradient ? checkpointer : nothing,
-            smooth_radius,
             sincinterp,
             runparams.snapevery === nothing ? nothing : snapshotter,
-            #parall
         )
     end
 end

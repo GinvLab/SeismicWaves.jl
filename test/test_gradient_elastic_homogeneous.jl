@@ -36,14 +36,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             params, shots, misfitobj, matprop = setup_constant_elastic_2D_CPML(nt, dt, nx, nz, dx, dz, ρ0, λ0, μ0, halo, rcoef, f0)
 
             # Compute gradient and misfit
+            gradparams = GradParameters(compute_misfit=true)
             grad, misfit = swgradient!(
                 params,
                 matprop,
                 shots,
                 misfitobj;
                 runparams=runparams,
-                check_freq=nothing,
-                compute_misfit=true
+                gradparams=gradparams
             )
             # Compute only misfit
             misfit_check = swmisfit!(params, matprop, shots, misfitobj; runparams=runparams)
@@ -79,24 +79,25 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             params, shots, misfitobj, matprop = setup_constant_elastic_2D_CPML(nt, dt, nx, nz, dx, dz, ρ0, λ0, μ0, halo, rcoef, f0)
 
             # Compute gradient and misfit with checkpointing
+            gradparams = GradParameters(check_freq=floor(Int, sqrt(nt)),
+                                        compute_misfit=true)
             grad, misfit = swgradient!(
                 params,
                 matprop,
                 shots,
                 misfitobj;
                 runparams=runparams,
-                check_freq=floor(Int, sqrt(nt)),
-                compute_misfit=true
+                gradparams=gradparams
             )
             # Compute gradient and misfit without checkpointing
+            gradparams = GradParameters(compute_misfit=true)
             grad_check, misfit_check = swgradient!(
                 params,
                 matprop,
                 shots,
                 misfitobj;
                 runparams=runparams,
-                check_freq=nothing,
-                compute_misfit=true
+                gradparams=gradparams
             )
 
             # Check that gradients are non zero
