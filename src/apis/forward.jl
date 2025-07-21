@@ -26,10 +26,6 @@ function swforward!(
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
     runparams::RunParameters
-    # parall::Symbol=:threads,
-    # snapevery::Union{Int, Nothing}=nothing,
-    # infoevery::Union{Int, Nothing}=nothing,
-    # logger::Union{Nothing, AbstractLogger}=nothing
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
    
     return with_logger(runparams.logger) do
@@ -65,7 +61,7 @@ function swforward!(
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
 
     return with_logger(wavesim.runparams.logger) do
-        run_swforward!(wavesim, matprop, shots)   #; kwargs...)
+        run_swforward!(wavesim, matprop, shots)   
     end
 end
 
