@@ -7,7 +7,7 @@ using SeismicWaves
 ## numerics
 nt = 1500
 dt = 0.0012
-dh = 10.0
+dh = 8.0
 t = collect(Float64, range(0.0; step=dt, length=nt)) ## time vector
 
 ## create a velocity model (gradient from top to bottom)
@@ -58,12 +58,13 @@ boundcond = CPMLBoundaryConditionParameters(; halo=20, rcoef=0.0001, freeboundto
 params = InputParametersAcoustic(nt, dt, (nx, nz), (dh, dh), boundcond)
 
 ## Compute the seismograms
+runparams = RunParameters(parall=:threads,snapevery=snapevery)
+
 snapshots = swforward!(
     params,
     matprop,
     shots;
-    parall=:threads,
-    snapevery=snapevery
+    runparams=runparams
 )
 
 # ## Elastic wave simulation example
@@ -157,11 +158,11 @@ boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundt
 params = InputParametersElastic(nt, dt, (nx, nz), (dh, dh), boundcond)
 
 ## Compute the seismograms
+runparams = RunParameters(parall=:threads,infoevery=infoevery,snapevery=snapevery)
+
 snapshots = swforward!(
     params,
     matprop,
     shots;
-    parall=:threads,
-    infoevery=infoevery,
-    snapevery=snapevery
+    runparams=runparams
 )
