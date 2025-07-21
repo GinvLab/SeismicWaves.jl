@@ -7,12 +7,14 @@ using ParallelStencil
 using Logging
 using DocStringExtensions
 using Interpolations
+using REPL
 using StaticArrays
 
 # main struct for wave simulation
 export WaveSimulation
 # input parameters
 export InputParameters, InputParametersAcoustic, InputParametersElastic
+export RunParameters,GradParameters
 # boundary conditions
 export InputBoundaryConditionParameters
 export CPMLBoundaryConditionParameters, ReflectiveBoundaryConditionParameters
@@ -27,10 +29,14 @@ export MomentTensor2D, MomentTensor3D
 export Receivers, ScalarReceivers, VectorReceivers
 # forward, misfit and gradient functions
 export build_wavesim, swforward!, swmisfit!, swgradient!
+# misfits
+export L2Misfit
 # source time functions
 export gaussstf, gaussderivstf, rickerstf
 
+
 module FiniteDifferencesMacros
+    using MacroTools
     include("utils/fdgen.jl")
     export @∂, @∂², @∂ⁿ
     export @∂x, @∂y, @∂z
@@ -40,10 +46,21 @@ module FiniteDifferencesMacros
     export @∂̃, @∂̃x, @∂̃y, @∂̃z
     export @∂̃², @∂̃²x, @∂̃²y, @∂̃²z
     export @∇̃, @diṽ, @∇̃²
+end
 
+module FDGeneratedFunctions
+    using StaticArrays
+    include("utils/fdgenerated.jl")
+    export ∂x4th, ∂y4th, ∂z4th
+    export ∂̃x4th, ∂̃y4th, ∂̃z4th
+    export ∂²x4th, ∂²y4th, ∂²z4th
+    export ∂̃²x4th, ∂̃²y4th, ∂̃²z4th
+    export ∇4th, div4th, ∇²4th
+    export ∇̃4th, diṽ4th, ∇̃²4th
 end
 
 include("utils/abstract_types.jl")
+
 
 # Traits
 include("traits/boundarycondition.jl")
@@ -59,6 +76,7 @@ include("utils/checks.jl")
 include("utils/fields.jl")
 include("utils/checkpointers.jl")
 include("utils/snapshotter.jl")
+include("utils/printinfo.jl")
 include("utils/mute_grad.jl")
 
 # Shots
@@ -69,6 +87,7 @@ include("shots/shot.jl")
 # General models
 include("models/bdc_params.jl")
 include("models/cpmlcoeffs.jl")
+include("models/genparameters.jl")
 
 # Acoustic
 include("models/acoustic/acou_abstract_types.jl")
@@ -93,7 +112,6 @@ include("models/backend_selection.jl")
 
 # Inversion 
 include("inversion/misfits/L2Misfit.jl")
-include("inversion/regularizations/ZerothOrderTikhonovRegularization.jl")
 
 # APIs
 include("apis/build.jl")
@@ -126,5 +144,6 @@ include("HMCseiswaves.jl")
 using .HMCseiswaves
 export AcouWavCDProb
 export FiniteDifferencesMacros
+export FDGeneratedFunctions
 
 end # module

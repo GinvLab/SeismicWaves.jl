@@ -83,7 +83,7 @@ Band limited delta function by combining Kaiser window and sinc function.
 """
 modd(x, x0, r, β, Δx) = begin
     res = kaiser(x - x0, r * Δx, β) * sinc((x - x0) / Δx)
-    return res ≈ 0 ? 0.0 : res
+    return res
 end
 
 """
@@ -106,10 +106,10 @@ modd_refl(x, x0, xbl, xbr, r, β, Δx) = begin
     if x < xbl || x > xbr
         return 0.0
     end
-    res_left = modd(xbl - (x - xbl), x0, r * Δx, β, Δx)
-    res_right = modd(xbr + (xbr - x), x0, r * Δx, β, Δx)
+    res_left = modd(xbl - (x - xbl), x0, r, β, Δx)
+    res_right = modd(xbr + (xbr - x), x0, r, β, Δx)
     res_tot = res + res_left + res_right
-    return res_tot ≈ 0 ? 0.0 : res_tot
+    return res_tot
 end
 
 """
@@ -131,10 +131,10 @@ modd_mirror(x, x0, xbl, xbr, r, β, Δx) = begin
     if x < xbl || x > xbr
         return 0.0
     end
-    res_left = modd(xbl - (x - xbl), x0, r * Δx, β, Δx)
-    res_right = modd(xbr + (xbr - x), x0, r * Δx, β, Δx)
+    res_left = modd(xbl - (x - xbl), x0, r, β, Δx)
+    res_right = modd(xbr + (xbr - x), x0, r, β, Δx)
     res_tot = res - res_left - res_right
-    return res_tot ≈ 0 ? 0.0 : res_tot
+    return res_tot
 end
 
 """
@@ -173,8 +173,8 @@ function coeffsinc1D(x0::T, dx::T, nx::Int, r::Int, β::T, xstart::T, mirror::Bo
         else
             coe = modd_refl(xs[idx], x0, xbl, xbr, r, β, dx)
         end
-        # Store non-zero coefficients
-        if !(coe ≈ 0)
+        # Store coefficients that are not close to zero
+        if !isapprox(coe, 0.0; atol=1e-15)
             push!(idxs, idx)
             push!(coeffs, coe)
         end
@@ -197,10 +197,10 @@ Computes coefficients and indices of the grid for arbitrarely placed sources or 
 function spread_positions(
     grid::SeismicWaves.UniformFiniteDifferenceGrid{N, T},
     positions::Matrix{T};
-    shift::NTuple{N, T}=ntuple(_ -> 0.0, N),
+    shift::NTuple{N, T}=ntuple(_ -> zero(T), N),
     mirror::Bool=false,
     r::Int=4,
-    β::T=6.31
+    β::T=T.(6.31)
 ) where {N, T}
     # Get number of positions to spread
     npos = size(positions, 1)
@@ -213,7 +213,7 @@ function spread_positions(
         coeffs_dims = Vector{Vector{T}}(undef, N)
         for n in 1:N
             # Compute coefficients in n-th dimension
-            idxs_nth, coeffs_nth = coeffsinc1D(positions[p, n], grid.spacing[n], grid.size[n], r, β, shift[n], mirror, 0.0, grid.extent[n])
+            idxs_nth, coeffs_nth = coeffsinc1D(positions[p, n], grid.spacing[n], grid.size[n], r, β, shift[n], mirror, zero(T), grid.extent[n])
             idxs_dims[n] = idxs_nth
             coeffs_dims[n] = coeffs_nth
         end

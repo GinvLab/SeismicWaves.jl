@@ -1,6 +1,7 @@
 module Acoustic1D_CD_CPML_Serial
 
 using SeismicWaves.FiniteDifferencesMacros
+using SeismicWaves.FDGeneratedFunctions
 
 # Dummy data module
 module Data

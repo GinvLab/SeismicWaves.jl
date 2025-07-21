@@ -30,7 +30,7 @@ function swforward_1shot!(
 
     # Get computational grid and backend
     grid = model.grid
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -42,15 +42,15 @@ function swforward_1shot!(
     # Reset wavesim
     reset!(model)
 
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+
     # Time loop
     for it in 1:nt
         # Compute one forward step
         backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Iteration: %d, simulation time: %g [s]", it, model.dt * (it - 1))
-        end
-
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:forw)
         # Save snapshot
         if snapenabled(model)
             savesnapshot!(model.snapshotter, "pcur" => grid.fields["pcur"], it)
@@ -91,7 +91,7 @@ function swforward_1shot!(
 
     # Get computational grid and backend
     grid = model.grid
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -102,15 +102,16 @@ function swforward_1shot!(
     traces_bk = backend.Data.Array(shot.recs.seismograms)
     # Reset wavesim
     reset!(model)
+    
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
 
     # Time loop
     for it in 1:nt
         # Compute one forward step
         backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Iteration: %d, simulation time: %g [s]", it, model.dt * (it - 1))
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:forw)
 
         # Save snapshot
         if snapenabled(model)

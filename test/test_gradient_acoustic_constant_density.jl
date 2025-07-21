@@ -1,8 +1,3 @@
-using Test
-using DSP, NumericalIntegration, LinearAlgebra
-using CUDA: CUDA
-using Logging
-using SeismicWaves
 
 with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     test_backends = [:serial, :threads]
@@ -17,6 +12,9 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     @testset "Test gradient (acoustic CD)" begin
 
     for parall in test_backends
+        # parallelisation
+        runparams = RunParameters(parall=parall)
+
         @testset "Test 1D $(parall) swgradient! with compute misfit" begin
             # Physics
             c0 = 2000.0
@@ -25,22 +23,23 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 1000
             nx = 101
             dx = 10.0
-            dt = dx / c0
+            dt = 0.99 * dx / c0
             halo = 20
             rcoef = 0.0001
-            params, shots, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
+            params, shots, misfitobj, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
 
             # Compute gradient and misfit
+            gradparams = GradParameters(compute_misfit=true)
             grad, misfit = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=nothing,
-                compute_misfit=true
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
             # Compute only misfit
-            misfit_check = swmisfit!(params, vel, shots; parall=parall)
+            misfit_check = swmisfit!(params, vel, shots, misfitobj; runparams=runparams)
 
             # Check that gradient is non zero
             @test !all(g -> g == 0.0, grad["vp"])
@@ -59,23 +58,24 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 1000
             nx = 101
             dx = 10.0
-            dt = dx / c0
+            dt = 0.99 * dx / c0
             halo = 20
             rcoef = 0.0001
-            params, shots, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
-            push!(shots[1].recs.windows, Pair(500, 600))
+            params, shots, misfitobj, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
+            push!(misfitobj[1].windows, Pair(500, 600))
 
             # Compute gradient and misfit
+            gradparams = GradParameters(compute_misfit=true)
             grad, misfit = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=nothing,
-                compute_misfit=true
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
             # Compute only misfit
-            misfit_check = swmisfit!(params, vel, shots; parall=parall)
+            misfit_check = swmisfit!(params, vel, shots, misfitobj; runparams=runparams)
 
             # Check that gradient is non zero
             @test !all(g -> g == 0.0, grad["vp"])
@@ -94,22 +94,23 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 1000
             nx = ny = 101
             dx = dy = 10.0
-            dt = dx / c0 / sqrt(2)
+            dt = 0.99 * dx / c0 / sqrt(2)
             halo = 20
             rcoef = 0.0001
-            params, shots, vel = setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
+            params, shots, misfitobj, vel = setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
 
             # Compute gradient and misfit
+            gradparams = GradParameters(compute_misfit=true)
             grad, misfit = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=nothing,
-                compute_misfit=true
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
             # Compute only misfit
-            misfit_check = swmisfit!(params, vel, shots; parall=parall)
+            misfit_check = swmisfit!(params, vel, shots, misfitobj; runparams=runparams)
 
             # Check that gradient is non zero
             @test !all(g -> g == 0.0, grad["vp"])
@@ -128,22 +129,23 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 100
             nx = ny = nz = 81
             dx = dy = dz = 10.0
-            dt = dx / c0 / sqrt(3)
+            dt = 0.99 * dx / c0 / sqrt(3)
             halo = 20
             rcoef = 0.0001
-            params, shots, vel = setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
+            params, shots, misfitobj, vel = setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
 
             # Compute gradient and misfit
+            gradparams = GradParameters(compute_misfit=true)
             grad, misfit = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=nothing,
-                compute_misfit=true
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
             # Compute only misfit
-            misfit_check = swmisfit!(params, vel, shots; parall=parall)
+            misfit_check = swmisfit!(params, vel, shots, misfitobj; runparams=runparams)
 
             # Check that gradient is non zero
             @test !all(g -> g == 0.0, grad["vp"])
@@ -162,26 +164,30 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 1000
             nx = 101
             dx = 10.0
-            dt = dx / c0
+            dt = 0.99 * dx / c0
             halo = 20
             rcoef = 0.0001
-            params, shots, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
+            params, shots, misfitobj, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
 
             # Solve gradient without checkpointing
+            gradparams = GradParameters()
             grad = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=nothing
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
             # Solve gradient with (optimal) checkpointing
+            gradparams = GradParameters(check_freq=floor(Int, sqrt(nt)))
             grad_check = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=floor(Int, sqrt(nt))
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
 
             # Check that gradient is non zero
@@ -198,26 +204,30 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 1000
             nx = ny = 101
             dx = dy = 10.0
-            dt = dx / c0 / sqrt(2)
+            dt = 0.99 * dx / c0 / sqrt(2)
             halo = 20
             rcoef = 0.0001
-            params, shots, vel = setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
+            params, shots, misfitobj, vel = setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
 
             # Solve gradient without checkpointing
+            gradparams = GradParameters()
             grad = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=nothing
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
             # Solve gradient with (optimal) checkpointing
+            gradparams = GradParameters(check_freq=floor(Int, sqrt(nt)))
             grad_check = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=floor(Int, sqrt(nt))
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
 
             # Check that gradient is non zero
@@ -234,26 +244,30 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 150
             nx = ny = nz = 81
             dx = dy = dz = 10.0
-            dt = dx / c0 / sqrt(3)
+            dt = 0.99 * dx / c0 / sqrt(3)
             halo = 20
             rcoef = 0.0001
-            params, shots, vel = setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
+            params, shots, misfitobj, vel = setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
 
             # Solve gradient without checkpointing
+            gradparams = GradParameters()
             grad = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=nothing
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
             # Solve gradient with (optimal) checkpointing
+            gradparams = GradParameters(check_freq=floor(Int, sqrt(nt)))
             grad_check = swgradient!(
                 params,
                 vel,
-                shots;
-                parall=parall,
-                check_freq=floor(Int, sqrt(nt))
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
             )
 
             # Check that gradient is non zero

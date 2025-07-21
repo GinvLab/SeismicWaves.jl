@@ -4,6 +4,7 @@ using ParallelStencil
 using ParallelStencil.FiniteDifferences2D
 
 using SeismicWaves.FiniteDifferencesMacros
+using SeismicWaves.FDGeneratedFunctions
 
 @init_parallel_stencil(package = Threads, ndims = 2, inbounds = false)
 

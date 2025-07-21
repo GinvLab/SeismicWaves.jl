@@ -7,9 +7,12 @@ function check_courant_condition(model::AcousticWaveSimulation{T, N}, vp::Array{
     tmp = sqrt(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp
     @info "Courant number: $(courant)"
-    if courant > 1.0
+    if model.runparams.erroronCFL
+        @assert courant < 1 "Courant condition not satisfied! [$(courant)]"
+    elseif courant > 1
         @warn "Courant condition not satisfied! [$(courant)]"
     end
+    return
 end
 
 function check_numerics(
@@ -20,9 +23,17 @@ function check_numerics(
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
     h_max = maximum(model.grid.spacing)
-    ppw = vel_min / shot.srcs.domfreq / h_max
+    fmax = shot.srcs.domfreq * 2.0
+    ppw = vel_min / (fmax * h_max)
+    
     @info "Points per wavelength: $(ppw)"
-    @assert ppw >= min_ppw "Not enough points per wavelengh!"
+    dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
+    if model.runparams.erroronPPW
+        @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
+    elseif ppw < min_ppw
+        @warn "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
+    end
+    return
 end
 
 ###########################################################
@@ -62,31 +73,26 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # Logging parameters
-    infoevery::Int
+    # Run parameters
+    runparams::RunParameters
+    # Gradient parameters
+    gradparams::Union{GradParameters,Nothing}
     # Material properties
     matprop::VpAcousticCDMaterialProperties{T, N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficientsAxis{T, V}}
     # Checkpointing setup
     checkpointer::Union{Nothing, LinearCheckpointer{T}}
-    # Smooth radius for gradient
-    smooth_radius::Int
     # Snapshotter setup
     snapshotter::Union{Nothing, LinearSnapshotter{T, N, Array{T, N}}}
-    # Parallelization type
-    parall::Symbol
 
     function AcousticCDCPMLWaveSimulation(
         params::InputParametersAcoustic{T, N},
         matprop::VpAcousticCDMaterialProperties{T, N},
         cpmlparams::CPMLBoundaryConditionParameters{T};
-        parall::Symbol=:threads,
+        runparams::RunParameters,
+        gradparams::Union{GradParameters,Nothing},
         gradient::Bool=false,
-        check_freq::Union{Int, Nothing}=nothing,
-        snapevery::Union{Int, Nothing}=nothing,
-        infoevery::Union{Int, Nothing}=nothing,
-        smooth_radius::Int=5
     ) where {T, N}
         # Extract params
         nt = params.ntimesteps
@@ -101,7 +107,7 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
-        backend = select_backend(AcousticCDCPMLWaveSimulation{T, N}, parall)
+        backend = select_backend(AcousticCDCPMLWaveSimulation{T, N}, runparams.parall)
         A = backend.Data.Array{T, N}
         V = backend.Data.Array{T, 1}
         # Initialize computational grid
@@ -153,7 +159,7 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             # Initialize checkpointer
             checkpointer = LinearCheckpointer(
                 nt,
-                check_freq === nothing ? 1 : check_freq,
+                gradparams.check_freq,
                 filter(p -> p.first in ["pcur", "ψ", "ξ"], grid.fields),
                 ["pcur"];
                 widths=Dict("pcur" => 2)
@@ -165,15 +171,14 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], 0)
         end
 
-        if snapevery !== nothing
+        if runparams.snapevery !== nothing
             # Initialize snapshotter
-            snapshotter = LinearSnapshotter{Array{T, N}}(nt, snapevery, filter(p -> p.first in ["pcur"], grid.fields))
+            snapshotter = LinearSnapshotter{Array{T, N}}(nt, runparams.snapevery, filter(p -> p.first in ["pcur"], grid.fields))
         end
 
-        if infoevery === nothing
-            infoevery = nt + 2  # never reach it
-        else
-            @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
+        # Check infoevery
+        if runparams.infoevery != nothing
+            @assert runparams.infoevery >= 1 && runparams.infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
         # Deep copy material properties
@@ -185,13 +190,12 @@ struct AcousticCDCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
             nt,
             dt,
             grid,
-            infoevery,
+            runparams,
+            gradparams,
             matprop,
             cpmlcoeffs,
             gradient ? checkpointer : nothing,
-            smooth_radius,
-            snapevery === nothing ? nothing : snapshotter,
-            parall
+            runparams.snapevery === nothing ? nothing : snapshotter,
         )
     end
 end
@@ -237,9 +241,12 @@ function check_courant_condition(model::AcousticVDStaggeredWaveSimulation{T, N},
     tmp = sqrt(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp * 7 / 6    # 7/6 comes from the higher order stencil
     @info "Courant number: $(courant)"
-    if courant > 1
+    if model.runparams.erroronCFL
+        @assert courant < 1 "Courant number: $(courant)"
+    elseif courant > 1
         @warn "Courant condition not satisfied! [$(courant)]"
     end
+    return
 end
 
 function check_numerics(
@@ -250,9 +257,16 @@ function check_numerics(
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
     h_max = maximum(model.grid.spacing)
-    ppw = vel_min / shot.srcs.domfreq / h_max
+    fmax = shot.srcs.domfreq * 2.0
+    ppw = vel_min / (fmax * h_max)
+    
     @info "Points per wavelength: $(ppw)"
-    @assert ppw >= min_ppw "Not enough points per wavelengh!"
+    dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
+    if model.runparams.erroronPPW
+        @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
+    elseif ppw < min_ppw
+        @warn "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"
+    end
 end
 
 function check_matprop(model::AcousticVDStaggeredWaveSimulation{T, N}, matprop::VpRhoAcousticVDMaterialProperties{T, N}) where {T, N}
@@ -302,31 +316,26 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
     dt::T
     # Computational grid
     grid::UniformFiniteDifferenceGrid{N, T}
-    # Logging parameters
-    infoevery::Int
+    # Run parameters
+    runparams::RunParameters
+    # Grad parameters
+    gradparams::Union{GradParameters,Nothing}
     # Material properties
     matprop::VpRhoAcousticVDMaterialProperties{T, N}
     # CPML coefficients
     cpmlcoeffs::NTuple{N, CPMLCoefficientsAxis{T, V}}
     # Checkpointing setup
     checkpointer::Union{Nothing, LinearCheckpointer{T}}
-    # Smooth radius for gradient
-    smooth_radius::Int
     # Snapshotter setup
     snapshotter::Union{Nothing, LinearSnapshotter{T, N, Array{T, N}}}
-    # Parallelization type
-    parall::Symbol
 
     function AcousticVDStaggeredCPMLWaveSimulation(
         params::InputParametersAcoustic{T, N},
         matprop::VpRhoAcousticVDMaterialProperties{T, N},
         cpmlparams::CPMLBoundaryConditionParameters{T};
-        parall::Symbol=:threads,
+        runparams::RunParameters,
+        gradparams::Union{GradParameters,Nothing},
         gradient::Bool=false,
-        check_freq::Union{Int, Nothing}=nothing,
-        snapevery::Union{Int, Nothing}=nothing,
-        infoevery::Union{Int, Nothing}=nothing,
-        smooth_radius::Int=5
     ) where {T, N}
         # Extract params
         nt = params.ntimesteps
@@ -341,7 +350,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
         @assert all(n -> n >= 2halo + 3, ns_cpml) "Number grid points in the dimensions with C-PML boundaries must be at least 2*halo+3 = $(2halo+3)!"
 
         # Select backend
-        backend = select_backend(AcousticCDCPMLWaveSimulation{T, N}, parall)
+        backend = select_backend(AcousticCDCPMLWaveSimulation{T, N}, runparams.parall)
         A = backend.Data.Array{T, N}
         V = backend.Data.Array{T, 1}
         # Initialize computational grid
@@ -400,7 +409,7 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             # Initialize checkpointer
             checkpointer = LinearCheckpointer(
                 nt,
-                check_freq === nothing ? 1 : check_freq,
+                gradparams.check_freq,
                 filter(p -> p.first in ["pcur", "vcur", "ψ", "ξ"], grid.fields),
                 ["pcur"];
                 widths=Dict("pcur" => 1)
@@ -412,16 +421,14 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], 0)
         end
 
-        if snapevery !== nothing
+        if runparams.snapevery !== nothing
             # Initialize snapshotter
-            snapshotter = LinearSnapshotter{Array{N, T}}(nt, snapevery, filter(p -> p.first in ["pcur", "vcur"], grid.fields))
+            snapshotter = LinearSnapshotter{Array{N, T}}(nt, runparams.snapevery, filter(p -> p.first in ["pcur", "vcur"], grid.fields))
         end
 
         # Check infoevery
-        if infoevery === nothing
-            infoevery = nt + 2  # never reach it
-        else
-            @assert infoevery >= 1 && infoevery <= nt "Infoevery parameter must be positive and less then nt!"
+        if runparams.infoevery != nothing
+            @assert runparams.infoevery >= 1 && runparams.infoevery <= nt "Infoevery parameter must be positive and less then nt!"
         end
 
         # Deep copy material properties
@@ -433,13 +440,12 @@ struct AcousticVDStaggeredCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <
             nt,
             dt,
             grid,
-            infoevery,
+            runparams,
+            gradparams,
             matprop,
             cpmlcoeffs,
             gradient ? checkpointer : nothing,
-            smooth_radius,
-            snapevery === nothing ? nothing : snapshotter,
-            parall
+            runparams.snapevery === nothing ? nothing : snapshotter,
         )
     end
 end

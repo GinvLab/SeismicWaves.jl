@@ -2,6 +2,7 @@
 using Revise
 using SeismicWaves
 using LinearAlgebra
+using Metal
 using GLMakie
 
 ###################################################################
@@ -12,32 +13,32 @@ function exelaprob()
     ##========================================
     # time stuff
     nt = 1500 #1500
-    dt = 0.0008
-    t = collect(Float64, range(0.0; step=dt, length=nt)) # seconds
+    dt = 0.0008f0 / 8
+    t = collect(Float32, range(0.0; step=dt, length=nt)) # seconds
     #@show dt,(nt-1)*dt
 
     ##========================================
     # create a velocity model
-    nx = 380 # 211
-    nz = 270 # 120
-    dh = 4.5 # meters
+    nx = 380*12 # 211
+    nz = 270*12 # 120
+    dh = 4.5f0 # meters
     @show nx, nz, nx * nz, dh
     #@show (nx-1)*dh, (nz-1)*dh
 
-    vp = zeros(nx, nz)
+    vp = zeros(Float32, nx, nz)
     #vp .= 2700.0
-    vp[nx÷2+10:end, :] .= 3100.0
+    vp[nx÷2+10:end, :] .= 3100.0f0
     for i in 1:nx
         for j in 1:nz
-            vp[i, j] = 2000.0 + dh * (j - 1)
+            vp[i, j] = 2000.0f0 + dh * (j - 1)
         end
     end
     @show extrema(vp)
-    vs = vp ./ sqrt(3)
+    vs = Float32.(vp ./ sqrt(3))
 
     @show extrema(vp), extrema(vs)
 
-    ρ = 2100.0 * ones(nx, nz)
+    ρ = 2100.0f0 * ones(Float32, nx, nz)
     μ = vs .^ 2 .* ρ  # μ = Vs^2⋅ρ 
     λ = (vp .^ 2 .* ρ) .- (2 .* μ)  # λ = vp^2 · ρ - 2μ
 
@@ -52,30 +53,30 @@ function exelaprob()
     ##========================================
     # shots definition
     nshots = 1
-    shots = Vector{MomentTensorShot{Float64, 2, MomentTensor2D{Float64}}}()  #Pair{Sources, Receivers}}()
+    shots = Vector{MomentTensorShot{Float32, 2, MomentTensor2D{Float32}}}()  #Pair{Sources, Receivers}}()
 
     for i in 1:nshots
         # sources definition
         nsrc = 1
         # sources x-position (in grid points) (different for every shot)
         if nsrc == 1
-            ixsrc = [nx / 2]
+            ixsrc = [Float32(nx / 2)]
         else
             ixsrc = round.(Int, LinRange(30, nx - 31, nsrc))
         end
-        possrcs = zeros(nsrc, 2)    # 1 source, 2 dimensions
+        possrcs = zeros(Float32, nsrc, 2)    # 1 source, 2 dimensions
         for s in 1:nsrc
-            possrcs[s, 1] = (ixsrc[i] - 1) * dh .+ 0.124   # x-positions in meters
-            possrcs[s, 2] = (nz / 2) * dh .+ 0.124 #(nz/2) * dh              # y-positions in meters
+            possrcs[s, 1] = (ixsrc[i] - 1) * dh .+ 0.124f0   # x-positions in meters
+            possrcs[s, 2] = (nz / 2) * dh .+ 0.124f0 #(nz/2) * dh              # y-positions in meters
         end
 
         # source time functions
-        f0 = 12.0
-        t0 = 1.20 / f0
-        srcstf = zeros(nt, nsrc)
-        Mxx = zeros(nsrc)
-        Mzz = zeros(nsrc)
-        Mxz = zeros(nsrc)
+        f0 = 12.0f0
+        t0 = 1.20f0 / f0
+        srcstf = zeros(Float32, nt, nsrc)
+        Mxx = zeros(Float32, nsrc)
+        Mzz = zeros(Float32, nsrc)
+        Mxz = zeros(Float32, nsrc)
         for s in 1:nsrc
             srcstf[:, s] .= rickerstf.(t, t0, f0)
             Mxx[s] = 5e10 #1.5e10  #1.5e6 #e20
@@ -94,7 +95,7 @@ function exelaprob()
         nrecs = 10
         # receivers x-positions (in grid points) (same for every shot)
         ixrec = round.(Int, LinRange(40, nx - 40, nrecs))
-        posrecs = zeros(nrecs, 2)    # 20 receivers, 2 dimensions
+        posrecs = zeros(Float32, nrecs, 2)    # 20 receivers, 2 dimensions
         posrecs[:, 1] .= (ixrec .- 1) .* dh .- 0.324   # x-positions in meters
         posrecs[:, 2] .= 3 * dh # (nz/2) * dh                # y-positions in meters
 
@@ -112,11 +113,11 @@ function exelaprob()
 
     ##============================================
     ## Input parameters for elastic simulation
-    snapevery = 200
-    infoevery = 100
+    snapevery = nothing
+    infoevery = 50
     freetop = true
     halo = 20
-    rcoef = 0.0001
+    rcoef = 0.0001f0
     @show halo
     @show rcoef
     boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=freetop)
@@ -124,39 +125,36 @@ function exelaprob()
 
     ##===============================================
     ## compute the seismograms
-    runparams = RunParameters(parall=:threads,infoevery=infoevery,snapevery=snapevery)
+    snapshots = swforward!(
+        params,
+        matprop,
+        shots;
+        parall=:threads,
+        infoevery=infoevery,
+        snapevery=snapevery
+    )
 
-    snapshots = swforward!(params,
-                           matprop,
-                           shots;
-                           runparams=runparams,
-                           # parall=:threads,
-                           # infoevery=infoevery,
-                           # snapevery=snapevery
-                           )
+    # ##===============================================
+    # ## compute the gradient
+    # shots_grad = Vector{ScalarShot{Float64}}()
+    # for i in 1:nshots
+    #     seis = shots[i].recs.seismograms
+    #     nt = size(seis,1)
+    #     recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
+    #                                 invcov=Diagonal(ones(nt)))
+    #     push!(shots_grad, MomentTensorShot(; srcs=shots[i].srcs, recs=recs_grad))
+    # end
 
-    ##===============================================
-    ## compute the gradient
-    misfit = Vector{SeismicWaves.L2Misfit}()
-    for i in 1:nshots
-        seis = shots[i].recs.seismograms
-        nt = size(seis,1)
-        invcov = Diagonal(ones(nt))
-        push!(misfit,SeismicWaves.L2Misfit(observed=seis,invcov=invcov))
-    end
+    # newvelmod = matprop.vp .- 0.2
+    # newvelmod[30:40,33:44] *= 0.9
+    # matprop_grad = ElasticIsoMaterialProperties(newvelmod)
 
+    # grad = swgradient!(params,
+    #                    matprop_grad,
+    #                    shots_grad;
+    #                    parall=:threads )
 
-    #@show fieldnames(typeof(matprop))
-    matprop.λ = matprop.λ .* 0.98
-
-    grad = swgradient!(params,
-                       matprop,
-                       shots,
-                       misfit;
-                       runparams=runparams)
-                       
-
-    return params, matprop, shots, snapshots, grad
+    return params, matprop, shots, snapshots#, grad
 end
 
 ##################################################################
@@ -211,7 +209,6 @@ function plotstuff(par, matprop, shots)
     return fig
 end
 
-
 function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     xgrd = [par.gridspacing[1] * (i - 1) for i in 1:par.gridsize[1]]
     ygrd = [par.gridspacing[2] * (i - 1) for i in 1:par.gridsize[2]]
@@ -247,7 +244,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     end
 
     ##=====================================
-    fig = Figure(; size=(800, 1200))
+    fig = Figure(; size=(800, 1500))
 
     nframes = length(vxsnap)
 
@@ -298,7 +295,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     # ax3.yreversed = true
 
     ##
-    #display(fig)
+    display(fig)
     save("first_frame.png", fig)
     ##=====================================
 
@@ -325,7 +322,6 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
         curvx[], curvz[] = updatefunction(ax1, ax2, vxsnap, vzsnap, it)
         # yield() -> not required with record
     end
-    return fig
 end
 
 ##################################################################
@@ -333,16 +329,21 @@ end
 # global_logger(debug_logger)
 # error_logger = ConsoleLogger(stderr, Logging.Error)
 # global_logger(error_logger)
-# info_logger = ConsoleLogger(stderr, Logging.Info)
-# global_logger(info_logger)
+info_logger = ConsoleLogger(stderr, Logging.Info)
+global_logger(info_logger)
 
 par, matprop, shots, snapsh = exelaprob()
 
-snapanimate(par, matprop, shots, snapsh; scalamp=0.02)
+# snapanimate(par, matprop, shots, snapsh; scalamp=0.02)
 
-fig = plotstuff(par, matprop, shots)
-display(fig)
+# fig = plotstuff(par, matprop, shots)
 
+# with_logger(error_logger) do
+#     p, v, s, snaps = exacouprob()
+# end
 
+# using Plots
+# heatmap(snaps[6][:,:,20]'; aspect_ratio=:equal, cmap=:RdBu)
+# yaxis!(flip=true)
 
 ##################################################################

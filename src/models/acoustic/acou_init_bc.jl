@@ -6,9 +6,9 @@ init_bdc!(::ReflectiveBoundaryCondition, model::AcousticWaveSimulation, srcs::So
 
 function init_bdc!(
     ::CPMLBoundaryCondition,
-    model::AcousticWaveSimulation,
+    model::AcousticWaveSimulation{T},
     srcs::Sources
-)
+) where {T}
     N = length(model.cpmlcoeffs)
     for n in 1:N
         compute_CPML_coefficientsAxis!(
@@ -25,9 +25,9 @@ function init_bdc!(
     if model.cpmlparams.freeboundtop && N >= 1
         lastcoe = model.cpmlcoeffs[N]
 
-        lastcoe.a[1:length(lastcoe.a)÷2] .= 0.0
-        lastcoe.a_h[1:length(lastcoe.a_h)÷2] .= 0.0
-        lastcoe.b[1:length(lastcoe.b)÷2] .= 1.0
-        lastcoe.b_h[1:length(lastcoe.b_h)÷2] .= 1.0
+        lastcoe.a[1:length(lastcoe.a)÷2] .= convert(T, 0.0)
+        lastcoe.a_h[1:length(lastcoe.a_h)÷2] .= convert(T, 0.0)
+        lastcoe.b[1:length(lastcoe.b)÷2] .= convert(T, 1.0)
+        lastcoe.b_h[1:length(lastcoe.b_h)÷2] .= convert(T, 1.0)
     end
 end
