@@ -52,19 +52,84 @@ end
 
 @generated function generated_fdcoeffs_and_shifts(
     ::Val{P}, vO::Val{O}, vT::Val{T}
-)::Tuple{NTuple{O, T}, NTuple{O, Int}} where {P, T, O}
+    )::Tuple{NTuple{O, T}, NTuple{O, Int}} where {P, T, O}
     coeffs, shifts = fdcoeffs_and_shifts(P, Val(O), Val(T))
     :($coeffs, $shifts)
 end
 
+# function get_coeffs_shifted_indices(
+#     c::NTuple{O, T}, s::NTuple{O, Int},
+#     i::Int, lb::Int, ub::Int, mlb::Bool, mub::Bool, half::Bool
+#     )::Tuple{NTuple{O, T}, NTuple{O, Int}} where {T, O}
+#     new_coeffs = ntuple(j -> lb <= i + s[j] <= ub ? c[j] : (i + s[j] < lb ? (!mlb ? zero(T) : (!half ? -c[j] : c[j]) ) : (!mub ? zero(T) : (!half ? -c[j] : c[j]))), Val(O))
+#     shifted_indices = ntuple(j -> lb <= i + s[j] <= ub ? i + s[j] : (i + s[j] < lb ? (!mlb ? lb : (!half ? lb + (lb - (i + s[j])) : lb + (lb - (i + s[j])) - 1)) : (!mub ? ub : (!half ? ub - (i + s[j] - ub) : ub - (i + s[j] - ub) + 1))), Val(O))
+#     return new_coeffs, shifted_indices
+# end
+
 function get_coeffs_shifted_indices(
     c::NTuple{O, T}, s::NTuple{O, Int},
     i::Int, lb::Int, ub::Int, mlb::Bool, mub::Bool, half::Bool
-)::Tuple{NTuple{O, T}, NTuple{O, Int}} where {T, O}
-    new_coeffs = ntuple(j -> lb <= i + s[j] <= ub ? c[j] : (i + s[j] < lb ? (!mlb ? zero(T) : (!half ? -c[j] : c[j]) ) : (!mub ? zero(T) : (!half ? -c[j] : c[j]))), Val(O))
-    shifted_indices = ntuple(j -> lb <= i + s[j] <= ub ? i + s[j] : (i + s[j] < lb ? (!mlb ? lb : (!half ? lb + (lb - (i + s[j])) : lb + (lb - (i + s[j])) - 1)) : (!mub ? ub : (!half ? ub - (i + s[j] - ub) : ub - (i + s[j] - ub) + 1))), Val(O))
+    )::Tuple{NTuple{O, T}, NTuple{O, Int}} where {T, O}
+
+    new_coeffs = ntuple(j -> begin
+                            if lb <= i + s[j] <= ub
+                                c[j]
+                            else
+                                if i + s[j] < lb
+	                            if !mlb
+                                        zero(T)
+                                    else
+                                        if !half
+                                            -c[j]
+                                        else
+                                            c[j]
+                                        end
+                                    end
+                                else
+                                    if !mub
+                                        zero(T)
+                                    else
+                                        if !half
+                                            -c[j]
+                                        else
+                                            c[j]
+                                        end
+                                    end
+                                end
+                            end
+                        end, Val(O))
+
+    shifted_indices = ntuple(j -> begin
+                                 if lb <= i + s[j] <= ub
+                                     i + s[j]
+                                 else
+                                     if i + s[j] < lb
+                                         if !mlb
+                                             lb
+                                         else
+                                             if !half
+                                                 lb + (lb - (i + s[j]))
+                                             else
+                                                 lb + (lb - (i + s[j])) - 1
+                                             end
+                                         end
+                                     else
+                                         if !mub
+                                             ub
+                                         else
+                                             if !half
+                                                 ub - (i + s[j] - ub)
+                                             else
+                                                 ub - (i + s[j] - ub) + 1
+                                             end
+                                         end
+                                     end
+                                 end
+                             end, Val(O))
+
     return new_coeffs, shifted_indices
 end
+
 
 """
     ∂ᵐ(array, I, _Δ, vm, vp, vbdcheck; dir=1, lb=1, ub=size(array, dir)) where {T, N, A, m, p}

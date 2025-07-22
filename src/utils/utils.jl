@@ -200,8 +200,18 @@ function spread_positions(
     shift::NTuple{N, T}=ntuple(_ -> zero(T), N),
     mirror::Bool=false,
     r::Int=4,
-    β::T=T.(6.31)
-) where {N, T}
+    β::T=T.(6.31),
+    freesurfposition::Symbol
+    ) where {N, T}
+    
+    # Position of the free surface
+    if freesurfposition==:halfgridin
+        position_freesurface = grid.spacing./2
+    elseif freesurfaceposition==:ongridbound
+        position_freesurface = zeros(T,N)
+    else
+        error("spread_positions(): Wrong keyword argument freesurfaceposition $freesurfaceposition")
+    end
     # Get number of positions to spread
     npos = size(positions, 1)
     # Spread each position
@@ -212,8 +222,9 @@ function spread_positions(
         idxs_dims = Vector{Vector{Int}}(undef, N)
         coeffs_dims = Vector{Vector{T}}(undef, N)
         for n in 1:N
-            # Compute coefficients in n-th dimension
-            idxs_nth, coeffs_nth = coeffsinc1D(positions[p, n], grid.spacing[n], grid.size[n], r, β, shift[n], mirror, zero(T), grid.extent[n])
+            # Compute coefficients for the n-th dimension
+            idxs_nth, coeffs_nth = coeffsinc1D(positions[p, n], grid.spacing[n], grid.size[n], r, β, shift[n], mirror, position_freesurface[n], grid.extent[n])
+            
             idxs_dims[n] = idxs_nth
             coeffs_dims[n] = coeffs_nth
         end
@@ -231,6 +242,4 @@ function spread_positions(
     return idxs, coeffs
 end
 
-#####################################################################
 
-#####################################################################
