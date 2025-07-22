@@ -5,16 +5,29 @@
 # Scaling for ElasticIsoWaveSimulation
 function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
+        freesurfpos=:halfgridin
         # interpolation coefficients for sources in vx
         nsrcs = size(shot.srcs.positions, 1)
-        srccoeij_ux, srccoeval_ux = spread_positions(model.grid, shot.srcs.positions; shift=(model.grid.spacing[1]/2, zero(T)), mirror=false)
+        srccoeij_ux, srccoeval_ux = spread_positions(model.grid, shot.srcs.positions;
+                                                     shift=(model.grid.spacing[1]/2, zero(T)),
+                                                     freesurfposition=freesurfpos,
+                                                     mirror=false)
         # interpolation coefficients for sources in vz
-        srccoeij_uz, srccoeval_uz = spread_positions(model.grid, shot.srcs.positions; shift=(zero(T), model.grid.spacing[2]/2), mirror=false)
+        srccoeij_uz, srccoeval_uz = spread_positions(model.grid, shot.srcs.positions;
+                                                     shift=(zero(T), model.grid.spacing[2]/2),
+                                                     freesurfposition=freesurfpos,
+                                                     mirror=false)
         nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_ux, reccoeval_ux = spread_positions(model.grid, shot.recs.positions; shift=(model.grid.spacing[1]/2, zero(T)), mirror=false)
+        reccoeij_ux, reccoeval_ux = spread_positions(model.grid, shot.recs.positions;
+                                                     shift=(model.grid.spacing[1]/2, zero(T)),
+                                                     freesurfposition=freesurfpos,
+                                                     mirror=false)
         # interpolation coefficients for receivers in vz
-        reccoeij_uz, reccoeval_uz = spread_positions(model.grid, shot.recs.positions; shift=(zero(T), model.grid.spacing[2]/2), mirror=false)
+        reccoeij_uz, reccoeval_uz = spread_positions(model.grid, shot.recs.positions;
+                                                     shift=(zero(T), model.grid.spacing[2]/2),
+                                                     freesurfposition=freesurfpos,
+                                                     mirror=false)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
@@ -35,16 +48,29 @@ end
 
 function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
+        freesurfpos=:halfgridin
         nsrcs = size(shot.srcs.positions, 1)
         # interpolation coefficients for sources in σxx and σzz
-        srccoeij_xx, srccoeval_xx = spread_positions(model.grid, shot.srcs.positions; shift=(zero(T), zero(T)), mirror=true)
+        srccoeij_xx, srccoeval_xx = spread_positions(model.grid, shot.srcs.positions;
+                                                     shift=(zero(T), zero(T)),
+                                                     freesurfposition=freesurfpos,
+                                                     mirror=true)
         # interpolation coefficients for sources in σxz
-        srccoeij_xz, srccoeval_xz = spread_positions(model.grid, shot.srcs.positions; shift=(model.grid.spacing[1]/2, model.grid.spacing[2]/2), mirror=true)
+        srccoeij_xz, srccoeval_xz = spread_positions(model.grid, shot.srcs.positions;
+                                                     shift=(model.grid.spacing[1]/2, model.grid.spacing[2]/2),
+                                                     freesurfposition=freesurfpos,
+                                                     mirror=true)
         nrecs = size(shot.recs.positions, 1)
         # interpolation coefficients for receivers in vx
-        reccoeij_ux, reccoeval_ux = spread_positions(model.grid, shot.recs.positions; shift=(model.grid.spacing[1]/2, zero(T)), mirror=false)
+        reccoeij_ux, reccoeval_ux = spread_positions(model.grid, shot.recs.positions;
+                                                     shift=(model.grid.spacing[1]/2,zero(T)),
+                                                     freesurfposition=freesurfpos,
+                                                     mirror=false)
         # interpolation coefficients for receivers in vz
-        reccoeij_uz, reccoeval_uz = spread_positions(model.grid, shot.recs.positions; shift=(zero(T), model.grid.spacing[2]/2), mirror=false)
+        reccoeij_uz, reccoeval_uz = spread_positions(model.grid, shot.recs.positions;
+                                                     shift=(zero(T), model.grid.spacing[2]/2),
+                                                     freesurfposition=freesurfpos,
+                                                     mirror=false)
     else
         src_idx_positions = find_nearest_grid_points(model, shot.srcs.positions)
         rec_idx_positions = find_nearest_grid_points(model, shot.recs.positions)
