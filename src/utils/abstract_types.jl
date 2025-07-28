@@ -86,7 +86,7 @@ $(TYPEDEF)
 An abstract type to represent misfit functions and related parameters.
 
 """
-abstract type AbstractMisfit end
+abstract type AbstractMisfit{T} end
 
 abstract type AbstractRegularization end
 

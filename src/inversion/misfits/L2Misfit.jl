@@ -1,21 +1,27 @@
 
-struct L2Misfit <: AbstractMisfit
-    observed::Array#{T,N}
-    invcov::AbstractMatrix#{T}
+struct L2Misfit{T, D, OA <: AbstractArray{T, D}, IM <: AbstractMatrix{T}} <: AbstractMisfit{T}
+    observed::OA
+    invcov::IM
     windows::Vector{Pair{Int, Int}}
 
-    function L2Misfit(; observed::Union{Array, Nothing}=nothing,
-                          invcov::Union{AbstractMatrix, Nothing}=nothing,
-                          windows::Vector{Pair{Int, Int}}=Vector{Pair{Int, Int}}()
-                          )
-        
-        return new(observed,invcov,windows)
+    function L2Misfit(; observed::AbstractArray{T, D}=zeros(T, 0, 0),
+                        invcov::AbstractMatrix{T}=zeros(T, 0, 0),
+                        windows::Vector{Pair{Int, Int}}=Vector{Pair{Int, Int}}()
+    ) where {T, D}
+        if !(D == 2 || D == 3)
+            throw(ArgumentError("Observed data must be a 2D or 3D array!"))
+        end
+        @assert size(invcov, 1) == size(invcov, 2) "Inverse covariance matrix must be square!"
+        @assert size(observed, 1) == size(invcov, 1) "Size of inverse covariance matrix must match the number of timesteps!"
+        @assert all(w -> 1 <= w.first <= w.second <= size(observed, 1), windows) "Windows indices must be between 1 and maximum number of timesteps!"
+
+        return new{T, D, typeof(observed), typeof(invcov)}(observed, invcov, windows)
     end
 end
 
 
 
-function calcmisfit(shotmisfit::L2Misfit,recs::ScalarReceivers{T}) where {T}
+function calcmisfit(shotmisfit::L2Misfit{T, 2},recs::ScalarReceivers{T}) where {T}
     # Compute residuals
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
@@ -36,7 +42,7 @@ function calcmisfit(shotmisfit::L2Misfit,recs::ScalarReceivers{T}) where {T}
     return msf
 end
 
-function calcmisfit(shotmisfit::L2Misfit,recs::VectorReceivers{T, N}) where {T, N}
+function calcmisfit(shotmisfit::L2Misfit{T, 3}, recs::VectorReceivers{T, N}) where {T, N}
     # Compute residuals
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
@@ -57,7 +63,7 @@ function calcmisfit(shotmisfit::L2Misfit,recs::VectorReceivers{T, N}) where {T, 
     return msf
 end
 
-function ∂χ_∂u(shotmisfit::L2Misfit, recs::ScalarReceivers{T}) where {T}
+function ∂χ_∂u(shotmisfit::L2Misfit{T, 2}, recs::ScalarReceivers{T}) where {T}
     # Compute residuals
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
@@ -73,7 +79,7 @@ function ∂χ_∂u(shotmisfit::L2Misfit, recs::ScalarReceivers{T}) where {T}
     return shotmisfit.invcov * residuals
 end
 
-function ∂χ_∂u(shotmisfit::L2Misfit, recs::VectorReceivers{T}) where {T}
+function ∂χ_∂u(shotmisfit::L2Misfit{T, 3}, recs::VectorReceivers{T}) where {T}
     # Compute residuals
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
