@@ -83,78 +83,77 @@ function swforward_1shot!(
     return
 end
 
-# function swforward_1shot!(
-#     ::CPMLBoundaryCondition,
-#     model::ElasticIsoCPMLWaveSimulation{T, 2},
-#     shot::ExternalForceShot{T, 2}
-# ) where {T}
-#     # scale source time function
-#     srccoeij_ux, srccoeval_ux,
-#     srccoeij_uz, srccoeval_uz,
-#     reccoeij_ux, reccoeval_ux,
-#     reccoeij_uz, reccoeval_uz,
-#     scal_srctf = possrcrec_scaletf(model, shot; sincinterp=model.sincinterp)
+function swforward_1shot!(
+    ::CPMLBoundaryCondition,
+    model::ElasticIsoCPMLWaveSimulation{T, 2},
+    shot::ExternalForceShot{T, 2}
+) where {T}
+    # scale source time function
+    srccoeij_ux, srccoeval_ux, srccoeij_uz, srccoeval_uz,
+    reccoeij_ux, reccoeval_ux, reccoeij_uz, reccoeval_uz,
+    scal_srctf = possrcrec_scaletf(model, shot; sincinterp=model.sincinterp)
 
-#     # Get computational grid and backend
-#     backend = select_backend(typeof(model), model.runparams.parall)
+    # Get computational grid and backend
+    backend = select_backend(typeof(model), model.runparams.parall)
 
-#     # Numerics
-#     nt = model.nt
+    # Numerics
+    nt = model.nt
 
-#     # Wrap sources and receivers arrays
-#     nsrcs = size(shot.srcs.positions, 1)
-#     nrecs = size(shot.recs.positions, 1)
-#     srccoeij_ux  = [backend.Data.Array( srccoeij_ux[i]) for i in 1:nsrcs]
-#     srccoeval_ux = [backend.Data.Array(srccoeval_ux[i]) for i in 1:nsrcs]
-#     srccoeij_uz  = [backend.Data.Array( srccoeij_uz[i]) for i in 1:nsrcs]
-#     srccoeval_uz = [backend.Data.Array(srccoeval_uz[i]) for i in 1:nsrcs]
-#     reccoeij_ux  = [backend.Data.Array( reccoeij_ux[i]) for i in 1:nrecs]
-#     reccoeval_ux = [backend.Data.Array(reccoeval_ux[i]) for i in 1:nrecs]
-#     reccoeij_uz  = [backend.Data.Array( reccoeij_uz[i]) for i in 1:nrecs]
-#     reccoeval_uz = [backend.Data.Array(reccoeval_uz[i]) for i in 1:nrecs]
-#     srctf_bk = backend.Data.Array(scal_srctf)
-#     reduced_buf = [backend.zeros(T, nrecs), backend.zeros(T, nrecs)]
-#     traces_ux_bk_buf = [backend.zeros(T, size(reccoeij_ux[i], 1)) for i in 1:nrecs]
-#     traces_uz_bk_buf = [backend.zeros(T, size(reccoeij_uz[i], 1)) for i in 1:nrecs]
-#     traces_bk = backend.zeros(T, size(shot.recs.seismograms))
+    # Wrap sources and receivers arrays
+    nsrcs = size(shot.srcs.positions, 1)
+    nrecs = size(shot.recs.positions, 1)
+    srccoeij_ux  = [backend.Data.Array( srccoeij_ux[i]) for i in 1:nsrcs]
+    srccoeval_ux = [backend.Data.Array(srccoeval_ux[i]) for i in 1:nsrcs]
+    srccoeij_uz  = [backend.Data.Array( srccoeij_uz[i]) for i in 1:nsrcs]
+    srccoeval_uz = [backend.Data.Array(srccoeval_uz[i]) for i in 1:nsrcs]
+    reccoeij_ux  = [backend.Data.Array( reccoeij_ux[i]) for i in 1:nrecs]
+    reccoeval_ux = [backend.Data.Array(reccoeval_ux[i]) for i in 1:nrecs]
+    reccoeij_uz  = [backend.Data.Array( reccoeij_uz[i]) for i in 1:nrecs]
+    reccoeval_uz = [backend.Data.Array(reccoeval_uz[i]) for i in 1:nrecs]
+    srctf_bk = backend.Data.Array(scal_srctf)
+    reduced_buf = [backend.zeros(T, nrecs), backend.zeros(T, nrecs)]
+    traces_ux_bk_buf = [backend.zeros(T, size(reccoeij_ux[i], 1)) for i in 1:nrecs]
+    traces_uz_bk_buf = [backend.zeros(T, size(reccoeij_uz[i], 1)) for i in 1:nrecs]
+    traces_bk = backend.zeros(T, size(shot.recs.seismograms))
 
-#     # Reset wavesim
-#     reset!(model)
+    # Reset wavesim
+    reset!(model)
 
-#     # Setup the print output 
-#     ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
 
-# Time loop
-#     for it in 1:nt
-#         backend.forward_onestep_CPML!(
-#             model,
-#             srccoeij_ux,
-#             srccoeval_ux,
-#             srccoeij_uz,
-#             srccoeval_uz,
-#             reccoeij_ux,
-#             reccoeval_ux,
-#             reccoeij_uz,
-#             reccoeval_uz,
-#             srctf_bk,
-#             reduced_buf,
-#             traces_ux_bk_buf,
-#             traces_uz_bk_buf,
-#             traces_bk,
-#             it;
-#             save_trace=true)
+    # Time loop
+    for it in 1:nt
+        backend.forward_onestep_CPML!(
+            model,
+            srccoeij_ux,
+            srccoeval_ux,
+            srccoeij_uz,
+            srccoeval_uz,
+            reccoeij_ux,
+            reccoeval_ux,
+            reccoeij_uz,
+            reccoeval_uz,
+            srctf_bk,
+            reduced_buf,
+            traces_ux_bk_buf,
+            traces_uz_bk_buf,
+            traces_bk,
+            it;
+            save_trace=true
+        )
 
-#         # Print timestep info
-#         printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:forw)
+        # Print timestep info
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:forw)
 
-#         # Save snapshot
-#         if snapenabled(model)
-#             savesnapshot!(model.snapshotter, "ucur" => model.grid.fields["ucur"], it)
-#             savesnapshot!(model.snapshotter, "σ" => model.grid.fields["σ"], it)
-#         end
-#     end
+        # Save snapshot
+        if snapenabled(model)
+            savesnapshot!(model.snapshotter, "ucur" => model.grid.fields["ucur"], it)
+            savesnapshot!(model.snapshotter, "σ" => model.grid.fields["σ"], it)
+        end
+    end
 
-#     # Save traces
-#     copyto!(shot.recs.seismograms, traces_bk)
-#     return
-# end
+    # Save traces
+    copyto!(shot.recs.seismograms, traces_bk)
+    return
+end

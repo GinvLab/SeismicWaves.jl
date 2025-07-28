@@ -5,7 +5,7 @@ function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimulation{T, N},
     shot::ScalarShot{T},
-    misfit::AbstractMisfit
+    misfit::AbstractMisfit{T}
 )::Dict{String, Array{T, N}} where {T, N}
 
     # scale source time function, etc.
@@ -96,7 +96,7 @@ function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticVDStaggeredCPMLWaveSimulation{T, N},
     shot::ScalarShot{T},
-    misfit::AbstractMisfit
+    misfit::AbstractMisfit{T}
 )::Dict{String, Array{T, N}} where {T, N}
 
     # scale source time function, etc.

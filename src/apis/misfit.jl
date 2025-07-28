@@ -27,7 +27,7 @@ function swmisfit!(
     params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}},
-    misfit::Vector{<:AbstractMisfit};
+    misfit::Vector{<:AbstractMisfit{T}};
     runparams::RunParameters
 )::T where {T, N}
     # if logger === nothing
@@ -67,7 +67,7 @@ See also [`swforward!`](@ref) and [`swgradient!`](@ref) and [`Shot`](@ref).
 """
 function swmisfit!(wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}}, matprop::MaterialProperties{T, N},
                    shots::Vector{<:Shot{T}},
-                   misfit::Vector{<:AbstractMisfit}
+                   misfit::Vector{<:AbstractMisfit{T}}
     )::T where {T, N}
     # if logger === nothing
     #     logger = current_logger()
@@ -86,7 +86,7 @@ function run_swmisfit!(
     wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}},
-    misfit::Vector{<:AbstractMisfit};
+    misfit::Vector{<:AbstractMisfit{T}};
 )::T where {T, N}
 
     # Solve forward model for all shots

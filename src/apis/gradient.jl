@@ -28,7 +28,7 @@ function swgradient!(
     params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}},
-    misfit::Vector{<:AbstractMisfit};
+    misfit::Vector{<:AbstractMisfit{T}};
     runparams::RunParameters=RunParameters(),
     gradparams::GradParameters=GradParameters()
 )::Union{Dict{String, Array{T, N}},
@@ -71,7 +71,7 @@ See also [`swforward!`](@ref) and [`swmisfit!`](@ref) and [`Shot`](@ref).
 function swgradient!(wavesim::Union{WaveSimulation{T, N},Vector{<:WaveSimulation{T, N}}},
                      matprop::MaterialProperties{T, N},
                      shots::Vector{<:Shot{T}},
-                     misfit::Vector{<:AbstractMisfit};
+                     misfit::Vector{<:AbstractMisfit{T}};
                      )::Union{Dict{String, Array{T, N}}, Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
     
     return with_logger(wavesim.runparams.logger) do
@@ -86,7 +86,7 @@ function run_swgradient!(
     wavesim::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}},
-    misfit::Vector{<:AbstractMisfit};
+    misfit::Vector{<:AbstractMisfit{T}};
 )::Union{Dict{String, Array{T, N}},
     Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
 
@@ -134,7 +134,7 @@ function run_swgradient!(
     wavesim::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}},
-    misfit::Vector{<:AbstractMisfit};
+    misfit::Vector{<:AbstractMisfit{T}};
 )::Union{Dict{String, Array{T, N}},Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
     
     nwsim = length(wavesim)

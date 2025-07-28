@@ -131,18 +131,19 @@ function setup_constant_elastic_2D_CPML(nt, dt, nx, ny, dx, dy, ρ0, λ0, μ0, h
     times = collect(range(0.0; step=dt, length=nt))
     possrcs = zeros(1, 2)
     possrcs[1, :] = [lx / 2, ly / 2]
-    srctf = zeros(nt, 1)
-    srctf[:, 1] .= rickerstf.(times, t0, f0)
+    srctf = zeros(nt, 2, 1)
+    srctf[:, 1, 1] .= rickerstf.(times, t0, f0)
+    srctf[:, 2, 1] .= rickerstf.(times, t0, f0)
     # receivers
     posrecs = zeros(1, 2)
     posrecs[1, :] = [lx / 3, ly / 2]
 
-    srcs = MomentTensorSources(possrcs, srctf, [MomentTensor2D(; Mxx=5e10, Mzz=5e10, Mxz=0.98e10)], f0)
+    srcs = ExternalForceSources(possrcs, srctf, f0)
     observed = zeros(nt, 2, 1)
     observed[:, 1, 1] .= srctf[:, 1]
     observed[:, 2, 1] .= srctf[:, 1]
     recs = VectorReceivers(posrecs, nt, 2)
-    shots = [MomentTensorShot(; srcs=srcs, recs=recs)]
+    shots = [ExternalForceShot(; srcs=srcs, recs=recs)]
     misfit = [L2Misfit(observed=observed, invcov=1.0 * I(nt))]
     return params, shots, misfit, matprop
 end
