@@ -41,6 +41,13 @@ Base.@kwdef struct ExternalForceShot{T, N} <: Shot{T}
     recs::VectorReceivers{T, N}
 end
 
+Base.@kwdef struct PSDMomentTensorShot{T, N} <: Shot{T}
+    "Structure containing the PSD as moment tensor for a given simulation."
+    srcs::PSDMomentTensorSources{T, N}
+    "Structure containing the receiver cross-correlations for a given simulation."
+    recs::VectorCrossCorrelationsReceivers{T, N}
+end
+
 ##################################################
 
 function init_shot!(model::WaveSimulation{T}, shot::Shot{T}; kwargs...) where {T}

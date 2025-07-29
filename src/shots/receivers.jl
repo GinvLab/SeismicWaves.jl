@@ -108,3 +108,31 @@ struct VectorReceivers{T, N} <: Receivers{T}
         return new{T, ndim}(positions, seismograms) #, observed, invcov, windows)
     end
 end
+
+struct VectorCrossCorrelationsReceivers{T, N} <: Receivers{T}
+    "Receiver positions"
+    positions::Matrix{T}
+    "Array holding cross-correlations (as columns)"
+    crosscorrelations::Array{T, 5}
+    "Indices of the reference receivers"
+    refs::Vector{Int}
+
+    @doc """
+        $(TYPEDSIGNATURES)
+
+    Create a multi-receiver configuration for cross-correlation analysis from reference receivers to target receivers.
+    """
+    function VectorCrossCorrelationsReceivers(
+        positions::Matrix{T},
+        nt::Int,
+        refs::Vector{Int},
+        ndim::Int=2
+    ) where {T}
+        @assert size(positions, 1) > 0 "There must be at least one receiver!"
+        @assert all(r -> 1 <= r <= size(positions, 1), refs) "Reference receiver indices must be valid!"
+        nrecs = size(positions, 1)
+        nrefrecs = length(refs)
+        crosscorrelations = zeros(T, nt*2 + 1, ndim, ndim, nrefrecs, nrecs) # (time -T:T, cc1, cc2, idx ref rec, idx target rec)
+        new{T, N}(positions, crosscorrelations, refs)
+    end
+end

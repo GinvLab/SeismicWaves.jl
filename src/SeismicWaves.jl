@@ -23,10 +23,10 @@ export MaterialProperties
 export VpAcousticCDMaterialProperties, VpRhoAcousticVDMaterialProperties
 export ElasticIsoMaterialProperties
 # export sources, receivers and shots
-export Shot, ScalarShot, MomentTensorShot, ExternalForceShot
-export Sources, ScalarSources, MomentTensorSources, ExternalForceSources
+export Shot, ScalarShot, MomentTensorShot, ExternalForceShot, PSDMomentTensorShot
+export Sources, ScalarSources, MomentTensorSources, ExternalForceSources, PSDMomentTensorSources
 export MomentTensor2D, MomentTensor3D
-export Receivers, ScalarReceivers, VectorReceivers
+export Receivers, ScalarReceivers, VectorReceivers, VectorCrossCorrelationsReceivers
 # forward, misfit and gradient functions
 export build_wavesim, swforward!, swmisfit!, swgradient!
 # misfits
