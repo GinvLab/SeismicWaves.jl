@@ -90,6 +90,3 @@ function check_positions(
     end
     return
 end
-
-check_invcov_matrix(model::WaveSimulation{T}, invcov::AbstractMatrix{T}) where {T} =
-    @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"

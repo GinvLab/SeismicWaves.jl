@@ -111,8 +111,6 @@ function run_swgradient!(
         # Initialize shot
         @debug "Initializing shot"
         init_shot!(wavesim, singleshot)
-        @debug "Checking invcov matrix"
-        check_invcov_matrix(wavesim, singlemisfit.invcov)
         # Compute forward solver
         @debug "Computing gradient solver"
         curgrad = swgradient_1shot!(wavesim, singleshot, singlemisfit)
@@ -175,8 +173,6 @@ function run_swgradient!(
             # Initialize shot
             @debug "Initializing shot"
             init_shot!(wavesim[w], singleshot)
-            @debug "Checking invcov matrix"
-            check_invcov_matrix(wavesim[w], singleshot.recs.invcov)
             # Compute forward solver
             @debug "Gradient solver"
             curgrad = swgradient_1shot!( wavesim[w], singleshot, singlemisfit)

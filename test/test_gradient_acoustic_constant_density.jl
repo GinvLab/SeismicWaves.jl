@@ -50,6 +50,41 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test misfit ≈ misfit_check
         end
 
+        @testset "Test 1D $(parall) swgradient! with compute misfit CCTSMisfit" begin
+            # Physics
+            c0 = 2000.0
+            f0 = 10.0
+            # Numerics
+            nt = 1000
+            nx = 101
+            dx = 10.0
+            dt = 0.99 * dx / c0
+            halo = 20
+            rcoef = 0.0001
+            params, shots, misfitobj, vel = setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef; ccts=true)
+
+            # Compute gradient and misfit
+            gradparams = GradParameters(compute_misfit=true)
+            grad, misfit = swgradient!(
+                params,
+                vel,
+                shots,
+                misfitobj;
+                runparams=runparams,
+                gradparams=gradparams
+            )
+            # Compute only misfit
+            misfit_check = swmisfit!(params, vel, shots, misfitobj; runparams=runparams)
+
+            # Check that gradient is non zero
+            @test !all(g -> g == 0.0, grad["vp"])
+            # Check that misfits are non zero
+            @test !(misfit ≈ 0.0)
+            @test !(misfit_check ≈ 0.0)
+            # Check that misfits are equivalent
+            @test misfit ≈ misfit_check
+        end
+
         @testset "Test 1D $(parall) swgradient! with compute misfit and windowing" begin
             # Physics
             c0 = 2000.0

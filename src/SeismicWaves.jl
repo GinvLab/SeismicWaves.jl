@@ -9,6 +9,8 @@ using DocStringExtensions
 using Interpolations
 using REPL
 using StaticArrays
+using StatsBase
+using NumericalIntegration
 
 # main struct for wave simulation
 export WaveSimulation
@@ -30,7 +32,7 @@ export Receivers, ScalarReceivers, VectorReceivers
 # forward, misfit and gradient functions
 export build_wavesim, swforward!, swmisfit!, swgradient!
 # misfits
-export AbstractMisfit,L2Misfit
+export AbstractMisfit, L2Misfit, CCTSMisfit
 # source time functions
 export gaussstf, gaussderivstf, rickerstf
 
@@ -112,6 +114,7 @@ include("models/backend_selection.jl")
 
 # Inversion 
 include("inversion/misfits/L2Misfit.jl")
+include("inversion/misfits/CCTSMisfit.jl")
 
 # APIs
 include("apis/build.jl")
