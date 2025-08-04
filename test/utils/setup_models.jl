@@ -21,7 +21,7 @@ function gaussian_vel_3D(nx, ny, nz, c0, c0max, r, origin=[(nx + 1) / 2, (ny + 1
     return c0 .+ [f(x, y, z) for x in 1:nx, y in 1:ny, z in 1:nz]
 end
 
-function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
+function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef; ccts=false)
     # constant velocity setup
     lx = (nx - 1) * dx
     vel = VpAcousticCDMaterialProperties(c0 .* ones(nx))
@@ -40,7 +40,11 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     posrecs[1, :] = [lx / 3]
     srcs = ScalarSources(possrcs, srctf, f0)
     recs = ScalarReceivers(posrecs, nt)
-    misfit = [L2Misfit(observed=copy(srctf),invcov=invcov=1.0 * I(nt))] 
+    if ccts
+        misfit = [CCTSMisfit(dt; std=1.0, observed=copy(srctf))] 
+    else
+        misfit = [L2Misfit(observed=copy(srctf),invcov=invcov=1.0 * I(nt))] 
+    end
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
     return params, shots, misfit, vel
 end

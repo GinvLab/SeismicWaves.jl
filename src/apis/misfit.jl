@@ -97,14 +97,6 @@ function run_swmisfit!(
     for s in length(shots)
         singleshot = shots[1]
         singlemisfit = misfit[1]
-        @debug "Checking invcov matrix"
-        if typeof(wavesim) <: Vector{<:WaveSimulation}
-            for i in eachindex(wavesim)
-                check_invcov_matrix(wavesim[i], singlemisfit.invcov)
-            end
-        else
-            check_invcov_matrix(wavesim, singlemisfit.invcov)
-        end
         totmisfitval += calcmisfit(singlemisfit, singleshot.recs)
     end
 
