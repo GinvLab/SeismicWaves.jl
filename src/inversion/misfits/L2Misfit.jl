@@ -25,14 +25,13 @@ function calcmisfit(shotmisfit::L2Misfit{T, 2},recs::ScalarReceivers{T}) where {
     # Compute residuals
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
-    mask = ones(T, size(residuals, 1))
     if length(shotmisfit.windows) > 0
-        for wnd in  shotmisfit.windows
-            mask[wnd.first:wnd.second] .= 2
+        mask = zeros(T, size(residuals, 1))
+        for wnd in shotmisfit.windows
+            mask[wnd.first:wnd.second] .= 1
         end
-        mask .-= 1
+        residuals .= mask .* residuals
     end
-    residuals .= mask .* residuals
     # Inner product using inverse covariance matrix
     msf = dot(residuals,  shotmisfit.invcov, residuals) / 2
     # # Add regularization if needed
@@ -46,14 +45,13 @@ function calcmisfit(shotmisfit::L2Misfit{T, 3}, recs::VectorReceivers{T, N}) whe
     # Compute residuals
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
-    mask = ones(T, size(residuals, 1))
     if length(shotmisfit.windows) > 0
+        mask = zeros(T, size(residuals, 1))
         for wnd in shotmisfit.windows
-            mask[wnd.first:wnd.second] .= 2
+            mask[wnd.first:wnd.second] .= 1
         end
-        mask .-= 1
+        residuals .= mask .* residuals
     end
-    residuals .= mask .* residuals
     # Inner product using inverse covariance matrix
     msf = sum([dot(residuals[:, i, :], shotmisfit.invcov, residuals[:, i, :]) for i in 1:N]) / 2
     # Add regularization if needed
@@ -67,14 +65,13 @@ function ∂χ_∂u(shotmisfit::L2Misfit{T, 2}, recs::ScalarReceivers{T}) where 
     # Compute residuals
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
-    mask = ones(T, size(residuals, 1))
     if length(shotmisfit.windows) > 0
+        mask = zeros(T, size(residuals, 1))
         for wnd in shotmisfit.windows
-            mask[wnd.first:wnd.second] .= 2
+            mask[wnd.first:wnd.second] .= 1
         end
-        mask .-= 1
+        residuals .= mask .* residuals
     end
-    residuals .= mask .* residuals
     # Multiply with inverse of covariance matrix
     return shotmisfit.invcov * residuals
 end
@@ -83,14 +80,13 @@ function ∂χ_∂u(shotmisfit::L2Misfit{T, 3}, recs::VectorReceivers{T}) where 
     # Compute residuals
     residuals = recs.seismograms - shotmisfit.observed
     # Window residuals using mask
-    mask = ones(T, size(residuals, 1))
     if length(shotmisfit.windows) > 0
+        mask = zeros(T, size(residuals, 1))
         for wnd in shotmisfit.windows
-            mask[wnd.first:wnd.second] .= 2
+            mask[wnd.first:wnd.second] .= 1
         end
-        mask .-= 1
+        residuals .= mask .* residuals
     end
-    residuals .= mask .* residuals
     # Multiply with inverse of covariance matrix
     for d in axes(residuals, 2)
         residuals[:, d, :] .= shotmisfit.invcov * residuals[:, d, :]
