@@ -52,7 +52,7 @@ function ∂χ_∂u(shotmisfit::CCTSMisfit{T, 2}, recs::ScalarReceivers{T}) wher
     ∂s∂t[2:end-1, :] .= (recs.seismograms[3:end, :] .- recs.seismograms[1:end-2, :]) ./ (2 * dt)  # time derivative of synthetic seismograms
     ∂s∂t[1, :] .= (recs.seismograms[2, :] .- 0) ./ (2 * dt)
     times = collect(range(dt; step=dt, length=nt))
-    for r in axes(recs.seismograms, 3)
+    for r in axes(recs.seismograms, 2)
         dτ = (argmax(abs.(crosscov(shotmisfit.observed[:, r], recs.seismograms[:, r]))) - nt) * dt
         norm_N = integrate(times, ∂s∂t[:, r] .^ 2)
         ∂s∂t[:, r] .= (dτ / norm_N) .* ∂s∂t[:, r]
