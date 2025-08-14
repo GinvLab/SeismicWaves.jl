@@ -46,7 +46,7 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalFor
     return srccoeij_ux, srccoeval_ux, srccoeij_uz, srccoeval_uz, reccoeij_ux, reccoeval_ux, reccoeij_uz, reccoeval_uz, shot.srcs.tf ./ prod(model.grid.spacing)
 end
 
-function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
+function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::Union{MomentTensorShot{T, 2}, PSDMomentTensorShot{T, 2}}; sincinterp=false) where {T}
     if sincinterp
         freesurfpos=:halfgridin
         nsrcs = size(shot.srcs.positions, 1)
@@ -89,8 +89,6 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTenso
     return srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz, reccoeij_ux, reccoeval_ux, reccoeij_uz, reccoeval_uz, shot.srcs.tf ./ prod(model.grid.spacing)
 end
 
-
-
 function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert all(matprop.λ .>= 0) "Lamè coefficient λ must be positive!"
@@ -115,7 +113,7 @@ end
 
 function check_numerics(
     model::ElasticIsoWaveSimulation{T},
-    shot::Union{MomentTensorShot{T}, ExternalForceShot{T}};
+    shot::Union{MomentTensorShot{T}, ExternalForceShot{T}, PSDMomentTensorShot{T}};
     min_ppw::Int=10
 ) where {T}
     # Check points per wavelengh

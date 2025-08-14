@@ -16,6 +16,10 @@ function printinfoiter(ter::REPL.Terminals.TTYTerminal,it::Integer,nt::Integer,
         end
         if kind==:forw
             @info @sprintf( "Iteration: %d of %d, simulation time: %g s",it, nt, dt*(it-1) )
+        elseif kind==:outprop
+            @info @sprintf( "Out-propagation loop: %d of %d, simulation time: %g s",pit, nt, dt*(it-1) )
+        elseif kind==:inprop
+            @info @sprintf( "In-propagation loop: %d of %d, simulation time: %g s",pit, nt, dt*(it-1) )
         elseif kind==:adjforw
             @info @sprintf( "Forward loop: %d of %d, simulation time: %g s",it, nt, dt*(it-1) )
         elseif kind==:adjback

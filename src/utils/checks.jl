@@ -34,6 +34,13 @@ function check_sim_consistency(model::WaveSimulation{T, N}, matprop::MaterialPro
            tysource <: ExternalForceSources{T, 2} &&
            tyreceiver <: VectorReceivers{T, N}
         return
+
+    elseif model isa ElasticIsoCPMLWaveSimulation{T, 2} &&   # <<<<<---------<<<<
+           matprop isa ElasticIsoMaterialProperties{T, 2} &&
+           tysource <: PSDMomentTensorSources{T, 2, Vector{MomentTensor2D{T}}} &&
+           tyreceiver <: VectorCrossCorrelationsReceivers{T, N}
+        return
+    
     end
 
     return error("Types of WaveSimulation, MaterialProperties and Sources/Receivers are inconsistent \
