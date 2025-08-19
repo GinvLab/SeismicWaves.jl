@@ -9,7 +9,7 @@ using DocStringExtensions
 using Interpolations
 using REPL
 using StaticArrays
-using StatsBase
+using DSP
 using NumericalIntegration
 
 # main struct for wave simulation

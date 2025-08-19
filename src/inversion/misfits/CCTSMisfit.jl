@@ -21,7 +21,7 @@ function calcmisfit(shotmisfit::CCTSMisfit{T, 2}, recs::ScalarReceivers{T}) wher
     # Compute cross-correlation time series
     misfit = zero(T)
     for r in axes(recs.seismograms, 2)
-        dτ = (argmax(abs.(crosscov(shotmisfit.observed[:, r], recs.seismograms[:, r]))) - nt) * dt
+        dτ = (argmax(abs.(xcorr(shotmisfit.observed[:, r], recs.seismograms[:, r]))) - (nt-1)) * dt
         misfit += dτ^2 / 2
     end
     return misfit
@@ -35,7 +35,7 @@ function calcmisfit(shotmisfit::CCTSMisfit{T, 3}, recs::VectorReceivers{T, N}) w
     misfit = zero(T)
     for r in axes(recs.seismograms, 3)
         for d in axes(recs.seismograms, 2)
-            dτ = (argmax(abs.(crosscov(shotmisfit.observed[:, d, r], recs.seismograms[:, d, r]))) - nt) * dt
+            dτ = (argmax(abs.(xcorr(shotmisfit.observed[:, d, r], recs.seismograms[:, d, r]))) - (nt-1)) * dt
             misfit += dτ^2 / 2
         end
     end
@@ -53,7 +53,7 @@ function ∂χ_∂u(shotmisfit::CCTSMisfit{T, 2}, recs::ScalarReceivers{T}) wher
     ∂s∂t[1, :] .= (recs.seismograms[2, :] .- 0) ./ (2 * dt)
     times = collect(range(dt; step=dt, length=nt))
     for r in axes(recs.seismograms, 2)
-        dτ = (argmax(abs.(crosscov(shotmisfit.observed[:, r], recs.seismograms[:, r]))) - nt) * dt
+        dτ = (argmax(abs.(xcorr(shotmisfit.observed[:, r], recs.seismograms[:, r]))) - (nt-1)) * dt
         norm_N = integrate(times, ∂s∂t[:, r] .^ 2)
         ∂s∂t[:, r] .= (dτ / norm_N) .* ∂s∂t[:, r]
     end
@@ -71,7 +71,7 @@ function ∂χ_∂u(shotmisfit::CCTSMisfit{T, 3}, recs::VectorReceivers{T, N}) w
     times = collect(range(dt; step=dt, length=nt))
     for r in axes(recs.seismograms, 3)
         for d in axes(recs.seismograms, 2)
-            dτ = (argmax(abs.(crosscov(shotmisfit.observed[:, d, r], recs.seismograms[:, d, r]))) - nt) * dt
+            dτ = (argmax(abs.(xcorr(shotmisfit.observed[:, d, r], recs.seismograms[:, d, r]))) - (nt-1)) * dt
             norm_N = integrate(times, ∂s∂t[:, d, r] .^ 2)
             ∂s∂t[:, d, r] .= (dτ / norm_N) .* ∂s∂t[:, d, r]
         end
