@@ -512,16 +512,28 @@ function forward_onestep_ccout_CPML!(
     _Δx = 1 / Δx
     _Δz = 1 / Δz
 
+    # Update displacements
+    @parallel (1:nx-1, 1:nz) update_ux!(
+        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt,
+        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z,
+        freetop
+    )
+    @parallel (1:nx, 1:nz-1) update_uz!(
+        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt,
+        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z,
+        freetop
+    )
+
     # Update normal stress
     idxzσxx = freetop ? (1:nz-1) : (2:nz-1)
     @parallel (2:nx-1, idxzσxx) update_σxx_σzz!(
-        σxx, σzz, uxcur, uzcur, λ, μ, _Δx, _Δz,
+        σxx, σzz, uxnew, uznew, λ, μ, _Δx, _Δz,
         halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z,
         freetop
     )
     # Update shear stress
     @parallel (1:nx-1, 1:nz-1) update_σxz!(
-        σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz,
+        σxz, uxnew, uznew, μ_ihalf_jhalf, _Δx, _Δz,
         halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
         freetop
     )
@@ -546,18 +558,6 @@ function forward_onestep_ccout_CPML!(
         reduced_buf[2] .= 0
         reduced_buf[3] .= 0
     end
-
-    # Update displacements
-    @parallel (1:nx-1, 1:nz) update_ux!(
-        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt,
-        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z,
-        freetop
-    )
-    @parallel (1:nx, 1:nz-1) update_uz!(
-        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt,
-        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z,
-        freetop
-    )
 
     # Inject reference receiver as source (external force type)
     nsrcpts = size(refreccoeij, 1)
@@ -680,8 +680,8 @@ function forward_onestep_ccin_CPML!(
         for r in 1:nrecs
             nrecspts_ux = size(reccoeij_ux[r], 1)
             nrecspts_uz = size(reccoeij_uz[r], 1)
-            @parallel (1:nrecspts_ux) record_receivers2D_ux!(uxnew, traces_ux_bk_buf[r], reccoeij_ux[r], reccoeval_ux[r])
-            @parallel (1:nrecspts_uz) record_receivers2D_uz!(uznew, traces_uz_bk_buf[r], reccoeij_uz[r], reccoeval_uz[r])
+            @parallel (1:nrecspts_ux) record_receivers2D_ux!(uxcur, traces_ux_bk_buf[r], reccoeij_ux[r], reccoeval_ux[r])
+            @parallel (1:nrecspts_uz) record_receivers2D_uz!(uzcur, traces_uz_bk_buf[r], reccoeij_uz[r], reccoeval_uz[r])
             Base.mapreducedim!(identity, +, @view(reduced_buf[1][r:r]), traces_ux_bk_buf[r])
             Base.mapreducedim!(identity, +, @view(reduced_buf[2][r:r]), traces_uz_bk_buf[r])
         end

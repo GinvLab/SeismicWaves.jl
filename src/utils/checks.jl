@@ -37,7 +37,7 @@ function check_sim_consistency(model::WaveSimulation{T, N}, matprop::MaterialPro
 
     elseif model isa ElasticIsoCPMLWaveSimulation{T, 2} &&   # <<<<<---------<<<<
            matprop isa ElasticIsoMaterialProperties{T, 2} &&
-           tysource <: PSDMomentTensorSources{T, 2, Vector{MomentTensor2D{T}}} &&
+           tysource <: PSDMomentTensorSources{T, 2, MomentTensor2D{T}} &&
            tyreceiver <: VectorCrossCorrelationsReceivers{T, N}
         return
     

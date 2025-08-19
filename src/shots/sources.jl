@@ -89,19 +89,19 @@ struct ExternalForceSources{T, N} <: Sources{T}
     end
 end
 
-struct PSDMomentTensorSources{T, N, P <: Vector{<:MomentTensor{T, N}}} <: Sources{T}
+struct PSDMomentTensorSources{T, N, M <: MomentTensor{T, N}} <: Sources{T}
     positions::Matrix{T}
     tf::Array{T, 3}
     domfreq::T
-    psd::P
+    psd::Vector{M}
 
-    function PSDMomentTensorSources(positions::Matrix{T}, tf::Array{T, 3}, domfreq::T, psd::P) where {T, N, P <: Vector{<:MomentTensor{T, N}}}
+    function PSDMomentTensorSources(positions::Matrix{T}, tf::Array{T, 3}, domfreq::T, psd::Vector{M}) where {T, N, M <: MomentTensor{T, N}}
         @assert size(positions, 1) > 0 "There must be at least one PSD source!"
         @assert size(positions, 1) == length(psd) "Number of PSD sources must match number of positions!"
         @assert size(positions, 2) == N "Number of components in positions must match the number of dimensions!"
         @assert size(tf, 3) == 1 "PSD moment tensor sources must have a single source time function!"
         @assert size(tf, 2) == N "Number of components in source time function must match the number of dimensions!"
-        return new{T, N, P}(positions, tf, domfreq, psd)
+        return new{T, N, M}(positions, tf, domfreq, psd)
     end 
 end
 

@@ -41,9 +41,9 @@ Base.@kwdef struct ExternalForceShot{T, N} <: Shot{T}
     recs::VectorReceivers{T, N}
 end
 
-Base.@kwdef struct PSDMomentTensorShot{T, N} <: Shot{T}
+Base.@kwdef struct PSDMomentTensorShot{T, N, M <: MomentTensor{T, N}} <: Shot{T}
     "Structure containing the PSD as moment tensor for a given simulation."
-    srcs::PSDMomentTensorSources{T, N}
+    srcs::PSDMomentTensorSources{T, N, M}
     "Structure containing the receiver cross-correlations for a given simulation."
     recs::VectorCrossCorrelationsReceivers{T, N}
 end
