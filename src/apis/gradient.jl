@@ -104,7 +104,7 @@ function run_swgradient!(
     totgrad = init_gradient(wavesim)
     totmisfitval = 0
     # Shots loop
-    for s in length(shots)
+    for s=1:length(shots)
         singleshot = shots[s]
         singlemisfit = misfit[s]
         @info "Shot #$s"
