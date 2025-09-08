@@ -524,6 +524,14 @@ function forward_onestep_ccout_CPML!(
         freetop
     )
 
+    # Inject reference receiver as source (external force type)
+    nsrcpts = size(refreccoeij, 1)
+    if d == 1
+        @parallel (1:nsrcpts) inject_external_sources2D_onecomp!(uxnew, recrefscal_srctf_bk, refreccoeij, refreccoeval, ρ_ihalf, it, 1, d, Δt)
+    elseif d == 2
+        @parallel (1:nsrcpts) inject_external_sources2D_onecomp!(uznew, recrefscal_srctf_bk, refreccoeij, refreccoeval, ρ_jhalf, it, 1, d, Δt)
+    end
+
     # Update normal stress
     idxzσxx = freetop ? (1:nz-1) : (2:nz-1)
     @parallel (2:nx-1, idxzσxx) update_σxx_σzz!(
@@ -557,14 +565,6 @@ function forward_onestep_ccout_CPML!(
         reduced_buf[1] .= 0
         reduced_buf[2] .= 0
         reduced_buf[3] .= 0
-    end
-
-    # Inject reference receiver as source (external force type)
-    nsrcpts = size(refreccoeij, 1)
-    if d == 1
-        @parallel (1:nsrcpts) inject_external_sources2D_onecomp!(uxnew, recrefscal_srctf_bk, refreccoeij, refreccoeval, ρ_ihalf, it, 1, d, Δt)
-    elseif d == 2
-        @parallel (1:nsrcpts) inject_external_sources2D_onecomp!(uznew, recrefscal_srctf_bk, refreccoeij, refreccoeval, ρ_jhalf, it, 1, d, Δt)
     end
 
     # Swap old and current displacements

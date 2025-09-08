@@ -203,6 +203,9 @@ function swforward_1shot!(
             traces_xx_bk = backend.zeros(T, nt, nsrcs)
             traces_xz_bk = backend.zeros(T, nt, nsrcs)
             traces_zz_bk = backend.zeros(T, nt, nsrcs)
+            stf_xx_bk = backend.zeros(T, nt, nsrcs)
+            stf_zz_bk = backend.zeros(T, nt, nsrcs)
+            stf_xz_bk = backend.zeros(T, nt, nsrcs)
             reduced_buf_displ = [backend.zeros(T, nrecs), backend.zeros(T, nrecs)]
             traces_ux_bk_buf = [backend.zeros(T, size(reccoeij_ux[i], 1)) for i in 1:nrecs]
             traces_uz_bk_buf = [backend.zeros(T, size(reccoeij_uz[i], 1)) for i in 1:nrecs]
@@ -245,9 +248,9 @@ function swforward_1shot!(
 
             # Scale PSD sources by moment tensor
             for s in 1:nsrcs
-                traces_xx_bk[:, s] .*= shot.srcs.psd[s].Mxx
-                traces_zz_bk[:, s] .*= shot.srcs.psd[s].Mzz
-                traces_xz_bk[:, s] .*= shot.srcs.psd[s].Mxz
+                stf_xx_bk[:, s] .= traces_xx_bk[:, s] .* shot.srcs.psd[s].Mxx
+                stf_zz_bk[:, s] .= traces_zz_bk[:, s] .* shot.srcs.psd[s].Mzz
+                stf_xz_bk[:, s] .= traces_xz_bk[:, s] .* shot.srcs.psd[s].Mxz
             end
 
             reset!(model)
@@ -264,9 +267,9 @@ function swforward_1shot!(
                     reccoeval_ux,
                     reccoeij_uz,
                     reccoeval_uz,
-                    traces_xx_bk,
-                    traces_zz_bk,
-                    traces_xz_bk,
+                    stf_xx_bk,
+                    stf_zz_bk,
+                    stf_xz_bk,
                     reduced_buf_displ,
                     traces_ux_bk_buf,
                     traces_uz_bk_buf,
