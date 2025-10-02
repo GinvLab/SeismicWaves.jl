@@ -162,18 +162,20 @@ function swgradient_1shot!(
                    back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
     gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
     # Smooth gradients
+    #   sources
     mutearoundmultiplepoints!(gradient_ρ,shot.srcs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_src)
     mutearoundmultiplepoints!(gradient_λ,shot.srcs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_src)
     mutearoundmultiplepoints!(gradient_μ,shot.srcs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_src)
+    #  receivers
     mutearoundmultiplepoints!(gradient_ρ,shot.recs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_rec)
     mutearoundmultiplepoints!(gradient_λ,shot.recs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_rec)
     mutearoundmultiplepoints!(gradient_μ,shot.recs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_rec)
     # Return gradients
     return Dict(
         "rho" => gradient_ρ, 
@@ -335,18 +337,20 @@ function swgradient_1shot!(
                    back_interp(model.matprop.interp_method_ρ, model.matprop.ρ, Array(grid.fields["grad_ρ_jhalf"].value), 2)
     gradient_μ .+= back_interp(model.matprop.interp_method_μ, model.matprop.μ, Array(grid.fields["grad_μ_ihalf_jhalf"].value), [1, 2])
     # Smooth gradients
+    #   sources
     mutearoundmultiplepoints!(gradient_ρ,shot.srcs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_src)
     mutearoundmultiplepoints!(gradient_λ,shot.srcs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_src)
     mutearoundmultiplepoints!(gradient_μ,shot.srcs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_src)
+    #  receivers
     mutearoundmultiplepoints!(gradient_ρ,shot.recs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_rec)
     mutearoundmultiplepoints!(gradient_λ,shot.recs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_rec)
     mutearoundmultiplepoints!(gradient_μ,shot.recs.positions,grid,
-                              model.gradparams.mute_radius)
+                              model.gradparams.mute_radius_rec)
     # Return gradients
     return Dict(
         "rho" => gradient_ρ, 

@@ -24,6 +24,7 @@ struct RunParameters
     logger::AbstractLogger
     erroronCFL::Bool
     erroronPPW::Bool
+    minPPW::Int
 
     function RunParameters(;
                            parall::Symbol=:threads,
@@ -31,9 +32,10 @@ struct RunParameters
                            infoevery::Union{Int, Nothing}=nothing,
                            logger::AbstractLogger=current_logger(),
                            erroronCFL::Bool=true,
-                           erroronPPW::Bool=false
+                           erroronPPW::Bool=false,
+                           minPPW::Int=10
                            )
-        return new(parall,snapevery,infoevery,logger,erroronCFL,erroronPPW)
+        return new(parall,snapevery,infoevery,logger,erroronCFL,erroronPPW,minPPW)
     end
 end
 
@@ -48,16 +50,18 @@ $(TYPEDSIGNATURES)
 
 """
 struct GradParameters
-    mute_radius::Int
+    mute_radius_src::Int
+    mute_radius_rec::Int
     compute_misfit::Bool
     check_freq::Int
 
     function GradParameters(;
-                           mute_radius::Int=0,
-                           compute_misfit::Bool=false,
-                           check_freq::Int=1
-                           )
-        return new(mute_radius,compute_misfit,check_freq)
+                            mute_radius_src::Int=0,
+                            mute_radius_rec::Int=0,
+                            compute_misfit::Bool=false,
+                            check_freq::Int=1
+                            )
+        return new(mute_radius_src,mute_radius_rec,compute_misfit,check_freq)
     end
 end
 

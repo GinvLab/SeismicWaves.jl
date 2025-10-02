@@ -115,8 +115,7 @@ end
 
 function check_numerics(
     model::ElasticIsoWaveSimulation{T},
-    shot::Union{MomentTensorShot{T}, ExternalForceShot{T}};
-    min_ppw::Int=10
+    shot::Union{MomentTensorShot{T}, ExternalForceShot{T}}    
 ) where {T}
     # Check points per wavelengh
     # min Vs
@@ -128,6 +127,8 @@ function check_numerics(
     h_max = maximum(model.grid.spacing)
     fmax = shot.srcs.domfreq * 2.0
     ppw = vel_min / (fmax * h_max)
+
+    min_ppw = model.runparams.minPPW
     
     @info "Points per wavelength: $(ppw)"
     dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
