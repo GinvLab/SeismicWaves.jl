@@ -23,3 +23,5 @@ Base.@kwdef struct CPMLBoundaryConditionParameters{T} <: InputBoundaryConditionP
     "Maximum velocity for C-PML coefficients"
     vel_max::Union{T,Nothing} = nothing
 end
+
+CPMLBoundaryConditionParameters(halo::Integer,rcoef::AbstractFloat,freeboundtop::Bool) = CPMLBoundaryConditionParameters(; halo=halo,rcoef=rcoef,freeboundtop=freeboundtop,vel_max=nothing)
