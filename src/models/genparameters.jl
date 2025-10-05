@@ -13,8 +13,9 @@ $(TYPEDSIGNATURES)
 - `snapevery::Union{<:Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays (only for forward simulations).
 - `infoevery::Union{<:Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
 - `logger::AbstractLogger`: specifies the logger to be used.
-- `erroronCFL::Bool`:
-- `erroronPPW::Bool`:
+- `erroronCFL::Bool`: throw an error if the CFL condition is not met.
+- `minPPW::Int`: minimum number of points per wavelength (PPW).
+- `erroronPPW::Bool`: throw an error if the minimum number of points per wavelength (PPW) is achieved (otherwise warn about it).
 
 """
 struct RunParameters
@@ -23,8 +24,8 @@ struct RunParameters
     infoevery::Union{Int, Nothing}
     logger::AbstractLogger
     erroronCFL::Bool
-    erroronPPW::Bool
     minPPW::Int
+    erroronPPW::Bool
 
     function RunParameters(;
                            parall::Symbol=:threads,
@@ -32,10 +33,10 @@ struct RunParameters
                            infoevery::Union{Int, Nothing}=nothing,
                            logger::AbstractLogger=current_logger(),
                            erroronCFL::Bool=true,
-                           erroronPPW::Bool=false,
-                           minPPW::Int=10
+                           minPPW::Int=10,
+                           erroronPPW::Bool=false                           
                            )
-        return new(parall,snapevery,infoevery,logger,erroronCFL,erroronPPW,minPPW)
+        return new(parall,snapevery,infoevery,logger,erroronCFL,minPPW,erroronPPW)
     end
 end
 
@@ -44,7 +45,8 @@ end
 
 $(TYPEDSIGNATURES)     
 
-- `mute_radius::Int`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
+- `mute_radius_src::Int`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from *source* positions.
+- `mute_radius_rec::Int`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from *receiver* positions.
 - `compute_misfit::Bool`: default false. If true, also computes and return misfit value.
 - `check_freq::Union{<:Int, Nothing} = nothing`: if `gradient = true` and if specified, enables checkpointing and specifies the checkpointing frequency.
 
