@@ -8,12 +8,19 @@ function init_bdc!(
     ::CPMLBoundaryCondition,
     model::ElasticIsoWaveSimulation{T, N},
     srcs::Sources
-) where {T, N}
+    ) where {T, N}
+    
+    if model.cpmlparams.vel_max==nothing
+        vel_max = get_maximum_func(model)(sqrt.((model.matprop.λ .+ 2 .* model.matprop.μ) ./ model.matprop.ρ))
+    else
+        vel_max = model.cpmlparams.vel_max
+    end
+
     for n in 1:N
         #@show n,typeof(model.cpmlcoeffs[n])
         compute_CPML_coefficientsAxis!(
             model.cpmlcoeffs[n],
-            get_maximum_func(model)(sqrt.((model.matprop.λ .+ 2 .* model.matprop.μ) ./ model.matprop.ρ)),
+            vel_max,
             model.dt,
             model.cpmlparams.halo,
             model.cpmlparams.rcoef,

@@ -20,4 +20,6 @@ Base.@kwdef struct CPMLBoundaryConditionParameters{T} <: InputBoundaryConditionP
     rcoef::T = 0.0001
     "Free surface boundary condition at the top"
     freeboundtop::Bool = true
+    "Maximum velocity for C-PML coefficients"
+    vel_max::Union{T,Nothing} = nothing
 end
