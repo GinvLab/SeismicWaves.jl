@@ -3,9 +3,9 @@
 function printinfoiter(ter::REPL.Terminals.TTYTerminal,it::Integer,nt::Integer,
                        infoevery::Union{Integer,Nothing},dt::Real,kind::Symbol)
     
-    if kind==:forw || kind==:adjforw
+    if kind==:forw || kind==:adjforw || kind==:outprop
         pit = it
-    elseif kind==:adjback
+    elseif kind==:adjback || kind==:inprop
         pit = nt-it+1
     end
 
@@ -18,11 +18,15 @@ function printinfoiter(ter::REPL.Terminals.TTYTerminal,it::Integer,nt::Integer,
             REPL.Terminals.cmove_line_up(ter)
         end
         if kind==:forw
-            @info @sprintf( "Iteration: %d of %d, simulation time: %g s",it, nt, dt*(it-1) )
+            @info @sprintf( "Iteration: %d of %d, simulation time: %.4g s",it, nt, dt*it )
+        elseif kind==:outprop
+            @info @sprintf( "Out-propagation loop: %d of %d, simulation time: %.4g s",pit, nt, dt*it )
+        elseif kind==:inprop
+            @info @sprintf( "In-propagation loop: %d of %d, simulation time: %.4g s",pit, 2*nt, dt*(it-1) )
         elseif kind==:adjforw
-            @info @sprintf( "Forward loop: %d of %d, simulation time: %g s",it, nt, dt*(it-1) )
+            @info @sprintf( "Forward loop: %d of %d, simulation time: %.4g s",it, nt, dt*it )
         elseif kind==:adjback
-            @info @sprintf( "Adjoint loop: %d of %d, simulation time: %g s",pit, nt, dt*(it-1) )
+            @info @sprintf( "Adjoint loop: %d of %d, simulation time: %.4g s",pit, nt, dt*(it-1) )
         end        
     end
     return

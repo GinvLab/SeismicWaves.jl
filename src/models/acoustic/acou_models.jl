@@ -6,7 +6,7 @@ function check_courant_condition(model::AcousticWaveSimulation{T, N}, vp::Array{
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp
-    @info "Courant number: $(courant)"
+    @info @sprintf("Courant number: %.4g", courant)
     if model.runparams.erroronCFL
         @assert courant < 1 "Courant condition not satisfied! [$(courant)]"
     elseif courant > 1
@@ -241,7 +241,7 @@ function check_courant_condition(model::AcousticVDStaggeredWaveSimulation{T, N},
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp * 7 / 6    # 7/6 comes from the higher order stencil
-    @info "Courant number: $(courant)"
+    @info @sprintf("Courant number: %.4g", courant)
     if model.runparams.erroronCFL
         @assert courant < 1 "Courant number: $(courant)"
     elseif courant > 1
@@ -260,8 +260,8 @@ function check_numerics(
     h_max = maximum(model.grid.spacing)
     fmax = shot.srcs.domfreq * 2.0
     ppw = vel_min / (fmax * h_max)
-    
-    @info "Points per wavelength: $(ppw)"
+
+    @info @sprintf("Points per wavelength: %.4g", ppw)
     dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
     if model.runparams.erroronPPW
         @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"

@@ -152,6 +152,37 @@ function setup_constant_elastic_2D_CPML(nt, dt, nx, ny, dx, dy, ρ0, λ0, μ0, h
     return params, shots, misfit, matprop
 end
 
+function setup_constant_elastic_2D_noise_CPML(nt, dt, nx, ny, dx, dy, ρ0, λ0, μ0, halo, rcoef, f0)
+    # constant velocity setup
+    lx = (nx - 1) * dx
+    ly = (ny - 1) * dy
+    matprop = ElasticIsoMaterialProperties(; ρ=ρ0 .* ones(nx, ny), λ=λ0 .* ones(nx, ny), μ=μ0 .* ones(nx, ny))
+    # input parameters
+    params = InputParametersElastic(nt, dt, (nx, ny), (dx, dy),
+        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
+    # sources
+    t0 = 2 / f0
+    times = collect(range(0.0; step=dt, length=nt))
+    possrcs = zeros(1, 2)
+    possrcs[1, :] = [lx / 3, ly / 3]
+    srctf = zeros(nt, 2, 1)
+    srctf[:, 1, 1] .= rickerstf.(times, t0, f0)
+    srctf[:, 2, 1] .= rickerstf.(times, t0, f0)
+    # receivers
+    posrecs = zeros(3, 2)
+    posrecs[1, :] = [lx / 2, ly / 2]
+    posrecs[2, :] = [2lx / 3, ly / 3]
+    posrecs[3, :] = [lx / 3, 2ly / 3]
+    # PSD
+    psd = [MomentTensor2D(; Mxx=1.0, Mzz=1.0, Mxz=0.0)]
+
+    srcs = PSDMomentTensorSources(possrcs, srctf, f0, psd)
+    recs = VectorCrossCorrelationsReceivers(posrecs, nt, [1])
+    shots = [PSDMomentTensorShot(; srcs=srcs, recs=recs)]
+
+    return params, shots, matprop
+end
+
 function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
     # constant velocity setup
     lx = (nx - 1) * dx

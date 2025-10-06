@@ -3,7 +3,7 @@
 # Functions for all ElasticIsoWaveSimulation subtypes
 
 # Scaling for ElasticIsoWaveSimulation
-function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}; sincinterp=false) where {T}
+function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::Union{ExternalForceShot{T, 2}, PSDExternalForceShot{T, 2}}; sincinterp=false) where {T}
     if sincinterp
         freesurfpos=:halfgridin
         # interpolation coefficients for sources in vx
@@ -46,7 +46,7 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalFor
     return srccoeij_ux, srccoeval_ux, srccoeij_uz, srccoeval_uz, reccoeij_ux, reccoeval_ux, reccoeij_uz, reccoeval_uz, shot.srcs.tf ./ prod(model.grid.spacing)
 end
 
-function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
+function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::Union{MomentTensorShot{T, 2}, PSDMomentTensorShot{T, 2}}; sincinterp=false) where {T}
     if sincinterp
         freesurfpos=:halfgridin
         nsrcs = size(shot.srcs.positions, 1)
@@ -89,8 +89,6 @@ function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTenso
     return srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz, reccoeij_ux, reccoeval_ux, reccoeij_uz, reccoeval_uz, shot.srcs.tf ./ prod(model.grid.spacing)
 end
 
-
-
 function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIsoMaterialProperties{T, N}) where {T, N}
     # Checks
     @assert all(matprop.λ .>= 0) "Lamè coefficient λ must be positive!"
@@ -104,7 +102,7 @@ function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIs
     vel_max = get_maximum_func(model)(vp)
     tmp = sqrt.(sum(1 ./ model.grid.spacing .^ 2))
     courant = vel_max * model.dt * tmp * 7 / 6  # 7/6 comes from the higher order stencil
-    @info "Courant number: $(courant)"
+    @info @sprintf("Courant number: %.4g", courant)
     if model.runparams.erroronCFL
         @assert courant < 1 "Courant condition not satisfied! [$(courant)]"
     elseif courant > 1
@@ -115,7 +113,8 @@ end
 
 function check_numerics(
     model::ElasticIsoWaveSimulation{T},
-    shot::Union{MomentTensorShot{T}, ExternalForceShot{T}}    
+    shot::Union{MomentTensorShot{T}, ExternalForceShot{T}, PSDMomentTensorShot{T}, PSDExternalForceShot{T}};
+    min_ppw::Int=10
 ) where {T}
     # Check points per wavelengh
     # min Vs
