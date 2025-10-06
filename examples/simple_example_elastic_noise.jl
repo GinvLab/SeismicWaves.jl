@@ -34,7 +34,7 @@ function exeelanoise(dt, nt, f0, t0)
     #     end
     # end
     # @show extrema(vp)
-    vs = zeros(nx, nz)
+    vs = vp ./ sqrt(3)
 
     @show extrema(vp), extrema(vs)
 
@@ -58,10 +58,13 @@ function exeelanoise(dt, nt, f0, t0)
     possrcs[1, :] .= (3lx / 8, lz / 4)
     # source time functions
     srcstf = zeros(nt, 2, 1)
-    srcstf[:, 1, 1] .= rickerstf.(t, t0, f0)
-    srcstf[:, 2, 1] .= rickerstf.(t, t0, f0)
-    srcs = PSDMomentTensorSources(possrcs, srcstf, f0,
-        [MomentTensor2D(; Mxx=1.0e16, Mzz=1.0e16, Mxz=0.0)])
+    rickerstf_t = rickerstf.(t, t0, f0)
+    xcorr_rickerstf = xcorr(rickerstf_t, rickerstf_t)
+    # xcorr_rickerstf ./= maximum(abs.(xcorr_rickerstf))
+    select_idxs = Int(nt-(t0 ÷ dt)):Int(nt-(t0 ÷ dt)+nt-1)
+    srcstf[:, 1, 1] .= xcorr_rickerstf[select_idxs]
+    srcstf[:, 2, 1] .= xcorr_rickerstf[select_idxs]
+    srcs = PSDExternalForceSources(possrcs, srcstf, f0, [(1.0, 1.0)])
     
     # receivers definition
     posrecs = zeros(3, 2)    # 3 receivers, 2 dimensions
@@ -71,7 +74,7 @@ function exeelanoise(dt, nt, f0, t0)
     refrecidx = 2
     recs = VectorCrossCorrelationsReceivers(posrecs, nt, [refrecidx]) # ref rec is #2
 
-    shots = [PSDMomentTensorShot(; srcs=srcs, recs=recs)]
+    shots = [PSDExternalForceShot(; srcs=srcs, recs=recs)]
 
     ##============================================
     ## Input parameters for elastic simulation
@@ -90,13 +93,16 @@ function exeelanoise(dt, nt, f0, t0)
 
     ##===============================================
     ## compute the cross-correlations (dumb way)
-    srcs = MomentTensorSources(possrcs, srcstf[:, 1, :], [MomentTensor2D(; Mxx=1.0e16, Mzz=1.0e16, Mxz=0.0)], f0)
+    srcstf2 = zeros(nt, 2, 1)
+    srcstf2[:, 1, 1] .= rickerstf.(t, t0, f0)
+    srcstf2[:, 2, 1] .= rickerstf.(t, t0, f0)
+    srcs = ExternalForceSources(possrcs, srcstf2, f0)
     recs = VectorReceivers(posrecs, nt)
-    shots = [MomentTensorShot(; srcs=srcs, recs=recs)]
+    shots = [ExternalForceShot(; srcs=srcs, recs=recs)]
     swforward!(params, matprop, shots; runparams=runparams)
 
     seismograms = shots[1].recs.seismograms
-
+    
     # for d in 1:2
     #     for r in 1:3
     #         seismograms[2:end-1, d, r] .= (seismograms[3:end, d, r] .- 2 .* seismograms[2:end-1, d, r] .+ seismograms[1:end-2, d, r]) ./ dt^2
@@ -112,9 +118,8 @@ function exeelanoise(dt, nt, f0, t0)
     #         end
     #     end
     # end
-    ccs = -circshift(ccs, -t0 ÷ dt)
+    ccs = circshift(ccs, -t0 ÷ dt)
 
-    @show size(seismograms)
     ccs2 = zeros(2nt+1, 2, 2, 1, 3) # nt, ncomp, ncomp, nrec, nrec
     for d1 in 1:2
         for d2 in 1:2
@@ -124,43 +129,50 @@ function exeelanoise(dt, nt, f0, t0)
         end
     end
 
-    return ccs, ccs2, possrcs, posrecs, refrecidx, vp, vs, ρ, lx, lz
+    return ccs, ccs2, possrcs, posrecs, refrecidx, vp, vs, ρ, lx, lz, srcstf, srcstf2
 end
 
 T = 1.0
 dt = 0.0005
 nt = ceil(Int, T/dt)
-f0 = 5.0
+f0 = 10.0
 t0 = 2.0 / f0
-ccs, ccs2, possrcs, posrecs, refrecidx, vp, vs, ρ, lx, lz = exeelanoise(dt, nt, f0, t0)
+ccs, ccs2, possrcs, posrecs, refrecidx, vp, vs, ρ, lx, lz, srcstf, srcstf2 = exeelanoise(dt, nt, f0, t0)
 
-times = collect(Float64, range(dt; step=dt, length=nt))
-
-cc_ricker = xcorr(rickerstf.(times, t0, f0), rickerstf.(times, t0, f0))
+# times = collect(Float64, range(dt; step=dt, length=nt))
+# cc_ricker = xcorr(rickerstf.(times, t0, f0), rickerstf.(times, t0, f0))
 
 begin
     fig = Figure()
-    ax = Axis(fig[1, 1], title="Cross-correlations", xlabel="Time (s)", ylabel="Amplitude")
-    ax2 = Axis(fig[2, 1], title="Setup", xlabel="x (m)", ylabel="z (m)")
+    ax = Axis(fig[1, 1], title="Cross-correlations", xlabel="Lag (s)", ylabel="Amplitude")
+    ax3 = Axis(fig[2, 1], title="Source time functions", xlabel="Time (s)", ylabel="Amplitude")
+    # ax2 = Axis(fig[2, 1], title="Setup", xlabel="x (m)", ylabel="z (m)")
     times = collect(Float64, range(dt; step=dt, length=nt))
     times_cc = cat(-reverse(times), [0.0], times; dims=1)
     for irec in [1]
-        for jrec in 2:2
-            lines!(ax, times_cc, ccs[:, 1, 1, irec, jrec] ./ maximum(abs.(ccs[:, 1, 1, irec, jrec])); label="Rec $jrec, Comp zz, fast")
-            lines!(ax, times_cc, ccs2[:, 1, 1, irec, jrec] ./ maximum(abs.(ccs2[:, 1, 1, irec, jrec])); label="Rec $jrec, Comp zz, dumb")
+        for jrec in 3:3
+            # lines!(ax, times_cc, ccs[:, 1, 1, irec, jrec] ./ maximum(abs.(ccs[:, 1, 1, irec, jrec])); label="Rec $jrec, Cross xx, fast")
+            # lines!(ax, times_cc, ccs[:, 1, 2, irec, jrec] ./ maximum(abs.(ccs[:, 1, 2, irec, jrec])); label="Rec $jrec, Cross xy, fast")
+            lines!(ax, times_cc, ccs[:, 2, 2, irec, jrec] ./ maximum(abs.(ccs[:, 2, 2, irec, jrec])); label="Rec $jrec, Cross yy, fast")
+            # lines!(ax, times_cc, ccs2[:, 1, 1, irec, jrec] ./ maximum(abs.(ccs2[:, 1, 1, irec, jrec])); label="Rec $jrec, Comp xx, dumb")
+            # lines!(ax, times_cc, ccs2[:, 1, 2, irec, jrec] ./ maximum(abs.(ccs2[:, 1, 2, irec, jrec])); label="Rec $jrec, Comp xy, dumb")
+            lines!(ax, times_cc, ccs2[:, 2, 2, irec, jrec] ./ maximum(abs.(ccs2[:, 2, 2, irec, jrec])); label="Rec $jrec, Comp yy, dumb")
         end
-        lines!(ax, times_cc, rickerstf.(times_cc, 0.0, f0); label="Ricker stf")
-        lines!(ax, times_cc[2:end-1], cc_ricker ./ maximum(abs.(cc_ricker)); label="Ricker cc")
     end
+    lines!(ax, times_cc, zeros(length(times_cc)); color=:black, linestyle=:dash, label="Zero")
     axislegend(ax, position=:lb, title="Legend")
 
-    hm = heatmap!(ax2, 0..lx, 0..lz, vp; label="Vp (m/s)")
-    Colorbar(fig[2, 2], hm; label="Vp (m/s)")
-    scatter!(ax2, possrcs[:, 1], possrcs[:, 2]; color=:red, markersize=15, marker=:star5, label="PSD Sources")
-    scatter!(ax2, posrecs[:, 1], posrecs[:, 2]; color=:blue, markersize=15, marker=:dtriangle, label="Receivers")
-    xlims!(ax2, (0, lx))
-    ylims!(ax2, (0, lz))
-    ax2.yreversed = true    
+    lines!(ax3, times, srcstf[:, 1, 1]; label="Ricker autocorr")
+    lines!(ax3, times, srcstf2[:, 1, 1]; label="Ricker")
+    axislegend(ax3, position=:lb, title="Legend")
+
+    # hm = heatmap!(ax2, 0..lx, 0..lz, vp; label="Vp (m/s)")
+    # Colorbar(fig[2, 2], hm; label="Vp (m/s)")
+    # scatter!(ax2, possrcs[:, 1], possrcs[:, 2]; color=:red, markersize=15, marker=:star5, label="PSD Sources")
+    # scatter!(ax2, posrecs[:, 1], posrecs[:, 2]; color=:blue, markersize=15, marker=:dtriangle, label="Receivers")
+    # xlims!(ax2, (0, lx))
+    # ylims!(ax2, (0, lz))
+    # ax2.yreversed = true    
 
     fig
 end

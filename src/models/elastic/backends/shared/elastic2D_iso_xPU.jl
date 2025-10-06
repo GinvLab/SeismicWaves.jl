@@ -97,6 +97,12 @@ end
     return nothing
 end
 
+@parallel_indices (p) function inject_external_sources2D_flat!(uu, srctf_bk, srccoeij_bk, srccoeval_bk, ρ_half, it, s, dt)
+    isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2]
+    uu[isrc, jsrc] += srccoeval_bk[p] * srctf_bk[it, s] / ρ_half[isrc, jsrc] * dt^2
+    return nothing
+end
+
 @parallel_indices (p) function record_receivers2D_ux!(ux, traces_ux_bk_buf, reccoeij_ux, reccoeval_ux)
     irec, jrec = reccoeij_ux[p, 1], reccoeij_ux[p, 2]
     traces_ux_bk_buf[p] = reccoeval_ux[p] * ux[irec, jrec]
@@ -575,6 +581,124 @@ function forward_onestep_ccout_CPML!(
     return nothing
 end
 
+function forward_onestep_ccout_CPML!(
+    model,
+    refreccoeij,
+    refreccoeval,
+    srccoeij_ux,
+    srccoeval_ux,
+    srccoeij_uz,
+    srccoeval_uz,
+    recrefscal_srctf_bk,
+    reduced_buf,
+    traces_ux_bk_buf,
+    traces_uz_bk_buf,
+    traces_ux_bk,
+    traces_uz_bk,
+    it;
+    d=1,
+    save_trace=true
+)
+    # Extract info from grid
+    freetop = model.cpmlparams.freeboundtop
+    cpmlcoeffs = model.cpmlcoeffs
+    Δx, Δz = model.grid.spacing
+
+    Δt = model.dt
+    nx, nz = model.grid.size
+    halo = model.cpmlparams.halo
+    grid = model.grid
+
+    uxold, uzold = grid.fields["uold"].value
+    uxcur, uzcur = grid.fields["ucur"].value
+    uxnew, uznew = grid.fields["unew"].value
+    σxx, σzz, σxz = grid.fields["σ"].value
+
+    ψ_∂σxx∂x, ψ_∂σxz∂x = grid.fields["ψ_∂σ∂x"].value
+    ψ_∂σzz∂z, ψ_∂σxz∂z = grid.fields["ψ_∂σ∂z"].value
+    ψ_∂ux∂x, ψ_∂uz∂x = grid.fields["ψ_∂u∂x"].value
+    ψ_∂ux∂z, ψ_∂uz∂z = grid.fields["ψ_∂u∂z"].value
+
+    a_x = cpmlcoeffs[1].a
+    a_x_half = cpmlcoeffs[1].a_h
+    b_x = cpmlcoeffs[1].b
+    b_x_half = cpmlcoeffs[1].b_h
+
+    a_z = cpmlcoeffs[2].a
+    a_z_half = cpmlcoeffs[2].a_h
+    b_z = cpmlcoeffs[2].b
+    b_z_half = cpmlcoeffs[2].b_h
+
+    λ = grid.fields["λ"].value
+    μ = grid.fields["μ"].value
+    ρ_ihalf = grid.fields["ρ_ihalf"].value
+    ρ_jhalf = grid.fields["ρ_jhalf"].value
+    μ_ihalf_jhalf = grid.fields["μ_ihalf_jhalf"].value
+
+    # Precomputing divisions
+    _Δx = 1 / Δx
+    _Δz = 1 / Δz
+
+    # Update normal stress
+    idxzσxx = freetop ? (1:nz-1) : (2:nz-1)
+    @parallel (2:nx-1, idxzσxx) update_σxx_σzz!(
+        σxx, σzz, uxcur, uzcur, λ, μ, _Δx, _Δz,
+        halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z,
+        freetop
+    )
+    # Update shear stress
+    @parallel (1:nx-1, 1:nz-1) update_σxz!(
+        σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz,
+        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
+        freetop
+    )
+
+    # Update displacements
+    @parallel (1:nx-1, 1:nz) update_ux!(
+        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt,
+        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z,
+        freetop
+    )
+    @parallel (1:nx, 1:nz-1) update_uz!(
+        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt,
+        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z,
+        freetop
+    )
+
+    # Inject reference receiver as source (external force type)
+    nsrcpts = size(refreccoeij, 1)
+    if d == 1
+        @parallel (1:nsrcpts) inject_external_sources2D_onecomp!(uxnew, recrefscal_srctf_bk, refreccoeij, refreccoeval, ρ_ihalf, it, 1, d, Δt)
+    elseif d == 2
+        @parallel (1:nsrcpts) inject_external_sources2D_onecomp!(uznew, recrefscal_srctf_bk, refreccoeij, refreccoeval, ρ_jhalf, it, 1, d, Δt)
+    end
+
+    # Record receivers
+    if save_trace
+        nrecs = size(srccoeij_ux, 1)
+        for r in 1:nrecs
+            nrecspts_ux = size(srccoeij_ux[r], 1)
+            nrecspts_uz = size(srccoeij_uz[r], 1)
+            @parallel (1:nrecspts_ux) record_receivers2D_ux!(uxnew, traces_ux_bk_buf[r], srccoeij_ux[r], srccoeval_ux[r])
+            @parallel (1:nrecspts_uz) record_receivers2D_uz!(uznew, traces_uz_bk_buf[r], srccoeij_uz[r], srccoeval_uz[r])
+            Base.mapreducedim!(identity, +, @view(reduced_buf[1][r:r]), traces_ux_bk_buf[r])
+            Base.mapreducedim!(identity, +, @view(reduced_buf[2][r:r]), traces_uz_bk_buf[r])
+        end
+        copyto!(@view(traces_ux_bk[it, :]), reduced_buf[1])
+        copyto!(@view(traces_uz_bk[it, :]), reduced_buf[2])
+        reduced_buf[1] .= 0
+        reduced_buf[2] .= 0
+    end
+
+    # Swap old and current displacements
+    grid.fields["uold"] = grid.fields["ucur"]
+    grid.fields["ucur"] = grid.fields["unew"]
+    grid.fields["unew"] = grid.fields["uold"]
+
+    return nothing
+end
+
+
 function forward_onestep_ccin_CPML!(
     model,
     srccoeij_xx,
@@ -673,6 +797,128 @@ function forward_onestep_ccin_CPML!(
         halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z,
         freetop
     )
+
+    # Record receivers
+    if save_trace
+        nrecs = size(reccoeij_ux, 1)
+        for r in 1:nrecs
+            nrecspts_ux = size(reccoeij_ux[r], 1)
+            nrecspts_uz = size(reccoeij_uz[r], 1)
+            @parallel (1:nrecspts_ux) record_receivers2D_ux!(uxcur, traces_ux_bk_buf[r], reccoeij_ux[r], reccoeval_ux[r])
+            @parallel (1:nrecspts_uz) record_receivers2D_uz!(uzcur, traces_uz_bk_buf[r], reccoeij_uz[r], reccoeval_uz[r])
+            Base.mapreducedim!(identity, +, @view(reduced_buf[1][r:r]), traces_ux_bk_buf[r])
+            Base.mapreducedim!(identity, +, @view(reduced_buf[2][r:r]), traces_uz_bk_buf[r])
+        end
+        copyto!(@view(traces_bk[it + nt + 1, 1, :]), reduced_buf[1])
+        copyto!(@view(traces_bk[it + nt + 1, 2, :]), reduced_buf[2])
+        reduced_buf[1] .= 0
+        reduced_buf[2] .= 0
+    end
+
+    # Swap old and current displacements
+    grid.fields["uold"] = grid.fields["ucur"]
+    grid.fields["ucur"] = grid.fields["unew"]
+    grid.fields["unew"] = grid.fields["uold"]
+
+    return nothing
+end
+
+function forward_onestep_ccin_CPML!(
+    model,
+    srccoeij_ux,
+    srccoeval_ux,
+    srccoeij_uz,
+    srccoeval_uz,
+    reccoeij_ux,
+    reccoeval_ux,
+    reccoeij_uz,
+    reccoeval_uz,
+    srctf_ux_bk,
+    srctf_uz_bk,
+    reduced_buf,
+    traces_ux_bk_buf,
+    traces_uz_bk_buf,
+    traces_bk,
+    it::Int,
+    nt::Int;
+    save_trace::Bool=true
+)
+    # Extract info from grid
+    freetop = model.cpmlparams.freeboundtop
+    cpmlcoeffs = model.cpmlcoeffs
+    Δx, Δz = model.grid.spacing
+
+    Δt = model.dt
+    nx, nz = model.grid.size
+    halo = model.cpmlparams.halo
+    grid = model.grid
+
+    uxold, uzold = grid.fields["uold"].value
+    uxcur, uzcur = grid.fields["ucur"].value
+    uxnew, uznew = grid.fields["unew"].value
+    σxx, σzz, σxz = grid.fields["σ"].value
+
+    ψ_∂σxx∂x, ψ_∂σxz∂x = grid.fields["ψ_∂σ∂x"].value
+    ψ_∂σzz∂z, ψ_∂σxz∂z = grid.fields["ψ_∂σ∂z"].value
+    ψ_∂ux∂x, ψ_∂uz∂x = grid.fields["ψ_∂u∂x"].value
+    ψ_∂ux∂z, ψ_∂uz∂z = grid.fields["ψ_∂u∂z"].value
+
+    a_x = cpmlcoeffs[1].a
+    a_x_half = cpmlcoeffs[1].a_h
+    b_x = cpmlcoeffs[1].b
+    b_x_half = cpmlcoeffs[1].b_h
+
+    a_z = cpmlcoeffs[2].a
+    a_z_half = cpmlcoeffs[2].a_h
+    b_z = cpmlcoeffs[2].b
+    b_z_half = cpmlcoeffs[2].b_h
+
+    λ = grid.fields["λ"].value
+    μ = grid.fields["μ"].value
+    ρ_ihalf = grid.fields["ρ_ihalf"].value
+    ρ_jhalf = grid.fields["ρ_jhalf"].value
+    μ_ihalf_jhalf = grid.fields["μ_ihalf_jhalf"].value
+
+    # Precomputing divisions
+    _Δx = 1 / Δx
+    _Δz = 1 / Δz
+
+    # Update normal stress
+    idxzσxx = freetop ? (1:nz-1) : (2:nz-1)
+    @parallel (2:nx-1, idxzσxx) update_σxx_σzz!(
+        σxx, σzz, uxcur, uzcur, λ, μ, _Δx, _Δz,
+        halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z,
+        freetop
+    )
+    # Update shear stress
+    @parallel (1:nx-1, 1:nz-1) update_σxz!(
+        σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz,
+        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
+        freetop
+    )
+
+    # Update displacements
+    @parallel (1:nx-1, 1:nz) update_ux!(
+        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt,
+        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z,
+        freetop
+    )
+    @parallel (1:nx, 1:nz-1) update_uz!(
+        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt,
+        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z,
+        freetop
+    )
+
+    # Inject sources (displacement type of internal force)
+    if it >= 1
+        nsrcs = size(srccoeij_ux, 1)
+        for s in 1:nsrcs
+            nsrcpts_ux = size(srccoeij_ux[s], 1)
+            nsrcpts_uz = size(srccoeij_uz[s], 1)
+            @parallel (1:nsrcpts_ux) inject_external_sources2D_flat!(uxnew, srctf_ux_bk, srccoeij_ux[s], srccoeval_ux[s], ρ_ihalf, it, s, Δt)
+            @parallel (1:nsrcpts_uz) inject_external_sources2D_flat!(uznew, srctf_uz_bk, srccoeij_uz[s], srccoeval_uz[s], ρ_jhalf, it, s, Δt)
+        end
+    end
 
     # Record receivers
     if save_trace

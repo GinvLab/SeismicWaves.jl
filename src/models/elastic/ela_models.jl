@@ -3,7 +3,7 @@
 # Functions for all ElasticIsoWaveSimulation subtypes
 
 # Scaling for ElasticIsoWaveSimulation
-function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}; sincinterp=false) where {T}
+function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::Union{ExternalForceShot{T, 2}, PSDExternalForceShot{T, 2}}; sincinterp=false) where {T}
     if sincinterp
         freesurfpos=:halfgridin
         # interpolation coefficients for sources in vx
@@ -113,7 +113,7 @@ end
 
 function check_numerics(
     model::ElasticIsoWaveSimulation{T},
-    shot::Union{MomentTensorShot{T}, ExternalForceShot{T}, PSDMomentTensorShot{T}};
+    shot::Union{MomentTensorShot{T}, ExternalForceShot{T}, PSDMomentTensorShot{T}, PSDExternalForceShot{T}};
     min_ppw::Int=10
 ) where {T}
     # Check points per wavelengh
