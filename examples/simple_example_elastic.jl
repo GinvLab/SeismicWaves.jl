@@ -137,7 +137,7 @@ function exelaprob()
 
     ##===============================================
     ## compute the gradient
-    misfit = Vector{SeismicWaves.L2Misfit}()
+    misfit = Vector{SeismicWaves.L2Misfit{Float64}}()
     for i in 1:nshots
         seis = shots[i].recs.seismograms
         nt = size(seis,1)
@@ -147,7 +147,7 @@ function exelaprob()
 
 
     #@show fieldnames(typeof(matprop))
-    matprop.λ = matprop.λ .* 0.98
+    matprop.λ = matprop.λ .* 0.7
 
     grad = swgradient!(params,
                        matprop,
@@ -336,7 +336,7 @@ end
 # info_logger = ConsoleLogger(stderr, Logging.Info)
 # global_logger(info_logger)
 
-par, matprop, shots, snapsh = exelaprob()
+par, matprop, shots, snapsh, grad = exelaprob()
 
 snapanimate(par, matprop, shots, snapsh; scalamp=0.02)
 

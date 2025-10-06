@@ -9,7 +9,10 @@ function printinfoiter(ter::REPL.Terminals.TTYTerminal,it::Integer,nt::Integer,
         pit = nt-it+1
     end
 
-    if infoevery!=nothing  && (pit % infoevery == 0 || pit==1) 
+    # Check that the loglevel is <= Info before printing anything
+    belowinfolev = Logging.min_enabled_level(current_logger()) <= LogLevel(Info)
+    
+    if infoevery!=nothing  && belowinfolev  && (pit % infoevery == 0 || pit==1) 
         if pit!=1
             REPL.Terminals.clear_line(ter)
             REPL.Terminals.cmove_line_up(ter)

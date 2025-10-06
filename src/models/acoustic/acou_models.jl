@@ -18,15 +18,16 @@ end
 function check_numerics(
     model::AcousticWaveSimulation{T},
     shot::ScalarShot{T};
-    min_ppw::Int=10
 ) where {T}
     # Check points per wavelength
     vel_min = get_minimum_func(model)(model.matprop.vp)
     h_max = maximum(model.grid.spacing)
     fmax = shot.srcs.domfreq * 2.0
     ppw = vel_min / (fmax * h_max)
+    
+    min_ppw = model.runparams.minPPW
 
-    @info @sprintf("Points per wavelength: %.4g", ppw)
+    @info "Points per wavelength: $(ppw)"
     dh0 = round((vel_min / (min_ppw * fmax)); digits=2)
     if model.runparams.erroronPPW
         @assert ppw >= min_ppw "Not enough points per wavelength (assuming fmax = 2*domfreq)! \n [$(round(ppw,digits=1)) instead of >= $min_ppw]\n  Grid spacing should be <= $dh0"

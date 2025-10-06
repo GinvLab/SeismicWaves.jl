@@ -15,7 +15,7 @@ struct L2Misfit{T, D, OA <: AbstractArray{T, D}, IM <: AbstractMatrix{T}} <: Abs
         @assert size(observed, 1) == size(invcov, 1) "Size of inverse covariance matrix must match the number of timesteps!"
         @assert all(w -> 1 <= w.first <= w.second <= size(observed, 1), windows) "Windows indices must be between 1 and maximum number of timesteps!"
 
-        return new{T, D, typeof(observed), typeof(invcov)}(observed, invcov, windows)
+        return new{T, D, typeof(observed), typeof(invcov)}(copy(observed), invcov, windows)
     end
 end
 

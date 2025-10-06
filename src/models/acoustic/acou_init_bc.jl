@@ -8,12 +8,19 @@ function init_bdc!(
     ::CPMLBoundaryCondition,
     model::AcousticWaveSimulation{T},
     srcs::Sources
-) where {T}
+    ) where {T}
+
+      if model.cpmlparams.vel_max == nothing
+        vel_max = get_maximum_func(model)(model.matprop.vp)
+    else
+        vel_max = model.cpml_vel_max
+      end
+    
     N = length(model.cpmlcoeffs)
     for n in 1:N
         compute_CPML_coefficientsAxis!(
             model.cpmlcoeffs[n],
-            get_maximum_func(model)(model.matprop.vp),
+            vel_max,
             model.dt,
             model.cpmlparams.halo,
             model.cpmlparams.rcoef,
