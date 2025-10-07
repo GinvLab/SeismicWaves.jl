@@ -5,7 +5,7 @@
 
 SeismicWaves.jl is a Julia package for acoustic and elastic wave propagation simulations designed to be used in a full-waveform inversion (FWI) framework. It solves different flavours of the wave equation using the finite difference method.
 
-![Wave propagation example](../docs/src/images/acoustic2d_xpu_complex_freetop_halo20_360.gif)
+![Wave propagation example](docs/src/images/acoustic2d_xpu_complex_freetop_halo20_360.gif)
 
 The main features of SeismicWaves.jl are:
 - acoustic and elastic simulations
