@@ -10,7 +10,7 @@ function check_courant_condition(model::AcousticWaveSimulation{T, N}, vp::Array{
     if model.runparams.erroronCFL
         @assert courant < 1 "Courant condition not satisfied! [$(courant)]"
     elseif courant > 1
-        @warn "Courant condition not satisfied! [$(courant)]"
+        @warn "CFL condition not satisfied! [$(courant)]"
     end
     return
 end
@@ -245,7 +245,7 @@ function check_courant_condition(model::AcousticVDStaggeredWaveSimulation{T, N},
     if model.runparams.erroronCFL
         @assert courant < 1 "Courant number: $(courant)"
     elseif courant > 1
-        @warn "Courant condition not satisfied! [$(courant)]"
+        @warn "CFL condition not satisfied! [$(courant)]"
     end
     return
 end

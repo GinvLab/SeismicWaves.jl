@@ -18,11 +18,11 @@ function printinfoiter(ter::REPL.Terminals.TTYTerminal,it::Integer,nt::Integer,
             REPL.Terminals.cmove_line_up(ter)
         end
         if kind==:forw
-            @info @sprintf( "Iteration: %d of %d, simulation time: %g s",it, nt, dt*(it-1) )
+            @info @sprintf( "Iteration: %d of %d, simulation time: %g s    ",it, nt, dt*(it-1) )
         elseif kind==:adjforw
-            @info @sprintf( "Forward loop: %d of %d, simulation time: %g s",it, nt, dt*(it-1) )
+            @info @sprintf( "Forward loop: %d of %d, simulation time: %g s    ",it, nt, dt*(it-1) )
         elseif kind==:adjback
-            @info @sprintf( "Adjoint loop: %d of %d, simulation time: %g s",pit, nt, dt*(it-1) )
+            @info @sprintf( "Adjoint loop: %d of %d, simulation time: %g s    ",pit, nt, dt*(it-1) )
         end        
     end
     return

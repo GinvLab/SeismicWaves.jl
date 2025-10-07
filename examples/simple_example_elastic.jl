@@ -2,24 +2,23 @@
 using Revise
 using SeismicWaves
 using LinearAlgebra
+using Logging
 using GLMakie
 
-###################################################################
-using Logging
 
 function exelaprob()
 
     ##========================================
     # time stuff
-    nt = 1500 #1500
+    nt = 1500 
     dt = 0.0008
     t = collect(Float64, range(0.0; step=dt, length=nt)) # seconds
     #@show dt,(nt-1)*dt
 
     ##========================================
     # create a velocity model
-    nx = 380 # 211
-    nz = 270 # 120
+    nx = 380 
+    nz = 270 
     dh = 4.5 # meters
     @show nx, nz, nx * nz, dh
     #@show (nx-1)*dh, (nz-1)*dh
@@ -52,7 +51,7 @@ function exelaprob()
     ##========================================
     # shots definition
     nshots = 1
-    shots = Vector{MomentTensorShot{Float64, 2, MomentTensor2D{Float64}}}()  #Pair{Sources, Receivers}}()
+    shots = Vector{MomentTensorShot{Float64, 2, MomentTensor2D{Float64}}}()  
 
     for i in 1:nshots
         # sources definition
@@ -66,7 +65,7 @@ function exelaprob()
         possrcs = zeros(nsrc, 2)    # 1 source, 2 dimensions
         for s in 1:nsrc
             possrcs[s, 1] = (ixsrc[i] - 1) * dh .+ 0.124   # x-positions in meters
-            possrcs[s, 2] = (nz / 2) * dh .+ 0.124 #(nz/2) * dh              # y-positions in meters
+            possrcs[s, 2] = (nz-30) * dh .+ 0.124         # y-positions in meters
         end
 
         # source time functions
@@ -78,16 +77,15 @@ function exelaprob()
         Mxz = zeros(nsrc)
         for s in 1:nsrc
             srcstf[:, s] .= rickerstf.(t, t0, f0)
-            Mxx[s] = 5e10 #1.5e10  #1.5e6 #e20
-            Mzz[s] = 5e10 #2.4e10  #1.5e6 #e20
-            Mxz[s] = 0.89e10 #0.89e10 #0.0e6 #e20
+            Mxx[s] = 5e10 
+            Mzz[s] = 5e10 
+            Mxz[s] = 0.89e10 
         end
 
         srcs = MomentTensorSources(possrcs, srcstf,
             [MomentTensor2D(; Mxx=Mxx[s], Mzz=Mzz[s], Mxz=Mxz[s]) for s in 1:nsrc],
             f0)
         #srcs = ScalarSources(possrcs, srcstf, f0)
-
         #@show srcs.positions
 
         # receivers definition
@@ -100,7 +98,6 @@ function exelaprob()
 
         ndim = 2
         recs = VectorReceivers(posrecs, nt, ndim)
-
         #@show recs.positions
 
         # add pair as shot
@@ -117,22 +114,27 @@ function exelaprob()
     freetop = true
     halo = 20
     rcoef = 0.0001
-    @show halo
-    @show rcoef
+
     boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=freetop)
     params = InputParametersElastic(nt, dt, (nx, nz), (dh, dh), boundcond)
 
     ##===============================================
     ## compute the seismograms
-    runparams = RunParameters(parall=:threads,infoevery=infoevery,snapevery=snapevery)
+
+    # logger = ConsoleLogger(stderr, Logging.Debug)
+    # logger = ConsoleLogger(stderr, Logging.Error)
+    # logger = ConsoleLogger(stderr, Logging.Info)
+    
+    runparams = RunParameters(parall=:threads,
+                              infoevery=infoevery,
+                              snapevery=snapevery,
+                              # logger = logger
+                              )
 
     snapshots = swforward!(params,
                            matprop,
                            shots;
                            runparams=runparams,
-                           # parall=:threads,
-                           # infoevery=infoevery,
-                           # snapevery=snapevery
                            )
 
     ##===============================================
@@ -145,16 +147,20 @@ function exelaprob()
         push!(misfit,SeismicWaves.L2Misfit(observed=seis,invcov=invcov))
     end
 
-
     #@show fieldnames(typeof(matprop))
     matprop.λ = matprop.λ .* 0.7
 
-    grad = swgradient!(params,
-                       matprop,
-                       shots,
-                       misfit;
-                       runparams=runparams)
-                       
+    gradparams = GradParameters(mute_radius_src=5,
+                                mute_radius_rec=2,
+                                compute_misfit=true)
+    
+    grad,misfitval = swgradient!(params,
+                                 matprop,
+                                 shots,
+                                 misfit;
+                                 runparams=runparams,
+                                 gradparams=gradparams)
+    
 
     return params, matprop, shots, snapshots, grad
 end
@@ -174,7 +180,7 @@ function plotstuff(par, matprop, shots)
 
     vp = sqrt.((matprop.λ + 2 .* matprop.μ) ./ matprop.ρ)
 
-    lsrec = 6:10
+    lsrec = 1:2:10
 
     fig = Figure(; size=(1000, 1200))
 
@@ -310,7 +316,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
         return cvx, cvz
     end
 
-    fps = 30
+    fps = 10
 
     # live plot
     # for j in 1:1
@@ -321,20 +327,17 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     # end
 
     ##
-    record(fig, "snapshots_halo_$(halo)_rcoef_$(rcoef).mp4", 1:nframes; framerate=fps) do it
+    outfile = "snapshots_halo_$(halo)_rcoef_$(rcoef).mp4"
+    record(fig, outfile, 1:nframes; framerate=fps) do it
         curvx[], curvz[] = updatefunction(ax1, ax2, vxsnap, vzsnap, it)
         # yield() -> not required with record
     end
+
+    println("\n Animation saved to $outfile ")
     return fig
 end
 
 ##################################################################
-# debug_logger = ConsoleLogger(stderr, Logging.Debug)
-# global_logger(debug_logger)
-# error_logger = ConsoleLogger(stderr, Logging.Error)
-# global_logger(error_logger)
-# info_logger = ConsoleLogger(stderr, Logging.Info)
-# global_logger(info_logger)
 
 par, matprop, shots, snapsh, grad = exelaprob()
 

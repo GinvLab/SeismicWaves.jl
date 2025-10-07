@@ -21,6 +21,10 @@ Bigger values speed up computation at the cost of using more memory.
 - `runparams::RunParameters`: a struct containing parameters related to forward calculations. See [`RunParameters`](@ref) for details. In case of a forward simulation, `gradparams` is set to `nothing`.
 - `gradparams::Union{GradParameters,Nothing}`: a struct containing parameters related to gradient calculations. See [`GradParameters`](@ref) for details.
 
+# Return
+The gradient as a dictionary, one key per each material property.
+If `compute_misfit` in `gradparams` is set to true, additionally returns also the misfit value.
+
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 See also [`swforward!`](@ref) and [`swmisfit!`](@ref) and [`Shot`](@ref).
 """
@@ -65,6 +69,10 @@ Bigger values speed up computation at the cost of using more memory.
 - `runparams::RunParameters`: a struct containing parameters related to forward calculations. See [`RunParameters`](@ref) for details. In case of a forward simulation, `gradparams` is set to `nothing`.
 - `gradparams::Union{GradParameters,Nothing}`: a struct containing parameters related to gradient calculations. See [`GradParameters`](@ref) for details.
 
+# Return
+The gradient as a dictionary, one key per each material property.
+If `compute_misfit` in `gradparams` is set to true, additionally returns also the misfit value.
+
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 See also [`swforward!`](@ref) and [`swmisfit!`](@ref) and [`Shot`](@ref).
 """
@@ -75,7 +83,7 @@ function swgradient!(wavesim::Union{WaveSimulation{T, N},Vector{<:WaveSimulation
                      )::Union{Dict{String, Array{T, N}}, Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
     
     return with_logger(wavesim.runparams.logger) do
-        run_swgradient!(wavesim, matprop, shots)
+        run_swgradient!(wavesim, matprop, shots, misfit)
     end
 end
 

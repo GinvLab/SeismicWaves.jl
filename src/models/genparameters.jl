@@ -47,8 +47,8 @@ $(TYPEDSIGNATURES)
 
 - `mute_radius_src::Int`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from *source* positions.
 - `mute_radius_rec::Int`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from *receiver* positions.
-- `compute_misfit::Bool`: default false. If true, also computes and return misfit value.
-- `check_freq::Union{<:Int, Nothing} = nothing`: if `gradient = true` and if specified, enables checkpointing and specifies the checkpointing frequency.
+- `compute_misfit::Bool`: default false. If true, also computes and returns the misfit value.
+- `check_freq::Union{<:Int, Nothing} = nothing`: if specified, enables checkpointing and defines the checkpointing frequency. Deafults to no checkpointing.
 
 """
 struct GradParameters

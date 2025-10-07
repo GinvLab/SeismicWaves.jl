@@ -108,7 +108,7 @@ function check_matprop(model::ElasticIsoWaveSimulation{T, N}, matprop::ElasticIs
     if model.runparams.erroronCFL
         @assert courant < 1 "Courant condition not satisfied! [$(courant)]"
     elseif courant > 1
-        @warn "Courant condition not satisfied! [$(courant)]"
+        @warn "CFL condition not satisfied! [$(courant)]"
     end
     return
 end
@@ -206,7 +206,7 @@ struct ElasticIsoCPMLWaveSimulation{T, N, A <: AbstractArray{T, N}, V <: Abstrac
         gradparams::Union{GradParameters,Nothing},
         gradient::Bool=false,
         sincinterp::Bool=true
-    ) where {T, N}
+        ) where {T, N}      
         # Extract params
         nt = params.ntimesteps
         dt = params.dt

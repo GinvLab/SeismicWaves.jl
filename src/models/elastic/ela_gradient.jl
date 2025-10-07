@@ -6,7 +6,9 @@ function swgradient_1shot!(
     model::ElasticIsoCPMLWaveSimulation{T, 2},
     shot::MomentTensorShot{T, 2, MomentTensor2D{T}},
     misfitshot::AbstractMisfit{T}
-)::Dict{String, Array{T, 2}} where {T}
+    )::Dict{String, Array{T, 2}} where {T}
+    # check that the wavesim object was actually built for gradient calculations
+    @assert model.checkpointer!=nothing "The wavesim object was not built for gradient computations. (Was `gradient=true` specified?)"
     # scale source time function
     srccoeij_xx, srccoeval_xx, srccoeij_xz, srccoeval_xz,
     reccoeij_ux, reccoeval_ux, reccoeij_uz, reccoeval_uz,
