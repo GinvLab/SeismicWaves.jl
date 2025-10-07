@@ -34,6 +34,8 @@ Filter = t -> (typeof(t) === DataType || typeof(t) === UnionAll) && (t <: Shot |
 swforward!
 swmisfit!
 swgradient!
+RunParameters
+GradParameters
 ```
 
 ## Utilities
