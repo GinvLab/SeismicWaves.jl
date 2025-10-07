@@ -18,42 +18,32 @@ Bigger values speed up computation at the cost of using more memory.
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
 # Keyword arguments
-- `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
-    - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
-    - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
-    - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
-    - otherwise the serial version if set to `:serial`
-- `check_freq::Union{Int, Nothing} = nothing`: if specified, enables checkpointing and specifies the checkpointing frequency.
-- `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
-- `compute_misfit::Bool = false`: if true, also computes and return misfit value.
-- `smooth_radius::Int = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
-- `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used.
+- `runparams::RunParameters`: a struct containing parameters related to forward calculations. See [`RunParameters`](@ref) for details. In case of a forward simulation, `gradparams` is set to `nothing`.
+- `gradparams::Union{GradParameters,Nothing}`: a struct containing parameters related to gradient calculations. See [`GradParameters`](@ref) for details.
+
+# Return
+The gradient as a dictionary, one key per each material property.
+If `compute_misfit` in `gradparams` is set to true, additionally returns also the misfit value.
 
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 See also [`swforward!`](@ref) and [`swmisfit!`](@ref) and [`Shot`](@ref).
 """
 function swgradient!(
-    params::InputParameters{T,N},
+    params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot{T}};
-    parall::Symbol=:threads,
-    check_freq::Union{Int, Nothing}=nothing,
-    infoevery::Union{Int, Nothing}=nothing,
-    compute_misfit::Bool=false,
-    misfit::AbstractMisfit=L2Misfit(nothing),
-    smooth_radius::Int=5,
-    logger::Union{Nothing, AbstractLogger}=nothing
+    shots::Vector{<:Shot{T}},
+    misfit::Vector{<:AbstractMisfit{T}};
+    runparams::RunParameters=RunParameters(),
+    gradparams::GradParameters=GradParameters()
 )::Union{Dict{String, Array{T, N}},
-         Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
-    if logger === nothing
-        logger = current_logger()
-    end
-    return with_logger(logger) do
+    Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
+
+    return with_logger(runparams.logger) do
         # Build wavesim
-        wavesim = build_wavesim(params, matprop; parall=parall, infoevery=infoevery, gradient=true, check_freq=check_freq, smooth_radius=smooth_radius)
+        wavesim = build_wavesim(params, matprop;  runparams=runparams,
+                                gradient=true, gradparams=gradparams)
         # Solve simulation
-        run_swgradient!(wavesim, matprop, shots; compute_misfit=compute_misfit, misfit=misfit)
+        run_swgradient!(wavesim, matprop, shots, misfit) 
     end
 end
 
@@ -76,107 +66,105 @@ Bigger values speed up computation at the cost of using more memory.
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
 # Keyword arguments
-- `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
-    - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
-    - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
-    - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
-    - otherwise the serial version if set to `:serial`
-- `check_freq::Union{Int, Nothing} = nothing`: if specified, enables checkpointing and specifies the checkpointing frequency.
-- `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
-- `compute_misfit::Bool = false`: if true, also computes and return misfit value.
-- `smooth_radius::Int = 5`: grid points inside a ball with radius specified by the parameter (in grid points) will have their gradient smoothed by a factor inversely proportional to their distance from sources positions.
-- `logger::Union{Nothing,AbstractLogger}`: specifies the logger to be used. 
+- `runparams::RunParameters`: a struct containing parameters related to forward calculations. See [`RunParameters`](@ref) for details. In case of a forward simulation, `gradparams` is set to `nothing`.
+- `gradparams::Union{GradParameters,Nothing}`: a struct containing parameters related to gradient calculations. See [`GradParameters`](@ref) for details.
+
+# Return
+The gradient as a dictionary, one key per each material property.
+If `compute_misfit` in `gradparams` is set to true, additionally returns also the misfit value.
 
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 See also [`swforward!`](@ref) and [`swmisfit!`](@ref) and [`Shot`](@ref).
 """
-function swgradient!(wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}}, matprop::MaterialProperties{T, N}, shots::Vector{<:Shot{T}};
-    logger::Union{Nothing, AbstractLogger}=nothing, kwargs...)::Union{Dict{String, Array{T, N}},
-                                                                      Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
-    if logger === nothing
-        logger = current_logger()
-    end
-    return with_logger(logger) do
-        run_swgradient!(wavesim, matprop, shots; kwargs...)
+function swgradient!(wavesim::Union{WaveSimulation{T, N},Vector{<:WaveSimulation{T, N}}},
+                     matprop::MaterialProperties{T, N},
+                     shots::Vector{<:Shot{T}},
+                     misfit::Vector{<:AbstractMisfit{T}};
+                     )::Union{Dict{String, Array{T, N}}, Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
+    
+    return with_logger(wavesim.runparams.logger) do
+        run_swgradient!(wavesim, matprop, shots, misfit)
     end
 end
 
 #######################################################
 
 ## single WaveSimulation object
-@views function run_swgradient!(
-    model::WaveSimulation{T, N},
+function run_swgradient!(
+    wavesim::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot{T}};
-    compute_misfit::Bool=false,
-    misfit::AbstractMisfit=L2Misfit(nothing)
+    shots::Vector{<:Shot{T}},
+    misfit::Vector{<:AbstractMisfit{T}};
 )::Union{Dict{String, Array{T, N}},
     Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
+
+    @info ">=====  Gradient computation  ======<"
 
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-    check_sim_consistency(model, matprop, shots)
+    check_sim_consistency(wavesim, matprop, shots)
 
     # Set wavesim material properties
     @debug "Setting wavesim material properties"
-    set_wavesim_matprop!(model, matprop)
+    set_wavesim_matprop!(wavesim, matprop)
 
     # Initialize total gradient and total misfit
-    totgrad = init_gradient(model)
+    totgrad = init_gradient(wavesim)
     totmisfitval = 0
     # Shots loop
-    for (s, singleshot) in enumerate(shots)
+    for s=1:length(shots)
+        singleshot = shots[s]
+        singlemisfit = misfit[s]
         @info "Shot #$s"
         # Initialize shot
         @debug "Initializing shot"
-        init_shot!(model, singleshot)
-        @debug "Checking invcov matrix"
-        check_invcov_matrix(model, singleshot.recs.invcov)
+        init_shot!(wavesim, singleshot)
         # Compute forward solver
-        @info "Computing gradient solver"
-        curgrad = swgradient_1shot!(model, singleshot, misfit)
+        @debug "Computing gradient solver"
+        curgrad = swgradient_1shot!(wavesim, singleshot, singlemisfit)
+                                    
         # Accumulate gradient
-        accumulate_gradient!(totgrad, curgrad, model)
+        accumulate_gradient!(totgrad, curgrad, wavesim)
         # Compute misfit if needed
-        if compute_misfit
+        if wavesim.gradparams.compute_misfit
             @info "Computing misfit"
-            totmisfitval += misfit(singleshot.recs, matprop)
+            totmisfitval += calcmisfit(singlemisfit, singleshot.recs)
         end
     end
 
-    return compute_misfit ? (totgrad, totmisfitval) : totgrad
+    return wavesim.gradparams.compute_misfit ? (totgrad, totmisfitval) : totgrad
 end
 
 ## :threadpersrc, multiple WaveSimulation objects
-@views function run_swgradient!(
-    model::Vector{<:WaveSimulation{T, N}},
+function run_swgradient!(
+    wavesim::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
-    shots::Vector{<:Shot{T}};
-    compute_misfit::Bool=false,
-    misfit::AbstractMisfit=L2Misfit(nothing)
-)::Union{Dict{String, Array{T, N}},
-    Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
-    nwsim = length(model)
+    shots::Vector{<:Shot{T}},
+    misfit::Vector{<:AbstractMisfit{T}};
+)::Union{Dict{String, Array{T, N}},Tuple{Dict{String, Array{T, N}}, T}} where {T, N}
+    
+    nwsim = length(wavesim)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
     @assert Threads.nthreads() == nwsim
 
+    @info ">=====  Gradient computation  ======<"
+
     for w in 1:nwsim
         # Check wavesim consistency
         @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-        check_sim_consistency(model[w], matprop, shots)
+        check_sim_consistency(wavesim[w], matprop, shots)
 
         # Set wavesim material properties
         @debug "Setting wavesim material properties"
-        set_wavesim_matprop!(model[w], matprop)
+        set_wavesim_matprop!(wavesim[w], matprop)
     end
 
     # Initialize total gradient and total misfit
     nshots = length(shots)
     allgrad = Vector{Dict{String, Array{T, N}}}(undef, nshots)
 
-    if compute_misfit
+    if wavesim.gradparams.compute_misfit
         allmisfitval = zeros(T, nshots)
         totmisfitval = 0
     end
@@ -188,35 +176,33 @@ end
         # loop on the subset of shots per each WaveSimulation 
         for s in grpshots[w]
             singleshot = shots[s]
+            singlemisfit = misfit[s]
             @info "Shot #$s"
             # Initialize shot
             @debug "Initializing shot"
-            init_shot!(model[w], singleshot)
-            @debug "Checking invcov matrix"
-            check_invcov_matrix(model[w], singleshot.recs.invcov)
+            init_shot!(wavesim[w], singleshot)
             # Compute forward solver
-            @info "Computing gradient solver"
-            curgrad = swgradient_1shot!(
-                model[w], singleshot, misfit
-            )
+            @debug "Gradient solver"
+            curgrad = swgradient_1shot!( wavesim[w], singleshot, singlemisfit)
+
             # Save gradient
             allgrad[s] = curgrad
             # Compute misfit if needed
-            if compute_misfit
+            if wavesim.gradparams.compute_misfit
                 @info "Computing misfit"
-                allmisfitval[s] = misfit(singleshot.recs, matprop)
+                allmisfitval[s] = calcmisfit(singlemisfit, singleshot.recs)
             end
         end
     end
 
     # Accumulate gradient and misfit
-    totgrad = init_gradient(model)
+    totgrad = init_gradient(wavesim)
     for curgrad in allgrad
-        accumulate_gradient!(model, totgrad, curgrad)
+        accumulate_gradient!(wavesim, totgrad, curgrad)
     end
-    if compute_misfit
+    if gradparams.compute_misfit
         totmisfitval = sum(allmisfitval)
     end
 
-    return compute_misfit ? (totgrad, totmisfitval) : totgrad
+    return wavesim.gradparams.compute_misfit ? (totgrad, totmisfitval) : totgrad
 end

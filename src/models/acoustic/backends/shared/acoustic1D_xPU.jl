@@ -12,54 +12,32 @@ end
     return nothing
 end
 
-@parallel_indices (i) function update_p!(pold, pcur, pnew, fact, _dx2)
-    d2p_dx2 = (pcur[i+1] - 2.0 * pcur[i] + pcur[i-1]) * _dx2
-    pnew[i] = 2.0 * pcur[i] - pold[i] + fact[i] * (d2p_dx2)
-
-    return nothing
-end
-
-@parallel_indices (i) function update_ψ!(
-    ψ_l, ψ_r, pcur,
-    halo, nx, _dx,
-    a_x_hl, a_x_hr,
-    b_x_hl, b_x_hr
-)
-    ii = i + nx - halo - 2  # shift for right boundary pressure indices
-    # left boundary
-    ψ_l[i] = b_x_hl[i] * ψ_l[i] + a_x_hl[i] * (pcur[i+1] - pcur[i]) * _dx
-    # right boundary
-    ψ_r[i] = b_x_hr[i] * ψ_r[i] + a_x_hr[i] * (pcur[ii+1] - pcur[ii]) * _dx
+@parallel_indices (i) function update_ψ!(pcur, _dx, halo, ψ_x, b_x_half, a_x_half)
+    # Shift index to right side if beyond left boundary
+    ii = i > halo ? size(pcur, 1) - halo - 1 + (i - halo) : i
+    # Update CPML memory variable
+    @∂̃x(pcur, a_x_half, b_x_half, ψ_x,
+        order=2, I=(ii,), _Δ=_dx,
+        halo=halo, halfgrid=true)
 
     return nothing
 end
 
 @parallel_indices (i) function update_p_CPML!(
-    pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
-    ψ_l, ψ_r,
-    ξ_l, ξ_r,
-    a_x_l, a_x_r,
-    b_x_l, b_x_r
+    pold, pcur, pnew, fact, _dx,
+    halo, ψ_x, ξ_x, b_x, a_x
 )
-    d2p_dx2 = (pcur[i+1] - 2.0 * pcur[i] + pcur[i-1]) * _dx2
+    ##########################
+    # ∂²p/∂t² = c² * ∇²p #
+    # fact = c² * dt²        #
+    ##########################
 
-    if i <= halo + 1
-        # left boundary
-        dψ_dx = (ψ_l[i] - ψ_l[i-1]) * _dx
-        ξ_l[i-1] = b_x_l[i-1] * ξ_l[i-1] + a_x_l[i-1] * (d2p_dx2 + dψ_dx)
-        damp = fact[i] * (dψ_dx + ξ_l[i-1])
-    elseif i >= nx - halo
-        # right boundary
-        ii = i - (nx - halo) + 2
-        dψ_dx = (ψ_r[ii] - ψ_r[ii-1]) * _dx
-        ξ_r[ii-1] = b_x_r[ii-1] * ξ_r[ii-1] + a_x_r[ii-1] * (d2p_dx2 + dψ_dx)
-        damp = fact[i] * (dψ_dx + ξ_r[ii-1])
-    else
-        damp = 0.0
-    end
-
-    # update pressure
-    pnew[i] = 2.0 * pcur[i] - pold[i] + fact[i] * (d2p_dx2) + damp
+    # Compute pressure Laplacian
+    ∇²p = @∇̃²(pcur, a_x, b_x, ψ_x, ξ_x,
+              order=2, I=(i,), _Δ=(_dx,),
+              halo=halo)
+    # Update pressure
+    pnew[i] = 2.0 * pcur[i] - pold[i] + fact[i] * ∇²p
 
     return nothing
 end
@@ -71,57 +49,39 @@ end
     return nothing
 end
 
-@views function prescale_residuals!(residuals, posrecs, fact)
+function prescale_residuals!(residuals, posrecs, fact)
     nrecs = size(posrecs, 1)
     nt = size(residuals, 1)
     @parallel (1:nt, 1:nrecs) prescale_residuals_kernel!(residuals, posrecs, fact)
 end
 
-@views function forward_onestep!(
-    pold, pcur, pnew, fact, dx,
-    possrcs, dt2srctf, posrecs, traces, it;
-    save_trace=true
-)
-    nx = length(pcur)
-    _dx2 = 1 / dx^2
-
-    @parallel (2:(nx-1)) update_p!(pold, pcur, pnew, fact, _dx2)
-    @parallel (1:size(possrcs, 1)) inject_sources!(pnew, dt2srctf, possrcs, it)
-    if save_trace
-        @parallel (1:size(posrecs, 1)) record_receivers!(pnew, traces, posrecs, it)
-    end
-
-    return pcur, pnew, pold
-end
-
-@views function forward_onestep_CPML!(
-    grid, possrcs, dt2srctf, posrecs, traces, it;
+function forward_onestep_CPML!(
+    model, possrcs, dt2srctf, posrecs, traces, it;
     save_trace=true
 )
     # Extract info from grid
+    grid = model.grid
     nx = grid.size[1]
     dx = grid.spacing[1]
     pold, pcur, pnew = grid.fields["pold"].value, grid.fields["pcur"].value, grid.fields["pnew"].value
     fact = grid.fields["fact"].value
-    ψ_l, ψ_r = grid.fields["ψ"].value
-    ξ_l, ξ_r = grid.fields["ξ"].value
-    a_x_l, a_x_r, a_x_hl, a_x_hr = grid.fields["a_pml"].value
-    b_x_l, b_x_r, b_x_hl, b_x_hr = grid.fields["b_pml"].value
-    halo = length(a_x_r)
+    ψ_x = grid.fields["ψ"].value[1]
+    ξ_x = grid.fields["ξ"].value[1]
+    a_x = model.cpmlcoeffs[1].a
+    a_x_half = model.cpmlcoeffs[1].a_h
+    b_x = model.cpmlcoeffs[1].b
+    b_x_half = model.cpmlcoeffs[1].b_h
+    halo = model.cpmlparams.halo
     # Precompute divisions
-    _dx = 1 / dx
-    _dx2 = 1 / dx^2
+    _dx  = 1 / dx
 
-    @parallel (1:(halo+1)) update_ψ!(ψ_l, ψ_r, pcur,
-        halo, nx, _dx,
-        a_x_hl, a_x_hr,
-        b_x_hl, b_x_hr)
-    @parallel (2:(nx-1)) update_p_CPML!(pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
-        ψ_l, ψ_r,
-        ξ_l, ξ_r,
-        a_x_l, a_x_r,
-        b_x_l, b_x_r)
+    # update ψ arrays
+    @parallel (1:2halo) update_ψ!(pcur, _dx, halo, ψ_x, b_x_half, a_x_half)
+    # update pressure and ξ arrays
+    @parallel (2:(nx-1)) update_p_CPML!(pold, pcur, pnew, fact, _dx, halo, ψ_x, ξ_x, b_x, a_x)
+    # inject sources
     @parallel (1:size(possrcs, 1)) inject_sources!(pnew, dt2srctf, possrcs, it)
+    # record receivers
     if save_trace
         @parallel (1:size(posrecs, 1)) record_receivers!(pnew, traces, posrecs, it)
     end
@@ -133,36 +93,33 @@ end
     return nothing
 end
 
-@views function adjoint_onestep_CPML!(grid, possrcs, dt2srctf, it)
+function adjoint_onestep_CPML!(model, possrcs, dt2srctf, it)
     # Extract info from grid
+    grid = model.grid
     nx = grid.size[1]
     dx = grid.spacing[1]
     pold, pcur, pnew = grid.fields["adjold"].value, grid.fields["adjcur"].value, grid.fields["adjnew"].value
     fact = grid.fields["fact"].value
-    ψ_l, ψ_r = grid.fields["ψ_adj"].value
-    ξ_l, ξ_r = grid.fields["ξ_adj"].value
-    a_x_l, a_x_r, a_x_hl, a_x_hr = grid.fields["a_pml"].value
-    b_x_l, b_x_r, b_x_hl, b_x_hr = grid.fields["b_pml"].value
-    halo = length(a_x_r)
+    ψ_x = grid.fields["ψ_adj"].value[1]
+    ξ_x = grid.fields["ξ_adj"].value[1]
+    a_x = model.cpmlcoeffs[1].a
+    a_x_half = model.cpmlcoeffs[1].a_h
+    b_x = model.cpmlcoeffs[1].b
+    b_x_half = model.cpmlcoeffs[1].b_h
+    halo = model.cpmlparams.halo
     # Precompute divisions
-    _dx = 1 / dx
-    _dx2 = 1 / dx^2
+    _dx  = 1 / dx
 
-    @parallel (1:(halo+1)) update_ψ!(ψ_l, ψ_r, pcur,
-        halo, nx, _dx,
-        a_x_hl, a_x_hr,
-        b_x_hl, b_x_hr)
-    @parallel (2:(nx-1)) update_p_CPML!(pold, pcur, pnew, halo, fact, nx, _dx, _dx2,
-        ψ_l, ψ_r,
-        ξ_l, ξ_r,
-        a_x_l, a_x_r,
-        b_x_l, b_x_r)
+    # update ψ arrays
+    @parallel (1:2halo) update_ψ!(pcur, _dx, halo, ψ_x, b_x_half, a_x_half)
+    # update pressure and ξ arrays
+    @parallel (2:(nx-1)) update_p_CPML!(pold, pcur, pnew, fact, _dx, halo, ψ_x, ξ_x, b_x, a_x)
+    # inject sources
     @parallel (1:size(possrcs, 1)) inject_sources!(pnew, dt2srctf, possrcs, it)
 
     # Exchange pressures in grid
     grid.fields["adjold"] = grid.fields["adjcur"]
     grid.fields["adjcur"] = grid.fields["adjnew"]
     grid.fields["adjnew"] = grid.fields["adjold"]
-
     return nothing
 end

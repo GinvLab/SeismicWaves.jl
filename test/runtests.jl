@@ -8,14 +8,34 @@ using DSP, NumericalIntegration, LinearAlgebra
 using Logging
 using SeismicWaves
 
+
 # Load CUDA only if requested for testing
 if "CUDA" in ARGS
     using CUDA
+    filter!(e -> e != "CUDA", ARGS)
+end
+# Load AMDGPU only if requested for testing
+if "AMDGPU" in ARGS
+    using AMDGPU
+    filter!(e -> e != "AMDGPU", ARGS)
+end
+# Load Metal only if requested for testing
+if "Metal" in ARGS
+    using Metal
+    filter!(e -> e != "Metal", ARGS)
 end
 
 include("utils/setup_models.jl")
 
 # Run all tests
+jufiles = readdir(@__DIR__)
+testfiles = filter(f->(startswith(f,"test") && endswith(f, ".jl") ),jufiles)
+
+
 @testset ExtendedTestSet "SeismicWaves Tests" begin
-    @includetests
+    #include("test_gradient_elastic_homogeneous.jl")
+    for test in testfiles
+        include(test)
+     end
 end
+

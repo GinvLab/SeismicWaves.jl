@@ -28,6 +28,12 @@ function check_sim_consistency(model::WaveSimulation{T, N}, matprop::MaterialPro
            tysource <: MomentTensorSources{T, 2, MomentTensor2D{T}} &&
            tyreceiver <: VectorReceivers{T, N}
         return
+
+    elseif model isa ElasticIsoCPMLWaveSimulation{T, 2} &&   # <<<<<---------<<<<
+           matprop isa ElasticIsoMaterialProperties{T, 2} &&
+           tysource <: ExternalForceSources{T, 2} &&
+           tyreceiver <: VectorReceivers{T, N}
+        return
     end
 
     return error("Types of WaveSimulation, MaterialProperties and Sources/Receivers are inconsistent \
@@ -84,6 +90,3 @@ function check_positions(
     end
     return
 end
-
-check_invcov_matrix(model::WaveSimulation{T}, invcov::AbstractMatrix{T}) where {T} =
-    @assert size(invcov) == (model.nt, model.nt) "Inverse of covariance matrix has not size equal to ($(model.nt) x $(model.nt))!"

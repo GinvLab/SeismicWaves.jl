@@ -14,77 +14,62 @@ end
     return nothing
 end
 
-@parallel_indices (i, j) function update_p_CPML!(pcur, vx_cur, vy_cur, halo, fact_m0, nx, ny, _dx, _dy,
-    ξ_x_l, ξ_x_r, a_x_l, a_x_r, b_x_l, b_x_r,
-    ξ_y_l, ξ_y_r, a_y_l, a_y_r, b_y_l, b_y_r)
+@parallel_indices (i, j) function update_p_CPML!(
+    pcur, vx_cur, vy_cur, fact_m0, _dx, _dy,
+    halo, ξ_x, ξ_y, b_x, b_y, a_x, a_y
+)
+    ##################################
+    # ∂p/∂t = (∂vx/∂x + ∂vy/∂y) / m0 #
+    # fact_m0 = 1 / m0 / dt          #
+    ##################################
+
     # Compute velocity derivatives
-    dv_dx = @d_dx_4th(vx_cur, i, j) * _dx
-    dv_dy = @d_dy_4th(vy_cur, i, j) * _dy
-    # Update CPML memory arrays if on the boundary
-    if i <= halo + 1
-        # left boundary
-        ξ_x_l[i-1, j] = b_x_l[i-1] * ξ_x_l[i-1, j] + a_x_l[i-1] * dv_dx
-        dv_dx += ξ_x_l[i-1, j]
-    elseif i >= nx - halo
-        # right boundary
-        ii = i - (nx - halo) + 1
-        ξ_x_r[ii, j] = b_x_r[ii] * ξ_x_r[ii, j] + a_x_r[ii] * dv_dx
-        dv_dx += ξ_x_r[ii, j]
-    end
-    if j <= halo + 1
-        # top boundary
-        ξ_y_l[i, j-1] = b_y_l[j-1] * ξ_y_l[i, j-1] + a_y_l[j-1] * dv_dy
-        dv_dy += ξ_y_l[i, j-1]
-    elseif j >= ny - halo
-        # bottom boundary
-        jj = j - (ny - halo) + 1
-        ξ_y_r[i, jj] = b_y_r[jj] * ξ_y_r[i, jj] + a_y_r[jj] * dv_dy
-        dv_dy += ξ_y_r[i, jj]
-    end
+    ∂vx∂x = @∂̃x(vx_cur, a_x, b_x, ξ_x,
+                order=4, I=(i-1,j), _Δ=_dx,
+                halo=halo, halfgrid=false)
+    ∂vy∂y = @∂̃y(vy_cur, a_y, b_y, ξ_y,
+                order=4, I=(i,j-1), _Δ=_dy,
+                halo=halo, halfgrid=false)
     # Update pressure
-    pcur[i, j] -= fact_m0[i, j] * (dv_dx + dv_dy)
+    pcur[i, j] -= fact_m0[i, j] * (∂vx∂x + ∂vy∂y)
 
     return nothing
 end
 
-@parallel_indices (i, j) function update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
-    ψ_x_l, ψ_x_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
+@parallel_indices (i, j) function update_vx_CPML!(
+    pcur, vx_cur, fact_m1_x, _dx,
+    halo, ψ_x, b_x_half, a_x_half
+)
+    ########################
+    # ∂vx/∂t = -∂p/∂x * m1 #
+    # fact_m1_x = m1 / dt  #
+    ########################
+
     # Compute pressure derivative in x direction
-    dp_dx = @d_dx_4th(pcur, i + 1, j) * _dx
-    # Update CPML memory arrays if on the boundary
-    if i <= halo + 1
-        # left boundary
-        ψ_x_l[i, j] = b_x_hl[i] * ψ_x_l[i, j] + a_x_hl[i] * dp_dx
-        dp_dx += ψ_x_l[i, j]
-    elseif i >= nx - halo - 1
-        # right boundary
-        ii = i - (nx - halo - 1) + 1
-        ψ_x_r[ii, j] = b_x_hr[ii] * ψ_x_r[ii, j] + a_x_hr[ii] * dp_dx
-        dp_dx += ψ_x_r[ii, j]
-    end
+    ∂p∂x = @∂̃x(pcur, a_x_half, b_x_half, ψ_x,
+               order=4, I=(i,j), _Δ=_dx,
+               halo=halo, halfgrid=true)
     # Update velocity
-    vx_cur[i, j] -= fact_m1_x[i, j] * dp_dx
+    vx_cur[i, j] -= fact_m1_x[i, j] * ∂p∂x
 
     return nothing
 end
 
-@parallel_indices (i, j) function update_vy_CPML!(pcur, vy_cur, halo, fact_m1_y, ny, _dy,
-    ψ_y_l, ψ_y_r, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
+@parallel_indices (i, j) function update_vy_CPML!(
+    pcur, vy_cur, fact_m1_y, _dy,
+    halo, ψ_y, b_y_half, a_y_half
+)
+    ########################
+    # ∂vy/∂t = -∂p/∂y * m1 #
+    # fact_m1_y = m1 / dt  #
+    ########################
+
     # Compute pressure derivative in y direction
-    dp_dy = @d_dy_4th(pcur, i, j + 1) * _dy
-    # Update CPML memory arrays if on the boundary
-    if j <= halo + 1
-        # top boundary
-        ψ_y_l[i, j] = b_y_hl[j] * ψ_y_l[i, j] + a_y_hl[j] * dp_dy
-        dp_dy += ψ_y_l[i, j]
-    elseif j >= ny - halo - 1
-        # bottom boundary
-        jj = j - (ny - halo - 1) + 1
-        ψ_y_r[i, jj] = b_y_hr[jj] * ψ_y_r[i, jj] + a_y_hr[jj] * dp_dy
-        dp_dy += ψ_y_r[i, jj]
-    end
+    ∂p∂y = @∂̃y(pcur, a_y_half, b_y_half, ψ_y,
+               order=4, I=(i,j), _Δ=_dy,
+               halo=halo, halfgrid=true)
     # Update velocity
-    vy_cur[i, j] -= fact_m1_y[i, j] * dp_dy
+    vy_cur[i, j] -= fact_m1_y[i, j] * ∂p∂y
 
     return nothing
 end
@@ -97,41 +82,53 @@ end
     return nothing
 end
 
-@views function prescale_residuals!(residuals, posrecs, fact)
+function prescale_residuals!(residuals, posrecs, fact)
     nrecs = size(posrecs, 1)
     nt = size(residuals, 1)
     @parallel (1:nt, 1:nrecs) prescale_residuals_kernel!(residuals, posrecs, fact)
 end
 
-@views function forward_onestep_CPML!(
-    grid, possrcs, srctf, posrecs, traces, it;
+function forward_onestep_CPML!(
+    model, possrcs, srctf, posrecs, traces, it;
     save_trace=true
 )
     # Extract info from grid
+    grid = model.grid
     nx, ny = grid.size
     dx, dy = grid.spacing
     pcur = grid.fields["pcur"].value
     vx_cur, vy_cur = grid.fields["vcur"].value
     fact_m0 = grid.fields["fact_m0"].value
     fact_m1_x, fact_m1_y = grid.fields["fact_m1_stag"].value
-    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ"].value
-    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r = grid.fields["ξ"].value
-    a_x_l, a_x_r, a_x_hl, a_x_hr, a_y_l, a_y_r, a_y_hl, a_y_hr = grid.fields["a_pml"].value
-    b_x_l, b_x_r, b_x_hl, b_x_hr, b_y_l, b_y_r, b_y_hl, b_y_hr = grid.fields["b_pml"].value
-    halo = length(a_x_r)
+    ψ_x, ψ_y = grid.fields["ψ"].value
+    ξ_x, ξ_y = grid.fields["ξ"].value
+    a_x = model.cpmlcoeffs[1].a
+    a_x_half = model.cpmlcoeffs[1].a_h
+    b_x = model.cpmlcoeffs[1].b
+    b_x_half = model.cpmlcoeffs[1].b_h
+    a_y = model.cpmlcoeffs[2].a
+    a_y_half = model.cpmlcoeffs[2].a_h
+    b_y = model.cpmlcoeffs[2].b
+    b_y_half = model.cpmlcoeffs[2].b_h
+    halo = model.cpmlparams.halo
     # Precompute divisions
-    _dx = 1 / (dx * 24)
-    _dy = 1 / (dy * 24)
+    _dx = 1 / dx
+    _dy = 1 / dy
 
-    @parallel (3:(nx-2), 3:(ny-2)) update_p_CPML!(pcur, vx_cur, vy_cur, halo, fact_m0, nx, ny, _dx, _dy,
-        ξ_x_l, ξ_x_r, a_x_l, a_x_r, b_x_l, b_x_r,
-        ξ_y_l, ξ_y_r, a_y_l, a_y_r, b_y_l, b_y_r)
+    @parallel (2:(nx-1),2:(ny-1)) update_p_CPML!(
+        pcur, vx_cur, vy_cur, fact_m0, _dx, _dy,
+        halo, ξ_x, ξ_y, b_x, b_y, a_x, a_y
+    )
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
 
-    @parallel_async (2:(nx-2), 1:ny) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
-        ψ_x_l, ψ_x_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
-    @parallel_async (1:nx, 2:(ny-2)) update_vy_CPML!(pcur, vy_cur, halo, fact_m1_y, ny, _dy,
-        ψ_y_l, ψ_y_r, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
+    @parallel_async (1:(nx-1), 1:ny) update_vx_CPML!(
+        pcur, vx_cur, fact_m1_x, _dx,
+        halo, ψ_x, b_x_half, a_x_half
+    )
+    @parallel_async (1:nx, 1:(ny-1)) update_vy_CPML!(
+        pcur, vy_cur, fact_m1_y, _dy,
+        halo, ψ_y, b_y_half, a_y_half
+    )
     @synchronize
 
     if save_trace
@@ -139,52 +136,64 @@ end
     end
 end
 
-@views function adjoint_onestep_CPML!(
-    grid, possrcs, srctf, it
-)
+function adjoint_onestep_CPML!(model, possrcs, srctf, it)
     # Extract info from grid
+    grid = model.grid
     nx, ny = grid.size
     dx, dy = grid.spacing
     pcur = grid.fields["adjpcur"].value
     vx_cur, vy_cur = grid.fields["adjvcur"].value
     fact_m0 = grid.fields["fact_m0"].value
     fact_m1_x, fact_m1_y = grid.fields["fact_m1_stag"].value
-    ψ_x_l, ψ_x_r, ψ_y_l, ψ_y_r = grid.fields["ψ_adj"].value
-    ξ_x_l, ξ_x_r, ξ_y_l, ξ_y_r = grid.fields["ξ_adj"].value
-    a_x_l, a_x_r, a_x_hl, a_x_hr, a_y_l, a_y_r, a_y_hl, a_y_hr = grid.fields["a_pml"].value
-    b_x_l, b_x_r, b_x_hl, b_x_hr, b_y_l, b_y_r, b_y_hl, b_y_hr = grid.fields["b_pml"].value
-    halo = length(a_x_r)
+    ψ_x, ψ_y = grid.fields["ψ_adj"].value
+    ξ_x, ξ_y = grid.fields["ξ_adj"].value
+    a_x = model.cpmlcoeffs[1].a
+    a_x_half = model.cpmlcoeffs[1].a_h
+    b_x = model.cpmlcoeffs[1].b
+    b_x_half = model.cpmlcoeffs[1].b_h
+    a_y = model.cpmlcoeffs[2].a
+    a_y_half = model.cpmlcoeffs[2].a_h
+    b_y = model.cpmlcoeffs[2].b
+    b_y_half = model.cpmlcoeffs[2].b_h
+    halo = model.cpmlparams.halo
     # Precompute divisions
-    _dx = 1 / (dx * 24)
-    _dy = 1 / (dy * 24)
+    _dx = 1 / dx
+    _dy = 1 / dy
 
-    @parallel_async (2:(nx-2), 1:ny) update_vx_CPML!(pcur, vx_cur, halo, fact_m1_x, nx, _dx,
-        ψ_x_l, ψ_x_r, a_x_hl, a_x_hr, b_x_hl, b_x_hr)
-    @parallel_async (1:nx, 2:(ny-2)) update_vy_CPML!(pcur, vy_cur, halo, fact_m1_y, ny, _dy,
-        ψ_y_l, ψ_y_r, a_y_hl, a_y_hr, b_y_hl, b_y_hr)
+    @parallel_async (1:(nx-1), 1:ny) update_vx_CPML!(
+        pcur, vx_cur, fact_m1_x, _dx,
+        halo, ψ_x, b_x_half, a_x_half
+    )
+    @parallel_async (1:nx, 1:(ny-1)) update_vy_CPML!(
+        pcur, vy_cur, fact_m1_y, _dy,
+        halo, ψ_y, b_y_half, a_y_half
+    )
     @synchronize
 
-    @parallel (3:(nx-2), 3:(ny-2)) update_p_CPML!(pcur, vx_cur, vy_cur, halo, fact_m0, nx, ny, _dx, _dy,
-        ξ_x_l, ξ_x_r, a_x_l, a_x_r, b_x_l, b_x_r,
-        ξ_y_l, ξ_y_r, a_y_l, a_y_r, b_y_l, b_y_r)
+    @parallel (2:(nx-1),2:(ny-1)) update_p_CPML!(
+        pcur, vx_cur, vy_cur, fact_m0, _dx, _dy,
+        halo, ξ_x, ξ_y, b_x, b_y, a_x, a_y
+    )
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
 end
 
-@views function correlate_gradient_m1!(curgrad_m1_stag, adjvcur, pold, gridspacing)
-    _gridspacing = 1 ./ (gridspacing .* 24)
+function correlate_gradient_m1!(curgrad_m1_stag, adjvcur, pold, gridspacing)
+    _gridspacing = 1 ./ gridspacing
     nx, ny = size(pold)
-    @parallel (2:nx-2, 1:ny) correlate_gradient_m1_kernel_x!(curgrad_m1_stag[1], adjvcur[1], pold, _gridspacing[1])
-    @parallel (1:nx, 2:nx-2) correlate_gradient_m1_kernel_y!(curgrad_m1_stag[2], adjvcur[2], pold, _gridspacing[2])
+    @parallel (1:(nx-1), 1:ny) correlate_gradient_m1_kernel_x!(curgrad_m1_stag[1], adjvcur[1], pold, _gridspacing[1])
+    @parallel (1:nx, 1:(ny-1)) correlate_gradient_m1_kernel_y!(curgrad_m1_stag[2], adjvcur[2], pold, _gridspacing[2])
 end
 
 @parallel_indices (i, j) function correlate_gradient_m1_kernel_x!(curgrad_m1_stag_x, adjvcur_x, pold, _dx)
-    curgrad_m1_stag_x[i, j] = curgrad_m1_stag_x[i, j] + adjvcur_x[i, j] * @d_dx_4th(pold, i + 1, j) * _dx
+    ∂p∂x = @∂x(pold, order=4, I=(i,j), _Δ=_dx)
+    curgrad_m1_stag_x[i, j] = curgrad_m1_stag_x[i, j] + adjvcur_x[i, j] * ∂p∂x
 
     return nothing
 end
 
 @parallel_indices (i, j) function correlate_gradient_m1_kernel_y!(curgrad_m1_stag_y, adjvcur_y, pold, _dy)
-    curgrad_m1_stag_y[i, j] = curgrad_m1_stag_y[i, j] + adjvcur_y[i, j] * @d_dy_4th(pold, i, j + 1) * _dy
+    ∂p∂y = @∂y(pold, order=4, I=(i,j), _Δ=_dy)
+    curgrad_m1_stag_y[i, j] = curgrad_m1_stag_y[i, j] + adjvcur_y[i, j] * ∂p∂y
 
     return nothing
 end

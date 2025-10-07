@@ -2,24 +2,23 @@
 using Revise
 using SeismicWaves
 using LinearAlgebra
+using Logging
 using GLMakie
 
-###################################################################
-using Logging
 
 function exelaprob()
 
     ##========================================
     # time stuff
-    nt = 3000 #1500
+    nt = 1500 
     dt = 0.0008
     t = collect(Float64, range(0.0; step=dt, length=nt)) # seconds
     #@show dt,(nt-1)*dt
 
     ##========================================
     # create a velocity model
-    nx = 380 # 211
-    nz = 270 # 120
+    nx = 380 
+    nz = 270 
     dh = 4.5 # meters
     @show nx, nz, nx * nz, dh
     #@show (nx-1)*dh, (nz-1)*dh
@@ -52,7 +51,7 @@ function exelaprob()
     ##========================================
     # shots definition
     nshots = 1
-    shots = Vector{MomentTensorShot{Float64, 2, MomentTensor2D{Float64}}}()  #Pair{Sources, Receivers}}()
+    shots = Vector{MomentTensorShot{Float64, 2, MomentTensor2D{Float64}}}()  
 
     for i in 1:nshots
         # sources definition
@@ -66,7 +65,7 @@ function exelaprob()
         possrcs = zeros(nsrc, 2)    # 1 source, 2 dimensions
         for s in 1:nsrc
             possrcs[s, 1] = (ixsrc[i] - 1) * dh .+ 0.124   # x-positions in meters
-            possrcs[s, 2] = (nz / 2) * dh .+ 0.124 #(nz/2) * dh              # y-positions in meters
+            possrcs[s, 2] = (nz-30) * dh .+ 0.124         # y-positions in meters
         end
 
         # source time functions
@@ -78,16 +77,15 @@ function exelaprob()
         Mxz = zeros(nsrc)
         for s in 1:nsrc
             srcstf[:, s] .= rickerstf.(t, t0, f0)
-            Mxx[s] = 5e10 #1.5e10  #1.5e6 #e20
-            Mzz[s] = 5e10 #2.4e10  #1.5e6 #e20
-            Mxz[s] = 0.89e10 #0.89e10 #0.0e6 #e20
+            Mxx[s] = 5e10 
+            Mzz[s] = 5e10 
+            Mxz[s] = 0.89e10 
         end
 
         srcs = MomentTensorSources(possrcs, srcstf,
             [MomentTensor2D(; Mxx=Mxx[s], Mzz=Mzz[s], Mxz=Mxz[s]) for s in 1:nsrc],
             f0)
         #srcs = ScalarSources(possrcs, srcstf, f0)
-
         #@show srcs.positions
 
         # receivers definition
@@ -100,7 +98,6 @@ function exelaprob()
 
         ndim = 2
         recs = VectorReceivers(posrecs, nt, ndim)
-
         #@show recs.positions
 
         # add pair as shot
@@ -112,46 +109,60 @@ function exelaprob()
 
     ##============================================
     ## Input parameters for elastic simulation
-    snapevery = 5
+    snapevery = 200
     infoevery = 100
     freetop = true
     halo = 20
     rcoef = 0.0001
-    @show halo
-    @show rcoef
+
     boundcond = CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=freetop)
     params = InputParametersElastic(nt, dt, (nx, nz), (dh, dh), boundcond)
 
     ##===============================================
     ## compute the seismograms
+
+    # logger = ConsoleLogger(stderr, Logging.Debug)
+    # logger = ConsoleLogger(stderr, Logging.Error)
+    # logger = ConsoleLogger(stderr, Logging.Info)
+    
+    runparams = RunParameters(parall=:threads,
+                              infoevery=infoevery,
+                              snapevery=snapevery,
+                              # logger = logger
+                              )
+
     snapshots = swforward!(params,
-        matprop,
-        shots;
-        parall=:threads,
-        infoevery=infoevery,
-        snapevery=snapevery)
+                           matprop,
+                           shots;
+                           runparams=runparams,
+                           )
 
-    # ##===============================================
-    # ## compute the gradient
-    # shots_grad = Vector{ScalarShot{Float64}}()
-    # for i in 1:nshots
-    #     seis = shots[i].recs.seismograms
-    #     nt = size(seis,1)
-    #     recs_grad = ScalarReceivers(shots[i].recs.positions, nt; observed=seis,
-    #                                 invcov=Diagonal(ones(nt)))
-    #     push!(shots_grad, MomentTensorShot(; srcs=shots[i].srcs, recs=recs_grad))
-    # end
+    ##===============================================
+    ## compute the gradient
+    misfit = Vector{SeismicWaves.L2Misfit{Float64}}()
+    for i in 1:nshots
+        seis = shots[i].recs.seismograms
+        nt = size(seis,1)
+        invcov = Diagonal(ones(nt))
+        push!(misfit,SeismicWaves.L2Misfit(observed=seis,invcov=invcov))
+    end
 
-    # newvelmod = matprop.vp .- 0.2
-    # newvelmod[30:40,33:44] *= 0.9
-    # matprop_grad = ElasticIsoMaterialProperties(newvelmod)
+    #@show fieldnames(typeof(matprop))
+    matprop.λ = matprop.λ .* 0.7
 
-    # grad = swgradient!(params,
-    #                    matprop_grad,
-    #                    shots_grad;
-    #                    parall=:threads )
+    gradparams = GradParameters(mute_radius_src=5,
+                                mute_radius_rec=2,
+                                compute_misfit=true)
+    
+    grad,misfitval = swgradient!(params,
+                                 matprop,
+                                 shots,
+                                 misfit;
+                                 runparams=runparams,
+                                 gradparams=gradparams)
+    
 
-    return params, matprop, shots, snapshots#, grad
+    return params, matprop, shots, snapshots, grad
 end
 
 ##################################################################
@@ -169,22 +180,22 @@ function plotstuff(par, matprop, shots)
 
     vp = sqrt.((matprop.λ + 2 .* matprop.μ) ./ matprop.ρ)
 
-    lsrec = 6:10
+    lsrec = 1:2:10
 
     fig = Figure(; size=(1000, 1200))
 
-    ax1 = Axis(fig[1, 1]; title="Vx")
-    ax2 = Axis(fig[2, 1]; title="Vz")
+    ax1 = Axis(fig[1, 1]; title="Ux")
+    ax2 = Axis(fig[2, 1]; title="Uz")
     ax3 = Axis(fig[3, 1]; title="Source time function")
     ax4 = Axis(fig[4, 1]; xlabel="x [m]", ylabel="z [m]")
 
     for r in lsrec
-        lines!(ax1, shots[1].recs.seismograms[:, 1, r]; label="Vx #$r")
+        lines!(ax1, shots[1].recs.seismograms[:, 1, r]; label="Ux #$r")
     end
     axislegend(ax1)
 
     for r in lsrec
-        lines!(ax2, shots[1].recs.seismograms[:, 2, r]; label="Vz #$r")
+        lines!(ax2, shots[1].recs.seismograms[:, 2, r]; label="Uz #$r")
     end
     axislegend(ax2)
 
@@ -202,9 +213,10 @@ function plotstuff(par, matprop, shots)
     end
     ax4.yreversed = true
 
-    save("vx_vz_vp_example.png", fig)
+    save("ux_uz_vp_example.png", fig)
     return fig
 end
+
 
 function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     xgrd = [par.gridspacing[1] * (i - 1) for i in 1:par.gridsize[1]]
@@ -214,8 +226,8 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     xsrc = shots[1].srcs.positions[:, 1]
     ysrc = shots[1].srcs.positions[:, 2]
 
-    vxsnap = [snapsh[1][kk]["v"].value[1] for kk in sort(keys(snapsh[1]))]
-    vzsnap = [snapsh[1][kk]["v"].value[2] for kk in sort(keys(snapsh[1]))]
+    vxsnap = [snapsh[1][kk]["ucur"].value[1] for kk in sort(keys(snapsh[1]))]
+    vzsnap = [snapsh[1][kk]["ucur"].value[2] for kk in sort(keys(snapsh[1]))]
     @show size(vxsnap), size(vzsnap)
 
     curvx = Observable(vxsnap[1])
@@ -241,14 +253,14 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     end
 
     ##=====================================
-    fig = Figure(; size=(800, 1500))
+    fig = Figure(; size=(800, 1200))
 
     nframes = length(vxsnap)
 
     cmapwavefield = :vik #:cyclic_grey_15_85_c0_n256_s25 #:balance
 
     ax1 = Axis(fig[1, 1]; aspect=DataAspect(),
-        xlabel="x [m]", ylabel="z [m]", title="Vx, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
+        xlabel="x [m]", ylabel="z [m]", title="Ux, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
     #poly!(ax4,Rect(rect...),color=:green,alpha=0.3)
     extx = extrema.([vxsnap[i] for i in 1:length(vxsnap)])
     extx = map(p -> max(abs(p[1]), abs(p[2])), extx)
@@ -256,7 +268,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     vminmax = scalamp .* (-vmax, vmax)
     hm = heatmap!(ax1, xgrd, ygrd, curvx; colormap=cmapwavefield,
         colorrange=vminmax) #,alpha=0.7)
-    Colorbar(fig[1, 2], hm; label="x partic. vel.")
+    Colorbar(fig[1, 2], hm; label="x displ.")
 
     lines!(ax1, Rect(rectpml...); color=:green)
     scatter!(ax1, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
@@ -265,7 +277,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     ax1.yreversed = true
 
     ax2 = Axis(fig[2, 1]; aspect=DataAspect(),
-        xlabel="x [m]", ylabel="z [m]", title="Vz, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
+        xlabel="x [m]", ylabel="z [m]", title="Uz, clip at $scalamp of max amplitude, iteration 0 of $(snapevery*nframes)")
     #poly!(ax4,Rect(rect...),color=:green,alpha=0.3)
     extx = extrema.([vzsnap[i] for i in 1:length(vzsnap)])
     extx = map(p -> max(abs(p[1]), abs(p[2])), extx)
@@ -273,7 +285,7 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     vminmax = scalamp .* (-vmax, vmax)
     hm = heatmap!(ax2, xgrd, ygrd, curvz; colormap=cmapwavefield,
         colorrange=vminmax) #,alpha=0.7)
-    Colorbar(fig[2, 2], hm; label="z partic. vel.")
+    Colorbar(fig[2, 2], hm; label="z displ.")
 
     lines!(ax2, Rect(rectpml...); color=:green)
     scatter!(ax2, xrec, yrec; marker=:dtriangle, label="Receivers", markersize=15)
@@ -292,19 +304,19 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     # ax3.yreversed = true
 
     ##
-    display(fig)
+    #display(fig)
     save("first_frame.png", fig)
     ##=====================================
 
     function updatefunction(curax1, curax2, vxsnap, vzsnap, it)
         cvx = vxsnap[it]
         cvz = vzsnap[it]
-        curax1.title = "Vx, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
-        curax2.title = "Vz, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
+        curax1.title = "Ux, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
+        curax2.title = "Uz, clip at $scalamp of max amplitude, iteration $(snapevery*it) of $(snapevery*nframes)"
         return cvx, cvz
     end
 
-    fps = 30
+    fps = 10
 
     # live plot
     # for j in 1:1
@@ -315,32 +327,25 @@ function snapanimate(par, matprop, shots, snapsh; scalamp=0.01, snapevery=5)
     # end
 
     ##
-    record(fig, "snapshots_halo_$(halo)_rcoef_$(rcoef).mp4", 1:nframes; framerate=fps) do it
+    outfile = "snapshots_halo_$(halo)_rcoef_$(rcoef).mp4"
+    record(fig, outfile, 1:nframes; framerate=fps) do it
         curvx[], curvz[] = updatefunction(ax1, ax2, vxsnap, vzsnap, it)
         # yield() -> not required with record
     end
+
+    println("\n Animation saved to $outfile ")
+    return fig
 end
 
 ##################################################################
-# debug_logger = ConsoleLogger(stderr, Logging.Debug)
-# global_logger(debug_logger)
-# error_logger = ConsoleLogger(stderr, Logging.Error)
-# global_logger(error_logger)
-info_logger = ConsoleLogger(stderr, Logging.Info)
-global_logger(info_logger)
 
-par, matprop, shots, snapsh = exelaprob()
+par, matprop, shots, snapsh, grad = exelaprob()
 
 snapanimate(par, matprop, shots, snapsh; scalamp=0.02)
 
 fig = plotstuff(par, matprop, shots)
+display(fig)
 
-# with_logger(error_logger) do
-#     p, v, s, snaps = exacouprob()
-# end
 
-# using Plots
-# heatmap(snaps[6][:,:,20]'; aspect_ratio=:equal, cmap=:RdBu)
-# yaxis!(flip=true)
 
 ##################################################################

@@ -35,7 +35,6 @@ Base.copyto!(dest::MultiVariableField, src::MultiVariableField) = begin
     end
 end
 
-
 setzero!(field::ScalarConstantField{T}) where {T} = (field.value = zero(T); return field)
 setzero!(field::MultiConstantField{T}) where {T} = (field.value .= zero(T); return field)
 setzero!(field::ScalarVariableField{T}) where {T} = (field.value .= zero(T); return field)

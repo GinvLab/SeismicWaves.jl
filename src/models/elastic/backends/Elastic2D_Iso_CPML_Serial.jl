@@ -259,10 +259,10 @@ function update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
             # vx derivative only in x so no problem
             ∂vx∂x_fwd = factx * (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j])
             # using boundary condition to calculate ∂vz∂z_bkd from ∂vx∂x_fwd
-            ∂vz∂z_bkd = -(1.0 - 2.0 * μ_ihalf[i, j] / λ_ihalf[i, j]) * ∂vx∂x_fwd
+            ∂vz∂z_bkd = -(λ_ihalf[i, j] / (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j])) * ∂vx∂x_fwd
             # σxx
-            # σxx[i,j] = σxx[i,j] + (λ_ihalf[i,j]+2.0*μ_ihalf[i,j]) * dt * ∂vx∂x_fwd + λ_ihalf[i,j] * dt * ∂vz∂z_bkd
-            σxx[i, j] = σxx[i, j] + (λ_ihalf[i, j] - λ_ihalf[i, j] / (λ_ihalf[i, j] + 2 + μ_ihalf[i, j]) + 2 * μ_ihalf[i, j]) * dt * ∂vx∂x_fwd
+            σxx[i, j] = σxx[i, j] + (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j]) * dt * ∂vx∂x_fwd +
+                        λ_ihalf[i, j] * dt * ∂vz∂z_bkd
             # σzz
             σzz[i, j] = 0.0 # we are on the free surface!
         end
@@ -490,6 +490,75 @@ function forward_onestep_CPML!(
     return
 end
 
+function adjoint_onestep_CPML!(
+    model,
+    srccoeij_bk,
+    srccoeval_bk,
+    residuals_bk,
+    it
+)
+    # Extract info from grid
+    freetop = model.cpmlparams.freeboundtop
+    cpmlcoeffs = model.cpmlcoeffs
+    dx = model.grid.spacing[1]
+    dz = model.grid.spacing[2]
+    dt = model.dt
+    nx, nz = model.grid.size[1:2]
+    halo = model.cpmlparams.halo
+    grid = model.grid
+
+    vx, vz = grid.fields["adjv"].value
+    σxx, σzz, σxz = grid.fields["adjσ"].value
+
+    ψ_∂σxx∂x, ψ_∂σxz∂x = grid.fields["adjψ_∂σ∂x"].value
+    ψ_∂σzz∂z, ψ_∂σxz∂z = grid.fields["adjψ_∂σ∂z"].value
+    ψ_∂vx∂x, ψ_∂vz∂x = grid.fields["adjψ_∂v∂x"].value
+    ψ_∂vx∂z, ψ_∂vz∂z = grid.fields["adjψ_∂v∂z"].value
+
+    a_x = cpmlcoeffs[1].a
+    a_x_half = cpmlcoeffs[1].a_h
+    b_x = cpmlcoeffs[1].b
+    b_x_half = cpmlcoeffs[1].b_h
+
+    a_z = cpmlcoeffs[2].a
+    a_z_half = cpmlcoeffs[2].a_h
+    b_z = cpmlcoeffs[2].b
+    b_z_half = cpmlcoeffs[2].b_h
+
+    ρ = grid.fields["ρ"].value
+    ρ_ihalf_jhalf = grid.fields["ρ_ihalf_jhalf"].value
+    λ_ihalf = grid.fields["λ_ihalf"].value
+    μ_ihalf = grid.fields["μ_ihalf"].value
+    μ_jhalf = grid.fields["μ_jhalf"].value
+
+    # Precomputing divisions
+    factx = 1.0 / (24.0 * dx)
+    factz = 1.0 / (24.0 * dz)
+
+    # update stresses σxx and σzz 
+    update_4thord_σxxσzz!(nx, nz, halo, σxx, σzz, factx, factz,
+        vx, vz, dt, λ_ihalf, μ_ihalf,
+        ψ_∂vx∂x, ψ_∂vz∂z,
+        b_x_half, b_z, a_x_half, a_z, freetop)
+    # update stress σxz
+    update_4thord_σxz!(nx, nz, halo, σxz, factx, factz, vx, vz, dt,
+        μ_jhalf, b_x, b_z_half,
+        ψ_∂vx∂z, ψ_∂vz∂x, a_x, a_z_half, freetop)
+    
+    # update velocity vx 
+    update_4thord_vx!(nx, nz, halo, vx, factx, factz, σxx, σxz, dt, ρ, ψ_∂σxx∂x, ψ_∂σxz∂z,
+        b_x, b_z, a_x, a_z, freetop)
+    # update velocity vz
+    update_4thord_vz!(nx, nz, halo, vz, factx, factz, σxz, σzz, dt, ρ_ihalf_jhalf, ψ_∂σxz∂x,
+        ψ_∂σzz∂z, b_x_half, b_z_half, a_x_half, a_z_half, freetop)
+
+    # inject sources (external body force)
+    inject_vel_sources2D!(vx, vz, residuals_bk, srccoeij_bk, srccoeval_bk, ρ, ρ_ihalf_jhalf, it)
+
+
+    return
+end
+
 function inject_momten_sources2D!(σxx, σzz, σxz, Mxx, Mzz, Mxz, srctf_bk, dt, srccoeij_bk, srccoeval_bk, it)
     #function inject_momten_sources!(σxx,σzz,σxz,Mxx, Mzz, Mxz, srctf_bk, dt, possrcs_bk, it)
 
@@ -506,9 +575,9 @@ function inject_momten_sources2D!(σxx, σzz, σxz, Mxx, Mzz, Mxz, srctf_bk, dt,
             s, isrc, jsrc = srccoeij_bk[p, :]
             # update stresses on points computed from sinc interpolation 
             #     scaled with the coefficients' values
-            σxx[isrc, jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it] * dt
-            σzz[isrc, jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it] * dt
-            σxz[isrc, jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it] * dt
+            σxx[isrc, jsrc] += Mxx[s] * srccoeval_bk[p] * srctf_bk[it]
+            σzz[isrc, jsrc] += Mzz[s] * srccoeval_bk[p] * srctf_bk[it]
+            σxz[isrc, jsrc] += Mxz[s] * srccoeval_bk[p] * srctf_bk[it]
         end
 
         # for s in axes(possrcs_bk, 1)
@@ -522,6 +591,16 @@ function inject_momten_sources2D!(σxx, σzz, σxz, Mxx, Mzz, Mxz, srctf_bk, dt,
     return
 end
 
+function inject_vel_sources2D!(vx, vz, f, srccoeij_bk, srccoeval_bk, ρ, ρ_ihalf_jhalf, it)
+    nsrcpts = size(srccoeij_bk, 1)
+    for p in 1:nsrcpts
+        s, isrc, jsrc = srccoeij_bk[p, 1], srccoeij_bk[p, 2], srccoeij_bk[p, 3]
+        vx[isrc, jsrc] += srccoeval_bk[p] * f[it, 1, s] * dt / ρ[isrc, jsrc]
+        vz[isrc, jsrc] += srccoeval_bk[p] * f[it, 2, s] * dt / ρ_ihalf_jhalf[isrc, jsrc]
+    end
+    return nothing
+end
+
 function record_receivers2D!(vx, vz, traces_bk, reccoeij_bk, reccoeval_bk, it)
 
     # total number of interpolation points
@@ -532,8 +611,8 @@ function record_receivers2D!(vx, vz, traces_bk, reccoeij_bk, reccoeval_bk, it)
         # [src_id, i, j]
         r, irec, jrec = reccoeij_bk[p, :]
         # update traces by summing up values from all sinc interpolation points
-        traces_bk[it, 1, r] += vx[irec, jrec]
-        traces_bk[it, 2, r] += vz[irec, jrec]
+        traces_bk[it, 1, r] += reccoeval_bk[r] * vx[irec, jrec]
+        traces_bk[it, 2, r] += reccoeval_bk[r] * vz[irec, jrec]
     end
 
     # for ir in axes(posrecs, 1)
@@ -546,16 +625,89 @@ function record_receivers2D!(vx, vz, traces_bk, reccoeij_bk, reccoeval_bk, it)
     return
 end
 
-#function correlate_gradient!(  )
-# _dt2 = 1 / dt^2
-# nx, nz = size(curgrad)
-# for j in 1:nz
-#     for i in 1:nx
-#         curgrad[i, j] = curgrad[i, j] + (adjcur[i, j] * (pcur[i, j] - 2.0 * pold[i, j] + pveryold[i, j]) * _dt2)
-#     end
-# end
-# return 
-#end
+function correlate_gradient_ρ_kernel!(grad_ρ, adjv, v_curr, v_old, _dt)
+    @. grad_ρ = grad_ρ + adjv * (v_old - v_curr) * _dt
+
+    return nothing
+end
+
+function correlate_gradient_ihalf_kernel!(grad_λ_ihalf, grad_μ_ihalf, adjσxx, adjσzz, vx, vz, λ_ihalf, μ_ihalf, factx, factz, freetop, nx, nz)
+    for j in 1:nz-1
+        for i in 2:nx-2
+            ∂vx∂x_fwd = ∂vz∂z_bkd = 0
+            if freetop == true
+                # j=1: we are on the free surface!
+                if j == 1
+                    # vx derivative only in x so no problem
+                    ∂vx∂x_fwd = (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j]) * factx
+                    # using boundary condition to calculate ∂vz∂z_bkd from ∂vx∂x_fwd
+                    ∂vz∂z_bkd = -(λ_ihalf[i, j] / (λ_ihalf[i, j] + 2.0 * μ_ihalf[i, j])) * ∂vx∂x_fwd
+                end
+                # j=2: we are just below the surface (1/2)
+                if j == 2
+                    # vx derivative only in x so no problem
+                    ∂vx∂x_fwd = (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j]) * factx
+                    # zero velocity above the free surface
+                    ∂vz∂z_bkd = (0.0 - 27.0 * vz[i, j-1] + 27.0 * vz[i, j] - vz[i, j+1]) * factz
+                end
+            end
+            if j >= 3
+                ∂vx∂x_fwd = (vx[i-1, j] - 27.0 * vx[i, j] + 27.0 * vx[i+1, j] - vx[i+2, j]) * factx
+                ∂vz∂z_bkd = (vz[i, j-2] - 27.0 * vz[i, j-1] + 27.0 * vz[i, j] - vz[i, j+1]) * factz
+            end
+            # correlate
+            grad_λ_ihalf[i, j] += -((∂vx∂x_fwd + ∂vz∂z_bkd) * (adjσxx[i, j] + adjσzz[i, j]))
+            grad_μ_ihalf[i, j] += (-2 * ∂vx∂x_fwd * adjσxx[i, j]) + (-2 * ∂vz∂z_bkd * adjσzz[i, j])
+        end
+    end
+
+    return nothing
+end
+
+function correlate_gradient_jhalf_kernel!(grad_μ_jhalf, adjσxz, vx, vz, factx, factz, freetop, nx, nz)
+    for j in 1:nz-2
+        for i in 3:nx-1
+            ∂vx∂z_fwd = ∂vz∂x_bkd = 0
+            if freetop
+                if j == 1
+                    # zero velocity above the free surface
+                    ∂vx∂z_fwd = factz * (0.0 - 27.0 * vx[i, j] + 27.0 * vx[i, j+1] - vx[i, j+2])
+                    # vz derivative only in x so no problem
+                    ∂vz∂x_bkd = factx * (vz[i-2, j] - 27.0 * vz[i-1, j] + 27.0 * vz[i, j] - vz[i+1, j])
+                end
+            end
+            if j >= 2
+                ∂vx∂z_fwd = factz * (vx[i, j-1] - 27.0 * vx[i, j] + 27.0 * vx[i, j+1] - vx[i, j+2])
+                ∂vz∂x_bkd = factx * (vz[i-2, j] - 27.0 * vz[i-1, j] + 27.0 * vz[i, j] - vz[i+1, j])
+            end
+            # correlate
+            grad_μ_jhalf[i, j] += (-∂vx∂z_fwd-∂vz∂x_bkd) * adjσxz[i, j]
+        end
+    end
+
+    return nothing
+end
+
+function correlate_gradients!(grid, vcurr, vold, dt, freetop)
+    nx, nz = grid.size
+    correlate_gradient_ρ_kernel!(grid.fields["grad_ρ"].value, grid.fields["adjv"].value[1], vcurr[1], vold[1], 1 / dt)
+    correlate_gradient_ρ_kernel!(grid.fields["grad_ρ_ihalf_jhalf"].value, grid.fields["adjv"].value[2], vcurr[2], vold[2], 1 / dt)
+    correlate_gradient_ihalf_kernel!(
+        grid.fields["grad_λ_ihalf"].value,
+        grid.fields["grad_μ_ihalf"].value,
+        grid.fields["adjσ"].value[1], grid.fields["adjσ"].value[2], vcurr...,
+        grid.fields["λ_ihalf"].value, grid.fields["μ_ihalf"].value,
+        (1.0 ./ (24.0 .* grid.spacing))...,
+        freetop, nx, nz
+    )
+    correlate_gradient_jhalf_kernel!(
+        grid.fields["grad_μ_jhalf"].value,
+        grid.fields["adjσ"].value[3], vcurr...,
+        (1.0 ./ (24.0 .* grid.spacing))...,
+        freetop, nx, nz
+    )
+end
+
 
 #########################################
 end  # end module

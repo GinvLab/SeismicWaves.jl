@@ -17,15 +17,7 @@ Return a vector of `Dict` containing for each shot the snapshots of the fields c
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
 # Keyword arguments
-- `parall::Symbol = :threads`: controls which backend is used for computation:
-    - the `CUDA.jl` GPU backend performing automatic domain decomposition if set to `:CUDA`
-    - the `AMDGPU.jl` GPU backend performing automatic domain decomposition if set to `:AMDGPU`
-    - `Base.Threads` CPU threads performing automatic domain decomposition if set to `:threads`
-    - `Base.Threads` CPU threads sending a group of sources to each thread if set to `:threadpersrc`
-    - otherwise the serial version if set to `:serial`
-- `snapevery::Union{Int, Nothing} = nothing`: if specified, saves itermediate snapshots at the specified frequency (one every `snapevery` time step iteration) and return them as a vector of arrays.  
-- `infoevery::Union{Int, Nothing} = nothing`: if specified, logs info about the current state of simulation every `infoevery` time steps.
-- `logger::Union{Nothing, AbstractLogger} = nothing`: if specified, uses the given `logger` object to print logs, otherwise it uses the logger returned from `current_logger()`.
+- `runparams::RunParameters`: a struct containing parameters related to forward calculations. See [`RunParameters`](@ref) for details. In case of a forward simulation, `gradparams` is set to `nothing`.
 
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 """
@@ -33,17 +25,14 @@ function swforward!(
     params::InputParameters{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
-    parall::Symbol=:threads,
-    snapevery::Union{Int, Nothing}=nothing,
-    infoevery::Union{Int, Nothing}=nothing,
-    logger::Union{Nothing, AbstractLogger}=nothing
+    runparams::RunParameters
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
-    if logger === nothing
-        logger = current_logger()
-    end
-    return with_logger(logger) do
+   
+    return with_logger(runparams.logger) do
         # Build wavesim
-        wavesim = build_wavesim(params, matprop; parall=parall, snapevery=snapevery, infoevery=infoevery, gradient=false)
+        wavesim = build_wavesim(params, matprop;
+                                runparams=runparams,
+                                gradient=false)
         # Solve simulation
         run_swforward!(wavesim, matprop, shots)
     end
@@ -63,64 +52,59 @@ Return a vector of `Dict` containing for each shot the snapshots of the fields c
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation type.
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
 
-# Keyword arguments
-- `logger::Union{Nothing, AbstractLogger} = nothing`: if specified, uses the given `logger` object to print logs, otherwise it uses the logger returned from `current_logger()`.
-
 See also [`InputParameters`](@ref), [`MaterialProperties`](@ref) and [`Shot`](@ref).
 """
 function swforward!(
-    wavesim::Union{WaveSimulation{T,N}, Vector{<:WaveSimulation{T,N}}},
+    wavesim::Union{WaveSimulation{T, N}, Vector{<:WaveSimulation{T, N}}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
-    logger::Union{Nothing, AbstractLogger}=nothing,
-    kwargs...
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
-    if logger === nothing
-        logger = current_logger()
-    end
-    return with_logger(logger) do
-        run_swforward!(wavesim, matprop, shots; kwargs...)
+
+    return with_logger(wavesim.runparams.logger) do
+        run_swforward!(wavesim, matprop, shots)   
     end
 end
 
 #######################################################
 
 ## single WaveSimulation object
-@views function run_swforward!(
-    model::WaveSimulation{T, N},
+function run_swforward!(
+    wavesim::WaveSimulation{T, N},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}}, Nothing} where {T, N}
 
+    @info ">=====  Forward simulation  ======<"
+
     # Check wavesim consistency
     @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-    check_sim_consistency(model, matprop, shots)
+    check_sim_consistency(wavesim, matprop, shots)
 
     # Set wavesim material properties
     # Remark: matprop in wavesim are mutated
     @debug "Setting wavesim material properties"
-    set_wavesim_matprop!(model, matprop)
+    set_wavesim_matprop!(wavesim, matprop)
     # Now onwards matprop from "outside" should not be used anymore!!!
 
     # Snapshots setup
-    takesnapshots = snapenabled(model)
+    takesnapshots = snapenabled(wavesim)
     if takesnapshots
         snapshots_per_shot = []
     end
 
     # Shots loop
     for (s, singleshot) in enumerate(shots)
-        @info "Shot #$s"
+        @info "-- Shot #$s --"
         # Initialize shot
         @debug "Initializing shot"
-        init_shot!(model, singleshot)
+        init_shot!(wavesim, singleshot)
         # Compute forward solver
-        @info "Computing forward solver"
-        swforward_1shot!(model, singleshot)
+        @debug "Forward solver"
+        swforward_1shot!(wavesim, singleshot)
         # Save shot's snapshots
         if takesnapshots
             @info "Saving snapshots"
-            push!(snapshots_per_shot, deepcopy(model.snapshotter.snapshots))
+            push!(snapshots_per_shot, deepcopy(wavesim.snapshotter.snapshots))
         end
     end
 
@@ -131,29 +115,31 @@ end
 end
 
 ## :threadpersrc, multiple WaveSimulation objects
-@views function run_swforward!(
-    model::Vector{<:WaveSimulation{T, N}},
+function run_swforward!(
+    wavesim::Vector{<:WaveSimulation{T, N}},
     matprop::MaterialProperties{T, N},
     shots::Vector{<:Shot{T}};
 )::Union{Vector{Dict{Int, Dict{String, <:AbstractField{T}}}, Nothing}} where {T, N}
-    nwsim = length(model)
+    nwsim = length(wavesim)
     nthr = Threads.nthreads()
     # make sure the number of threads has not changed!
     @assert nthr == nwsim
+
+    @info ">=====  Forward simulation  ======<"
 
     snapshots_per_shot = Dict{Int, Vector}()
     for w in 1:nwsim
         # Check wavesim consistency
         @debug "Checking consistency across simulation type, material parameters and source-receiver types"
-        check_sim_consistency(model[w], matprop, shots)
+        check_sim_consistency(wavesim[w], matprop, shots)
         # Set wavesim material properties
         # Remark: matprop in wavesim are mutated
         @debug "Setting wavesim material properties"
-        set_wavesim_matprop!(model[w], matprop)
+        set_wavesim_matprop!(wavesim[w], matprop)
         # Now onwards matprop from outside should not be used anymore!!!
 
         # Snapshots setup
-        if snapenabled(model[w])
+        if snapenabled(wavesim[w])
             snapshots_per_shot[w] = []
         end
     end
@@ -165,18 +151,18 @@ end
     Threads.@threads for w in 1:nwsim
         # loop on the subset of shots per each WaveSimulation 
         for s in grpshots[w]
-            @info "Shot #$s"
+            @info "-- Shot #$s --"
             singleshot = shots[s]
             # Initialize shot
             @debug "Initializing shot"
-            init_shot!(model[w], singleshot)
+            init_shot!(wavesim[w], singleshot)
             # Compute forward solver
-            @info "Computing forward solver"
-            swforward_1shot!(model[w], singleshot)
+            @debug "Forward solver"
+            swforward_1shot!(wavesim[w], singleshot)
             # Save shot's snapshots
-            if snapenabled(model[w])
+            if snapenabled(wavesim[w])
                 @info "Saving snapshots"
-                push!(snapshots_per_shot[w], deepcopy(model.snapshotter.snapshots))
+                push!(snapshots_per_shot[w], deepcopy(wavesim.snapshotter.snapshots))
             end
         end
     end

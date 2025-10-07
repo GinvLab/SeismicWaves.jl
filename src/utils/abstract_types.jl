@@ -11,7 +11,6 @@ Currently implemented concrete parameters are [`InputParametersAcoustic`](@ref) 
 """
 abstract type InputParameters{T, N} end
 
-
 @doc """
 
 $(TYPEDEF)
@@ -78,9 +77,16 @@ abstract type Receivers{T} end
 
 abstract type MomentTensor{T, N} end
 
-abstract type InterpolationMethod end
+abstract type AbstractInterpolationMethod end
 
-abstract type AbstractMisfit end
+@doc """
+
+$(TYPEDEF)
+
+An abstract type to represent misfit functions and related parameters.
+
+"""
+abstract type AbstractMisfit{T} end
 
 abstract type AbstractRegularization end
 

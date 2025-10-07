@@ -1,8 +1,3 @@
-using Test
-using DSP, NumericalIntegration, LinearAlgebra
-using CUDA: CUDA
-using Logging
-using SeismicWaves
 
 with_logger(ConsoleLogger(stderr, Logging.Warn)) do
     test_backends = [:serial, :threads]
@@ -11,8 +6,10 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
         push!(test_backends, :CUDA)
     end
     if @isdefined(AMDGPU) && AMDGPU.functional()
-            push!(test_backends, :AMDGPU)
+        push!(test_backends, :AMDGPU)
     end
+
+    @testset "Test snapshotting (acoustic CD)" begin
 
     for parall in test_backends
         @testset "Test 1D $(parall) single-shot snapshotting" begin
@@ -27,7 +24,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 2000
             dx = 2.5
             lx = (nx - 1) * dx
-            dt = dx / c0max
+            dt = 0.99 * dx / c0max
             halo = 20
             rcoef = 0.0001
             f0 = 5.0
@@ -35,7 +32,8 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             # wave simulation
             params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params, matprop; parall=parall, snapevery=snapevery)
+            runparams = RunParameters(parall=parall,snapevery=snapevery)
+            wavesim = build_wavesim(params, matprop; runparams=runparams)
 
             # single source at 100 grid points from CPML boundary
             times = collect(range(0.0; step=dt, length=nt))
@@ -77,7 +75,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             nt = 2000
             dx = 2.5
             lx = (nx - 1) * dx
-            dt = dx / c0max
+            dt = 0.99 * dx / c0max
             halo = 20
             rcoef = 0.0001
             f0 = 5.0
@@ -85,7 +83,8 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             # wave simulation
             params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
                 CPMLBoundaryConditionParameters(halo, rcoef, false))
-            wavesim = build_wavesim(params, matprop; parall=parall, snapevery=snapevery)
+            runparams = RunParameters(parall=parall,snapevery=snapevery)
+            wavesim = build_wavesim(params, matprop; runparams=runparams)
 
             # single source at 100 grid points from CPML boundary
             times = collect(range(0.0; step=dt, length=nt))
@@ -127,5 +126,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test sort(keys(snaps[1])) == sort(keys(snaps[2]))
             @test all(it -> !(snaps[1][it]["pcur"].value ≈ snaps[2][it]["pcur"].value), [it for it in keys(snaps[2])])
         end
+    end
+
     end
 end

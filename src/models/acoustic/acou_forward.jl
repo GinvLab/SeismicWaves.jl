@@ -3,7 +3,7 @@
 swforward_1shot!(model::AcousticWaveSimulation, args...) = swforward_1shot!(BoundaryConditionTrait(model), model, args...)
 
 # Scaling for AcousticCDWaveSimulation
-@views function possrcrec_scaletf(model::AcousticWaveSimulation{T}, shot::ScalarShot{T}) where {T}
+function possrcrec_scaletf(model::AcousticWaveSimulation{T}, shot::ScalarShot{T}) where {T}
     # find nearest grid points indexes for both sources and receivers
     possrcs = find_nearest_grid_points(model, shot.srcs.positions)
     posrecs = find_nearest_grid_points(model, shot.recs.positions)
@@ -19,7 +19,7 @@ swforward_1shot!(model::AcousticWaveSimulation, args...) = swforward_1shot!(Boun
     return possrcs, posrecs, scal_srctf
 end
 
-@views function swforward_1shot!(
+function swforward_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDCPMLWaveSimulation{T, N},
     shot::ScalarShot{T}
@@ -30,7 +30,7 @@ end
 
     # Get computational grid and backend
     grid = model.grid
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -42,15 +42,15 @@ end
     # Reset wavesim
     reset!(model)
 
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
+        backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Iteration: %d, simulation time: %g [s]", it, model.dt * (it - 1))
-        end
-
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:forw)
         # Save snapshot
         if snapenabled(model)
             savesnapshot!(model.snapshotter, "pcur" => grid.fields["pcur"], it)
@@ -64,7 +64,7 @@ end
 #####################################################
 
 # Scaling for AcousticVDStaggeredCPMLWaveSimulation
-@views function possrcrec_scaletf(model::AcousticVDStaggeredCPMLWaveSimulation{T}, shot::ScalarShot{T}) where {T}
+function possrcrec_scaletf(model::AcousticVDStaggeredCPMLWaveSimulation{T}, shot::ScalarShot{T}) where {T}
     # find nearest grid points indexes for both sources and receivers
     possrcs = find_nearest_grid_points(model, shot.srcs.positions)
     posrecs = find_nearest_grid_points(model, shot.recs.positions)
@@ -80,7 +80,7 @@ end
     return possrcs, posrecs, scal_srctf
 end
 
-@views function swforward_1shot!(
+function swforward_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticVDStaggeredCPMLWaveSimulation{T, N},
     shot::ScalarShot{T}
@@ -91,7 +91,7 @@ end
 
     # Get computational grid and backend
     grid = model.grid
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -102,15 +102,16 @@ end
     traces_bk = backend.Data.Array(shot.recs.seismograms)
     # Reset wavesim
     reset!(model)
+    
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
 
     # Time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
+        backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Iteration: %d, simulation time: %g [s]", it, model.dt * (it - 1))
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:forw)
 
         # Save snapshot
         if snapenabled(model)

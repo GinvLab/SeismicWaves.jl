@@ -1,11 +1,11 @@
 swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     swgradient_1shot!(BoundaryConditionTrait(model), model, args...; kwargs...)
 
-@views function swgradient_1shot!(
+function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticCDWaveSimulation{T, N},
     shot::ScalarShot{T},
-    misfit
+    misfit::AbstractMisfit{T}
 )::Dict{String, Array{T, N}} where {T, N}
 
     # scale source time function, etc.
@@ -14,7 +14,7 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     # Get computational grid, checkpointer and backend
     grid = model.grid
     checkpointer = model.checkpointer
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -26,38 +26,37 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     # Reset wavesim
     reset!(model)
 
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
+        backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjforw)
         # Save checkpoint
         savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], it)
         savecheckpoint!(checkpointer, "ψ" => grid.fields["ψ"], it)
         savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], it)
     end
 
-    @info "Saving seismograms"
+    @debug "Saving seismograms"
     copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    residuals_bk = backend.Data.Array(dχ_du(misfit, shot.recs))
+    adjointsource_bk = backend.Data.Array(.-∂χ_∂u(misfit, shot.recs))
 
     # Prescale residuals (fact = vel^2 * dt^2)
-    backend.prescale_residuals!(residuals_bk, posrecs_bk, grid.fields["fact"].value)
+    backend.prescale_residuals!(adjointsource_bk, posrecs_bk, grid.fields["fact"].value)
 
     @debug "Computing gradients"
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        backend.adjoint_onestep_CPML!(grid, posrecs_bk, residuals_bk, it)
+        backend.adjoint_onestep_CPML!(model, posrecs_bk, adjointsource_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Backward iteration: %d", it)
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjback)
         # Check if out of save buffer
         if !issaved(checkpointer, "pcur", it - 2)
             @debug @sprintf("Out of save buffer at iteration: %d", it)
@@ -69,7 +68,7 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
             recover!(
                 checkpointer,
                 recit -> begin
-                    backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
+                    backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
                     return ["pcur" => grid.fields["pcur"]]
                 end
             )
@@ -84,21 +83,22 @@ swgradient_1shot!(model::AcousticWaveSimulation, args...; kwargs...) =
     # get gradient
     gradient = Array(grid.fields["grad_vp"].value)
     # smooth gradient
-    backend.smooth_gradient!(gradient, possrcs, model.smooth_radius)
+    #   sources
+    mutearoundmultiplepoints!(gradient,shot.srcs.positions,grid,
+                              model.gradparams.mute_radius_src)
+    #  receivers
+    mutearoundmultiplepoints!(gradient,shot.recs.positions,grid,
+                              model.gradparams.mute_radius_rec)
     # rescale gradient
     gradient .= (convert(T, 2.0) ./ (model.matprop.vp .^ 3)) .* gradient
-    # add regularization if needed
-    if misfit.regularization !== nothing
-        gradient .+= dχ_dm(misfit.regularization, model.matprop)
-    end
     return Dict("vp" => gradient)
 end
 
-@views function swgradient_1shot!(
+function swgradient_1shot!(
     ::CPMLBoundaryCondition,
     model::AcousticVDStaggeredCPMLWaveSimulation{T, N},
     shot::ScalarShot{T},
-    misfit
+    misfit::AbstractMisfit{T}
 )::Dict{String, Array{T, N}} where {T, N}
 
     # scale source time function, etc.
@@ -107,7 +107,7 @@ end
     # Get computational grid, checkpointer and backend
     grid = model.grid
     checkpointer = model.checkpointer
-    backend = select_backend(typeof(model), model.parall)
+    backend = select_backend(typeof(model), model.runparams.parall)
 
     # Numerics
     nt = model.nt
@@ -119,14 +119,15 @@ end
     # Reset wavesim
     reset!(model)
 
+    # Setup the print output 
+    ter = REPL.Terminals.TTYTerminal("", stdin, stdout, stderr)
+
     # Forward time loop
     for it in 1:nt
         # Compute one forward step
-        backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
+        backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, posrecs_bk, traces_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Forward iteration: %d, simulation time: %g [s]", it, model.dt * it)
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjforw)
         # Save checkpoint
         savecheckpoint!(checkpointer, "pcur" => grid.fields["pcur"], it)
         savecheckpoint!(checkpointer, "vcur" => grid.fields["vcur"], it)
@@ -134,24 +135,22 @@ end
         savecheckpoint!(checkpointer, "ξ" => grid.fields["ξ"], it)
     end
 
-    @info "Saving seismograms"
+    @debug "Saving seismograms"
     copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    residuals_bk = backend.Data.Array(dχ_du(misfit, shot.recs))
+    adjointsource_bk = backend.Data.Array(.-∂χ_∂u(misfit, shot.recs))
 
     # Prescale residuals (fact = vel^2 * rho * dt)
-    backend.prescale_residuals!(residuals_bk, posrecs_bk, grid.fields["fact_m0"].value)
+    backend.prescale_residuals!(adjointsource_bk, posrecs_bk, grid.fields["fact_m0"].value)
 
     @debug "Computing gradients"
     # Adjoint time loop (backward in time)
     for it in nt:-1:1
         # Compute one adjoint step
-        backend.adjoint_onestep_CPML!(grid, posrecs_bk, residuals_bk, it)
+        backend.adjoint_onestep_CPML!(model, posrecs_bk, adjointsource_bk, it)
         # Print timestep info
-        if it % model.infoevery == 0
-            @info @sprintf("Backward iteration: %d", it)
-        end
+        printinfoiter(ter,it,nt,model.runparams.infoevery,model.dt,:adjback)
         # Check if out of save buffer
         if !issaved(checkpointer, "pcur", it - 1)
             @debug @sprintf("Out of save buffer at iteration: %d", it)
@@ -163,7 +162,7 @@ end
             recover!(
                 checkpointer,
                 recit -> begin
-                    backend.forward_onestep_CPML!(grid, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
+                    backend.forward_onestep_CPML!(model, possrcs_bk, srctf_bk, nothing, nothing, recit; save_trace=false)
                     return ["pcur" => grid.fields["pcur"]]
                 end
             )
@@ -181,18 +180,24 @@ end
     # Get gradients
     copyto!(gradient_m0, grid.fields["grad_m0"].value)
     for i in eachindex(grid.fields["grad_m1_stag"].value)
-        # Accumulate and interpolate staggered gradients
-        gradient_m1[CartesianIndices(Tuple(j == i ? (2:grid.size[j]-1) : (1:grid.size[j]) for j in 1:N))] .+=
-            interp(model.matprop.interp_method, Array(grid.fields["grad_m1_stag"].value[i]), i)
+        # Accumulate and back interpolate staggered gradients
+        gradient_m1 .+= back_interp(model.matprop.interp_method, 1 ./ model.matprop.rho, Array(grid.fields["grad_m1_stag"].value[i]), i)
     end
     # Smooth gradients
-    backend.smooth_gradient!(gradient_m0, possrcs, model.smooth_radius)
-    backend.smooth_gradient!(gradient_m1, possrcs, model.smooth_radius)
-    # compute regularization if needed
-    dχ_dvp, dχ_drho = (misfit.regularization !== nothing) ? dχ_dm(misfit.regularization, model.matprop) : (0, 0)
+    #   sources
+    mutearoundmultiplepoints!(gradient_m0,shot.srcs.positions,grid,
+                              model.gradparams.mute_radius_src)
+    mutearoundmultiplepoints!(gradient_m1,shot.srcs.positions,grid,
+                              model.gradparams.mute_radius_src)
+    #  receivers
+    mutearoundmultiplepoints!(gradient_m0,shot.recs.positions,grid,
+                              model.gradparams.mute_radius_rec)
+    mutearoundmultiplepoints!(gradient_m1,shot.recs.positions,grid,
+                              model.gradparams.mute_radius_rec)
+
     # Rescale gradients with respect to material properties (chain rule)
     return Dict(
-        "vp" => .-convert(T, 2.0) .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho) .+ dχ_dvp,                                     # grad wrt vp
-        "rho" => .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho .+ dχ_drho   # grad wrt rho
+        "vp" => .-convert(T, 2.0) .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho), 
+        "rho" => .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho # grad wrt rho
     )
 end

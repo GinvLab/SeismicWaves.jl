@@ -21,7 +21,7 @@ function gaussian_vel_3D(nx, ny, nz, c0, c0max, r, origin=[(nx + 1) / 2, (ny + 1
     return c0 .+ [f(x, y, z) for x in 1:nx, y in 1:ny, z in 1:nz]
 end
 
-function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
+function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef; ccts=false)
     # constant velocity setup
     lx = (nx - 1) * dx
     vel = VpAcousticCDMaterialProperties(c0 .* ones(nx))
@@ -39,9 +39,14 @@ function setup_constant_vel_1D_CPML(nt, dt, nx, dx, c0, f0, halo, rcoef)
     posrecs = zeros(1, 1)
     posrecs[1, :] = [lx / 3]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt)
+    if ccts
+        misfit = [CCTSMisfit(dt; std=1.0, observed=copy(srctf))] 
+    else
+        misfit = [L2Misfit(observed=copy(srctf),invcov=invcov=1.0 * I(nt))] 
+    end
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
-    return params, shots, vel
+    return params, shots, misfit, vel
 end
 
 function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, rcoef)
@@ -62,9 +67,10 @@ function setup_constant_vel_rho_1D_CPML(nt, dt, nx, dx, c0, ρ0, t0, f0, halo, r
     posrecs = zeros(1, 1)
     posrecs[1, :] = [lx / 3]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt)
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
-    return params, shots, matprop, refsrctf
+    misfit = [L2Misfit(observed=copy(srctf),invcov=invcov=1.0 * I(nt))] 
+    return params, shots, misfit, matprop, refsrctf
 end
 
 function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
@@ -86,9 +92,10 @@ function setup_constant_vel_2D_CPML(nt, dt, nx, ny, dx, dy, c0, f0, halo, rcoef)
     posrecs = zeros(1, 2)
     posrecs[1, :] = [lx / 3, ly / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt)
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
-    return params, shots, vel
+    misfit = [L2Misfit(observed=copy(srctf),invcov=invcov=1.0 * I(nt))]
+    return params, shots, misfit, vel
 end
 
 function setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0, halo, rcoef)
@@ -109,9 +116,40 @@ function setup_constant_vel_rho_2D_CPML(nt, dt, nx, ny, dx, dy, c0, ρ0, t0, f0,
     posrecs = zeros(1, 2)
     posrecs[1, :] = [lx / 3, ly / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt)
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
-    return params, shots, matprop
+    misfit = [L2Misfit(observed=copy(srctf),invcov=invcov=1.0 * I(nt))]
+    return params, shots, misfit, matprop
+end
+
+function setup_constant_elastic_2D_CPML(nt, dt, nx, ny, dx, dy, ρ0, λ0, μ0, halo, rcoef, f0)
+    # constant velocity setup
+    lx = (nx - 1) * dx
+    ly = (ny - 1) * dy
+    matprop = ElasticIsoMaterialProperties(; ρ=ρ0 .* ones(nx, ny), λ=λ0 .* ones(nx, ny), μ=μ0 .* ones(nx, ny))
+    # input parameters
+    params = InputParametersElastic(nt, dt, (nx, ny), (dx, dy),
+        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
+    # sources
+    t0 = 2 / f0
+    times = collect(range(0.0; step=dt, length=nt))
+    possrcs = zeros(1, 2)
+    possrcs[1, :] = [lx / 2, ly / 2]
+    srctf = zeros(nt, 2, 1)
+    srctf[:, 1, 1] .= rickerstf.(times, t0, f0)
+    srctf[:, 2, 1] .= rickerstf.(times, t0, f0)
+    # receivers
+    posrecs = zeros(1, 2)
+    posrecs[1, :] = [lx / 3, ly / 2]
+
+    srcs = ExternalForceSources(possrcs, srctf, f0)
+    observed = zeros(nt, 2, 1)
+    observed[:, 1, 1] .= srctf[:, 1]
+    observed[:, 2, 1] .= srctf[:, 1]
+    recs = VectorReceivers(posrecs, nt, 2)
+    shots = [ExternalForceShot(; srcs=srcs, recs=recs)]
+    misfit = [L2Misfit(observed=observed, invcov=1.0 * I(nt))]
+    return params, shots, misfit, matprop
 end
 
 function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo, rcoef)
@@ -134,9 +172,10 @@ function setup_constant_vel_3D_CPML(nt, dt, nx, ny, nz, dx, dy, dz, c0, f0, halo
     posrecs = zeros(1, 3)
     posrecs[1, :] = [lx / 3, ly / 2, lz / 2]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(nt)))
+    recs = ScalarReceivers(posrecs, nt)
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
-    return params, shots, vel
+    misfit = [L2Misfit(observed=copy(srctf), invcov=1.0 * I(nt))]
+    return params, shots, misfit, vel
 end
 
 function analytical_solution_constant_vel_1D(c0, dt, nt, srcs, recs)
@@ -245,20 +284,21 @@ function setup_constant_vel_1D_CPML_Float32(nt, dt, nx, dx, c0, f0, halo, rcoef)
     lx = (nx - 1) * dx
     vel = VpAcousticCDMaterialProperties(c0 .* ones(Float32, nx))
     # input parameters
-    params = InputParametersAcoustic(nt, dt, (nx,), (dx,),
-        CPMLBoundaryConditionParameters(; halo=halo, rcoef=rcoef, freeboundtop=false))
+    params = InputParametersAcoustic(nt, Float32(dt), (nx,), (Float32(dx),),
+                CPMLBoundaryConditionParameters(; halo=halo, rcoef=Float32(rcoef), freeboundtop=false))
     # sources
-    t0 = 2f0 / f0
+    t0 = 2.0f0 / f0
     times = convert.(Float32, collect(range(0.0; step=dt, length=nt)))
     possrcs = zeros(Float32, 1, 1)
     srctf = zeros(Float32, nt, 1)
     srctf[:, 1] .= rickerstf.(times, t0, f0)
-    possrcs[1, :] = [lx / 2f0]
+    possrcs[1, :] = [lx / 2.0f0]
     # receivers
     posrecs = zeros(Float32, 1, 1)
-    posrecs[1, :] = [lx / 3f0]
+    posrecs[1, :] = [lx / 3.0f0]
     srcs = ScalarSources(possrcs, srctf, f0)
-    recs = ScalarReceivers(posrecs, nt; observed=copy(srctf), invcov=Diagonal(ones(Float32, nt)))
+    recs = ScalarReceivers(posrecs, nt)
     shots = [ScalarShot(; srcs=srcs, recs=recs)]
-    return params, shots, vel
+    misfit = [L2Misfit(observed=copy(srctf), invcov=Diagonal(ones(Float32, nt)))]
+    return params, shots, misfit, vel
 end
