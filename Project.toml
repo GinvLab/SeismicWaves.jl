@@ -1,7 +1,7 @@
 name = "SeismicWaves"
 uuid = "f2cc81fa-a164-11e9-3f65-e3f851c759e3"
 authors = ["Andrea Zunino", "Giacomo Aloisi"]
-version = "0.8.0"
+version = "0.8.1"
 
 [deps]
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
