@@ -8,7 +8,7 @@ Fornberg (1998)
 Calculation of Weights in Finite Difference Formulas
 SIAM Rev. 40.3, pp. 685-691.
 """
-function fornberg(x::SVector{O, T}, m::Int)::MVector{O, T} where {T, O}
+Base.@propagate_inbounds function fornberg(x::SVector{O, T}, m::Int)::MVector{O, T} where {T, O}
     z = zero(T)
     n = length(x) - 1
     c = @MMatrix zeros(T, O, m+1)
@@ -40,7 +40,7 @@ function fornberg(x::SVector{O, T}, m::Int)::MVector{O, T} where {T, O}
     c[:,end]
 end
 
-function fdcoeffs_and_shifts(
+Base.@propagate_inbounds function fdcoeffs_and_shifts(
     m::Int, vO::Val{O}, ::Val{T}
 )::Tuple{NTuple{O, T}, NTuple{O, Int}} where {T, O}
     xs = SVector{O, T}(ntuple(i -> i - (O / 2 + 0.5), vO))
@@ -66,7 +66,7 @@ end
 #     return new_coeffs, shifted_indices
 # end
 
-function get_coeffs_shifted_indices(
+Base.@propagate_inbounds function get_coeffs_shifted_indices(
     c::NTuple{O, T}, s::NTuple{O, Int},
     i::Int, lb::Int, ub::Int, mlb::Bool, mub::Bool, half::Bool
     )::Tuple{NTuple{O, T}, NTuple{O, Int}} where {T, O}
@@ -193,22 +193,22 @@ Base.@propagate_inbounds function ∂ᵐ(
 end
 
 # Scalar derivatives
-∂4th(x, I, _Δ, dir; kwargs...) = ∂ᵐ(x, I, _Δ, Val(1), Val(4), Val(true); dir=dir, kwargs...)
-∂x4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 1; kwargs...)
-∂y4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 2; kwargs...)
-∂z4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 3; kwargs...)
-∂²4th(x, I, _Δ, dir; kwargs...) = ∂ᵐ(x, I, _Δ, Val(2), Val(4), Val(true); dir=dir, kwargs...)
-∂²x4th(x, I, _Δ; kwargs...) = ∂²4th(x, I, _Δ, 1, kwargs...)
-∂²y4th(x, I, _Δ; kwargs...) = ∂²4th(x, I, _Δ, 2, kwargs...)
-∂²z4th(x, I, _Δ; kwargs...) = ∂²4th(x, I, _Δ, 3, kwargs...)
+Base.@propagate_inbounds ∂4th(x, I, _Δ, dir; kwargs...) = ∂ᵐ(x, I, _Δ, Val(1), Val(4), Val(true); dir=dir, kwargs...)
+Base.@propagate_inbounds ∂x4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 1; kwargs...)
+Base.@propagate_inbounds ∂y4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 2; kwargs...)
+Base.@propagate_inbounds ∂z4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 3; kwargs...)
+Base.@propagate_inbounds ∂²4th(x, I, _Δ, dir; kwargs...) = ∂ᵐ(x, I, _Δ, Val(2), Val(4), Val(true); dir=dir, kwargs...)
+Base.@propagate_inbounds ∂²x4th(x, I, _Δ; kwargs...) = ∂²4th(x, I, _Δ, 1, kwargs...)
+Base.@propagate_inbounds ∂²y4th(x, I, _Δ; kwargs...) = ∂²4th(x, I, _Δ, 2, kwargs...)
+Base.@propagate_inbounds ∂²z4th(x, I, _Δ; kwargs...) = ∂²4th(x, I, _Δ, 3, kwargs...)
 
 # Vector derivatives
-∇4th(x, I, _Δs; kwargs...)   = Tuple(∂4th(x, I, _Δs[i], i; kwargs...) for i in eachindex(_Δs))
-div4th(x, I, _Δs; kwargs...) = sum(∂4th(x, I, _Δs[i], i; kwargs...) for i in eachindex(_Δs))
-∇²4th(x, I, _Δs; kwargs...)  = sum(∂²4th(x, I, _Δs[i], i; kwargs...) for i in eachindex(_Δs))
+Base.@propagate_inbounds ∇4th(x, I, _Δs; kwargs...)   = Tuple(∂4th(x, I, _Δs[i], i; kwargs...) for i in eachindex(_Δs))
+Base.@propagate_inbounds div4th(x, I, _Δs; kwargs...) = sum(∂4th(x, I, _Δs[i], i; kwargs...) for i in eachindex(_Δs))
+Base.@propagate_inbounds ∇²4th(x, I, _Δs; kwargs...)  = sum(∂²4th(x, I, _Δs[i], i; kwargs...) for i in eachindex(_Δs))
 
 # Scalar derivatives with CPML damping
-function ∂̃4th(x, a, b, ψ, I, _Δ, dir, halo; half=false, kwargs...)
+Base.@propagate_inbounds function ∂̃4th(x, a, b, ψ, I, _Δ, dir, halo; half=false, kwargs...)
     ndim = size(x, dir)
     plusone = half ? 1 : 0
     idim = I[dir] + plusone
@@ -218,7 +218,7 @@ function ∂̃4th(x, a, b, ψ, I, _Δ, dir, halo; half=false, kwargs...)
     ∂x = ∂4th(x, I, _Δ, dir; half=half, kwargs...)
     # Apply CPML damping
     if idim <= (halo + plusone)
-        ψ[Iψ...]  = b[idim] * ψ[Iψ...] + a[idim] * ∂x
+        ψ[Iψ...] = b[idim] * ψ[Iψ...] + a[idim] * ∂x
         ∂x + ψ[Iψ...]
     elseif idim >= ndim - halo
         ψ[IIψ...] = b[iidim] * ψ[IIψ...] + a[iidim] * ∂x
@@ -226,14 +226,15 @@ function ∂̃4th(x, a, b, ψ, I, _Δ, dir, halo; half=false, kwargs...)
     else
         ∂x
     end
+    return ∂x
 end
 
-∂̃x4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 1, halo; half=half, kwargs...)
-∂̃y4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 2, halo; half=half, kwargs...)
-∂̃z4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 3, halo; half=half, kwargs...)
+Base.@propagate_inbounds ∂̃x4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 1, halo; half=half, kwargs...)
+Base.@propagate_inbounds ∂̃y4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 2, halo; half=half, kwargs...)
+Base.@propagate_inbounds ∂̃z4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 3, halo; half=half, kwargs...)
 
 
-function ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, dir, halo; half=false, kwargs...)
+Base.@propagate_inbounds function ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, dir, halo; half=false, kwargs...)
     ndim = size(x, dir)
     idim = I[dir]
     iidim = I[dir] - (ndim - halo) + 1 + halo
@@ -256,17 +257,17 @@ function ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, dir, halo; half=false, kwargs...)
     end
 end
 
-∂̃²x4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 1, halo; half=half, kwargs...)
-∂̃²y4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 2, halo; half=half, kwargs...)
-∂̃²z4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 3, halo; half=half, kwargs...)
+Base.@propagate_inbounds ∂̃²x4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 1, halo; half=half, kwargs...)
+Base.@propagate_inbounds ∂̃²y4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 2, halo; half=half, kwargs...)
+Base.@propagate_inbounds ∂̃²z4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 3, halo; half=half, kwargs...)
 
 # Vector derivatives with CPML damping
-function ∇̃4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
+Base.@propagate_inbounds function ∇̃4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
     ntuple(i -> ∂̃4th(x, a[i], b[i], ψs[i], I, _Δs[i], i, halo; half=half, kwargs...), Val(length(_Δs)))
 end
-function diṽ4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
+Base.@propagate_inbounds function diṽ4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
     sum(∂̃4th(x, a[i], b[i], ψs[i], I, _Δs[i], i, halo; half=half, kwargs...) for i in eachindex(_Δs))
 end
-function ∇̃²4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
+Base.@propagate_inbounds function ∇̃²4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
     sum(∂̃²4th(x, a[i], b[i], ψs[i], ξs[i], I, _Δs[i], i, halo; half=half, kwargs...) for i in eachindex(_Δs))
 end
