@@ -4,11 +4,44 @@
     freetop
 )
     # Compute partial derivatives
-    ∂σxx∂x = ∂̃x4th(σxx, a_x_half, b_x_half, ψ_∂σxx∂x, (i, j), _Δx, halo; half=false)
-    # if free surface, mirror the top boundary
-    ∂σxz∂z = ∂̃y4th(σxz, a_z, b_z, ψ_∂σxz∂z, (i, j-1), _Δz, halo; half=true, mlb=freetop)
-    # Update displacement
-    uxnew[i, j] = 2*uxcur[i, j] - uxold[i, j] + Δt^2 / ρ_ihalf[i,j] * (∂σxx∂x + ∂σxz∂z)
+    ∂σxx∂x = begin
+        if i == 1
+            (0           - 27 * σxx[i, j] + 27 * σxx[i+1, j] - σxx[i+2, j])/24 * _Δx
+        elseif 2 <= i <= size(σxx, 1)-2
+            (σxx[i-1, j] - 27 * σxx[i, j] + 27 * σxx[i+1, j] - σxx[i+2, j])/24 * _Δx
+        elseif i == size(σxx, 1)-1
+            (σxx[i-1, j] - 27 * σxx[i, j] + 27 * σxx[i+1, j] - 0          )/24 * _Δx
+        end
+    end
+
+    ∂σxz∂z = begin
+        if j == 1
+            if freetop
+                (-σxz[i, j+1] + 27 * σxz[i, j] + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
+            else
+                (0            - 0              + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
+            end
+        elseif j == 2
+            if freetop
+                (-σxz[i, j-1] - 27 * σxz[i, j-1] + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
+            else
+                (0            - 27 * σxz[i, j-1] + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
+            end
+        elseif 3 <= j <= size(σxz, 2)-1
+            (σxz[i, j-2] - 27 * σxz[i, j-1] + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
+        elseif j == size(σxz, 2)
+            (σxz[i, j-2] - 27 * σxz[i, j-1] + 27 * σxz[i, j] - 0          )/24 * _Δz
+        elseif j == size(σxz, 2)+1
+            (σxz[i, j-2] - 27 * σxz[i, j-1] + 0              - 0          )/24 * _Δz
+        end
+    end
+    
+    # Add CPML attenuation to partial derivatives
+    ∂σxx∂x_cpml = ∂̃x4th(σxx, ∂σxx∂x, a_x_half, b_x_half, ψ_∂σxx∂x, (i, j)  , _Δx, halo; half=false)
+    ∂σxz∂z_cpml = ∂̃y4th(σxz, ∂σxz∂z, a_z     , b_z     , ψ_∂σxz∂z, (i, j-1), _Δz, halo; half=true)
+
+    # Update displacement using 2nd-order time scheme
+    uxnew[i, j] = 2*uxcur[i, j] - uxold[i, j] + Δt^2 / ρ_ihalf[i,j] * (∂σxx∂x_cpml + ∂σxz∂z_cpml)
 
     return nothing
 end
@@ -19,11 +52,39 @@ end
     freetop
 )
     # Compute partial derivatives
-    ∂σxz∂x = ∂̃x4th(σxz, a_x, b_x, ψ_∂σxz∂x, (i-1, j), _Δx, halo; half=true)
-    # if free surface, mirror the top boundary
-    ∂σzz∂z = ∂̃y4th(σzz, a_z_half, b_z_half, ψ_∂σzz∂z, (i, j), _Δz, halo; half=false, mlb=freetop)
+    ∂σxz∂x = begin
+        if i == 1
+            (0           - 0                + 27 * σxz[i, j] - σxz[i+1, j])/24 * _Δx
+        elseif i == 2
+            (0           - 27 * σxz[i-1, j] + 27 * σxz[i, j] - σxz[i+1, j])/24 * _Δx
+        elseif 3 <= i <= size(σxz, 1)-1
+            (σxz[i-2, j] - 27 * σxz[i-1, j] + 27 * σxz[i, j] - σxz[i+1, j])/24 * _Δx
+        elseif i == size(σxz, 1)
+            (σxz[i-2, j] - 27 * σxz[i-1, j] + 27 * σxz[i, j] - 0          )/24 * _Δx
+        elseif i == size(σxz, 1)+1
+            (σxz[i-2, j] - 27 * σxz[i-1, j] + 0              - 0          )/24 * _Δx
+        end
+    end
+    ∂σzz∂z = begin
+        if j == 1
+            if freetop
+                (-σzz[i, j+1] - 27 * σzz[i, j] + 27 * σzz[i, j+1] - σzz[i, j+2])/24 * _Δz
+            else
+                (0            - 27 * σzz[i, j] + 27 * σzz[i, j+1] - σzz[i, j+2])/24 * _Δz
+            end
+        elseif 2 <= j <= size(σzz, 2)-2
+            (σzz[i, j-1] - 27 * σzz[i, j] + 27 * σzz[i, j+1] - σzz[i, j+2])/24 * _Δz
+        elseif j == size(σzz, 2)-1
+            (σzz[i, j-1] - 27 * σzz[i, j] + 27 * σzz[i, j+1] - 0          )/24 * _Δz
+        end
+    end
+
+    # Add CPML attenuation to partial derivatives
+    ∂σxz∂x_cpml = ∂̃x4th(σxz, ∂σxz∂x, a_x     , b_x     , ψ_∂σxz∂x, (i-1, j), _Δx, halo; half=true)
+    ∂σzz∂z_cpml = ∂̃y4th(σzz, ∂σzz∂z, a_z_half, b_z_half, ψ_∂σzz∂z, (i, j)  , _Δz, halo; half=false)
+
     # Update displacement
-    uznew[i, j] = 2*uzcur[i, j] - uzold[i, j] + Δt^2 / ρ_jhalf[i,j] * (∂σzz∂z + ∂σxz∂x)
+    uznew[i, j] = 2*uzcur[i, j] - uzold[i, j] + Δt^2 / ρ_jhalf[i,j] * (∂σxz∂x_cpml + ∂σzz∂z_cpml)
 
     return nothing
 end
@@ -34,11 +95,71 @@ end
     freetop
 )
     # Compute partial derivatives
-    ∂ux∂x = ∂̃x4th(ux, a_x, b_x, ψ_∂ux∂x, (i-1, j), _Δx, halo; half=true)
-    ∂uz∂z = ∂̃y4th(uz, a_z, b_z, ψ_∂uz∂z, (i, j-1), _Δz, halo; half=true, mlb=freetop)
+    ∂ux∂x = begin
+        if i == 1
+            (0          - 0               + 27 * ux[i, j] - ux[i+1, j])/24 * _Δx
+        elseif i == 2
+            (0          - 27 * ux[i-1, j] + 27 * ux[i, j] - ux[i+1, j])/24 * _Δx
+        elseif 3 <= i <= size(ux, 1)-1
+            (ux[i-2, j] - 27 * ux[i-1, j] + 27 * ux[i, j] - ux[i+1, j])/24 * _Δx
+        elseif i == size(ux, 1)
+            (ux[i-2, j] - 27 * ux[i-1, j] + 27 * ux[i, j] - 0         )/24 * _Δx
+        elseif i == size(ux, 1)+1
+            (ux[i-2, j] - 27 * ux[i-1, j] + 0             - 0         )/24 * _Δx
+        end
+    end
+    ∂uz∂z = begin
+        if j == 1
+            if freetop
+                # z == 0 (on the free surface)
+                # use σzz(z=0) = 0 to derive ∂uz/∂z at z=0
+                # σzz = λ * ∂ux/∂x + (λ + 2μ) * ∂uz/∂z = 0 (at z=0)  =>  ∂uz/∂z = -λ/(λ + 2μ) * ∂ux/∂x
+                (-λ[i,j] / (λ[i,j] + 2*μ[i,j])) * ∂ux∂x
+            else
+                (0 - 0 + 27 * uz[i, j] - uz[i, j+1])/24 * _Δz
+            end
+        elseif j == 2
+            if freetop
+                # z == Δz (first grid point below the free surface)
+                # compute vz(z=-Δz/2) using 2nd order FD for ∂uz/∂z at z=0
+                # ∂uz/∂z(z=0) = (uz(Δz/2) - uz(-Δz/2)) / Δz  => uz(-Δz/2) = uz(Δz/2) - Δz * ∂uz/∂z(z=0)
+                ∂ux∂x_z0 = begin
+                    if i == 1
+                        (0          - 0               + 27 * ux[i, j-1] - ux[i+1, j-1])/24 * _Δx
+                    elseif i == 2
+                        (0          - 27 * ux[i-1, j-1] + 27 * ux[i, j-1] - ux[i+1, j-1])/24 * _Δx
+                    elseif 3 <= i <= size(ux, 1)-1
+                        (ux[i-2, j-1] - 27 * ux[i-1, j-1] + 27 * ux[i, j-1] - ux[i+1, j-1])/24 * _Δx
+                    elseif i == size(ux, 1)
+                        (ux[i-2, j-1] - 27 * ux[i-1, j-1] + 27 * ux[i, j-1] - 0         )/24 * _Δx
+                    elseif i == size(ux, 1)+1
+                        (ux[i-2, j-1] - 27 * ux[i-1, j-1] + 0             - 0         )/24 * _Δx
+                    end
+                end
+                ∂uz∂z_z0 = (-λ[i,j-1] / (λ[i,j-1] + 2*μ[i,j-1])) * ∂ux∂x_z0 # ∂uz/∂z at z=0
+                uz_halfaboveme = uz[i, j-1] # uz(Δz/2)
+                uz_halfabovefreesurface = uz_halfaboveme - (1/_Δz) * ∂uz∂z_z0 # uz(-Δz/2)
+                # manual 4th order FD using uz(-Δz/2), uz(Δz/2), uz(3Δz/2), uz(5Δz/2)
+                ∂uz∂z = (uz_halfabovefreesurface - 27 * uz_halfaboveme + 27 * uz[i, j] - uz[i, j+1])/24 * _Δz
+            else
+                (0 - 27 * uz[i, j-1] + 27 * uz[i, j] - uz[i, j+1])/24 * _Δz
+            end
+        elseif 3 <= j <= size(uz, 2)-1
+            (uz[i, j-2] - 27 * uz[i, j-1] + 27 * uz[i, j] - uz[i, j+1])/24 * _Δz
+        elseif j == size(uz, 2)
+            (uz[i, j-2] - 27 * uz[i, j-1] + 27 * uz[i, j] - 0         )/24 * _Δz
+        elseif j == size(uz, 2)+1
+            (uz[i, j-2] - 27 * uz[i, j-1] + 0             - 0         )/24 * _Δz
+        end
+    end
+
+    # # Add CPML attenuation to partial derivatives
+    ∂ux∂x_cpml = ∂̃x4th(ux, ∂ux∂x, a_x, b_x, ψ_∂ux∂x, (i-1, j), _Δx, halo; half=true)
+    ∂uz∂z_cpml = ∂̃y4th(uz, ∂uz∂z, a_z, b_z, ψ_∂uz∂z, (i, j-1), _Δz, halo; half=true)
+
     # Update normal stress
-    σxx[i, j] = (λ[i,j] + 2*μ[i,j]) * ∂ux∂x + λ[i,j] * ∂uz∂z
-    σzz[i, j] = λ[i,j] * ∂ux∂x + (λ[i,j] + 2*μ[i,j]) * ∂uz∂z
+    σxx[i, j] = (λ[i,j] + 2*μ[i,j]) * ∂ux∂x_cpml + λ[i,j] * ∂uz∂z_cpml
+    σzz[i, j] = λ[i,j] * ∂ux∂x_cpml + (λ[i,j] + 2*μ[i,j]) * ∂uz∂z_cpml
 
     return nothing
 end
@@ -49,10 +170,37 @@ end
     freetop
 )
     # Compute partial derivatives
-    ∂ux∂z = ∂̃y4th(ux, a_z_half, b_z_half, ψ_∂ux∂z, (i, j), _Δz, halo; half=false, mlb=freetop)
-    ∂uz∂x = ∂̃x4th(uz, a_x_half, b_x_half, ψ_∂uz∂x, (i, j), _Δx, halo; half=false)
+    ∂uz∂x = begin
+        if i == 1
+            (0          - 27 * uz[i, j] + 27 * uz[i+1, j] - uz[i+2, j])/24 * _Δx
+        elseif 2 <= i <= size(uz, 1)-2
+            (uz[i-1, j] - 27 * uz[i, j] + 27 * uz[i+1, j] - uz[i+2, j])/24 * _Δx
+        elseif i == size(uz, 1)-1
+            (uz[i-1, j] - 27 * uz[i, j] + 27 * uz[i+1, j] - 0       )/24 * _Δx
+        end
+    end
+    ∂ux∂z = begin
+        if j == 1
+            if freetop
+                # z == Δz/2 (half grid point below the free surface)
+                # use 2nd order FD for ∂ux/∂z
+                (-ux[i, j] + ux[i, j+1]) * _Δz
+            else
+                (0            - 27 * ux[i, j] + 27 * ux[i, j+1] - ux[i, j+2])/24 * _Δz
+            end
+        elseif 2 <= j <= size(ux, 2)-2
+            (ux[i, j-1] - 27 * ux[i, j] + 27 * ux[i, j+1] - ux[i, j+2])/24 * _Δz
+        elseif j == size(ux, 2)-1
+            (ux[i, j-1] - 27 * ux[i, j] + 27 * ux[i, j+1] - 0         )/24 * _Δz
+        end
+    end
+
+    # Add CPML attenuation to partial derivatives
+    ∂uz∂x_cpml = ∂̃x4th(uz, ∂uz∂x, a_x_half, b_x_half, ψ_∂uz∂x, (i, j), _Δx, halo; half=false)
+    ∂ux∂z_cpml = ∂̃y4th(ux, ∂ux∂z, a_z_half, b_z_half, ψ_∂ux∂z, (i, j), _Δz, halo; half=false)
+
     # Update shear stress
-    σxz[i, j] = μ_ihalf_jhalf[i,j] * (∂ux∂z + ∂uz∂x)
+    σxz[i, j] = μ_ihalf_jhalf[i,j] * (∂uz∂x_cpml + ∂ux∂z_cpml)
 
     return nothing
 end

@@ -207,7 +207,7 @@ function spread_positions(
     # Position of the free surface
     if freesurfposition==:halfgridin
         position_freesurface = grid.spacing./2
-    elseif freesurfaceposition==:ongridbound
+    elseif freesurfposition==:ongridbound
         position_freesurface = zeros(T,N)
     else
         error("spread_positions(): Wrong keyword argument freesurfaceposition $freesurfaceposition")

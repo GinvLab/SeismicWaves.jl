@@ -66,66 +66,38 @@ end
 #     return new_coeffs, shifted_indices
 # end
 
-function get_coeffs_shifted_indices(
+Base.@propagate_inbounds function get_coeffs_shifted_indices(
     c::NTuple{O, T}, s::NTuple{O, Int},
     i::Int, lb::Int, ub::Int, mlb::Bool, mub::Bool, half::Bool
     )::Tuple{NTuple{O, T}, NTuple{O, Int}} where {T, O}
 
     new_coeffs = ntuple(j -> begin
-                            if lb <= i + s[j] <= ub
-                                c[j]
+                            if lb <= i + s[j] <= ub # inside bounds
+                                c[j] # keep original coefficient
+                            elseif (i + s[j] < lb && mlb) || (i + s[j] > ub && mub) # outside bounds, but mirror BCs
+                                -c[j] # apply sign change for mirror BCs
                             else
-                                if i + s[j] < lb
-	                            if !mlb
-                                        zero(T)
-                                    else
-                                        if !half
-                                            -c[j]
-                                        else
-                                            c[j]
-                                        end
-                                    end
-                                else
-                                    if !mub
-                                        zero(T)
-                                    else
-                                        if !half
-                                            -c[j]
-                                        else
-                                            c[j]
-                                        end
-                                    end
-                                end
+                                zero(T) # outside bounds, no mirror BCs, set coefficient to zero
                             end
                         end, Val(O))
 
     shifted_indices = ntuple(j -> begin
-                                 if lb <= i + s[j] <= ub
-                                     i + s[j]
-                                 else
-                                     if i + s[j] < lb
-                                         if !mlb
-                                             lb
-                                         else
-                                             if !half
-                                                 lb + (lb - (i + s[j]))
-                                             else
-                                                 lb + (lb - (i + s[j])) - 1
-                                             end
-                                         end
-                                     else
-                                         if !mub
-                                             ub
-                                         else
-                                             if !half
-                                                 ub - (i + s[j] - ub)
-                                             else
-                                                 ub - (i + s[j] - ub) + 1
-                                             end
-                                         end
-                                     end
-                                 end
-                             end, Val(O))
+                                if lb <= i + s[j] <= ub # inside bounds
+                                    i + s[j] # keep original index
+                                elseif i + s[j] < lb # below lower bound
+                                    if mlb # mirror BCs at lower bound
+                                        !half ? lb + (lb - (i + s[j])) : lb + (lb - (i + s[j])) - 1 # mirror index, if half grid, subtract 1 since we are mirroring around a grid point
+                                    else # no mirror BCs at lower bound
+                                        lb # clamp to lower bound, coefficient will be zero anyway
+                                    end
+                                elseif i + s[j] > ub # above upper bound
+                                    if mub # mirror BCs at upper bound
+                                        !half ? ub - ((i + s[j]) - ub) : ub - ((i + s[j]) - ub) + 1 # mirror index, if half grid, add 1 since we are mirroring around a grid point
+                                    else # no mirror BCs at upper bound
+                                        ub # clamp to upper bound, coefficient will be zero anyway
+                                    end
+                                end
+                            end, Val(O))
 
     return new_coeffs, shifted_indices
 end
@@ -193,29 +165,23 @@ Base.@propagate_inbounds function ∂ᵐ(
 end
 
 # Scalar derivatives
-∂4th(x, I, _Δ, dir; kwargs...) = ∂ᵐ(x, I, _Δ, Val(1), Val(4), Val(true); dir=dir, kwargs...)
-∂x4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 1; kwargs...)
-∂y4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 2; kwargs...)
-∂z4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 3; kwargs...)
+Base.@propagate_inbounds ∂4th(x, I, _Δ, dir; kwargs...) = ∂ᵐ(x, I, _Δ, Val(1), Val(4), Val(true); dir=dir, kwargs...)
+Base.@propagate_inbounds ∂x4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 1; kwargs...)
+Base.@propagate_inbounds ∂y4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 2; kwargs...)
+Base.@propagate_inbounds ∂z4th(x, I, _Δ; kwargs...) = ∂4th(x, I, _Δ, 3; kwargs...)
 ∂²4th(x, I, _Δ, dir; kwargs...) = ∂ᵐ(x, I, _Δ, Val(2), Val(4), Val(true); dir=dir, kwargs...)
 ∂²x4th(x, I, _Δ; kwargs...) = ∂²4th(x, I, _Δ, 1, kwargs...)
 ∂²y4th(x, I, _Δ; kwargs...) = ∂²4th(x, I, _Δ, 2, kwargs...)
 ∂²z4th(x, I, _Δ; kwargs...) = ∂²4th(x, I, _Δ, 3, kwargs...)
 
-# Vector derivatives
-∇4th(x, I, _Δs; kwargs...)   = Tuple(∂4th(x, I, _Δs[i], i; kwargs...) for i in eachindex(_Δs))
-div4th(x, I, _Δs; kwargs...) = sum(∂4th(x, I, _Δs[i], i; kwargs...) for i in eachindex(_Δs))
-∇²4th(x, I, _Δs; kwargs...)  = sum(∂²4th(x, I, _Δs[i], i; kwargs...) for i in eachindex(_Δs))
-
 # Scalar derivatives with CPML damping
-function ∂̃4th(x, a, b, ψ, I, _Δ, dir, halo; half=false, kwargs...)
+Base.@propagate_inbounds function ∂̃4th(x, ∂x, a, b, ψ, I, _Δ, dir, halo; half=false, kwargs...)
     ndim = size(x, dir)
     plusone = half ? 1 : 0
     idim = I[dir] + plusone
     iidim = I[dir] - (ndim - halo) + 1 + (halo + plusone)
     Iψ = ntuple(i -> i == dir ? idim : I[i], Val(length(I)))
     IIψ = ntuple(i -> i == dir ? iidim : I[i], Val(length(I)))
-    ∂x = ∂4th(x, I, _Δ, dir; half=half, kwargs...)
     # Apply CPML damping
     if idim <= (halo + plusone)
         ψ[Iψ...]  = b[idim] * ψ[Iψ...] + a[idim] * ∂x
@@ -228,12 +194,12 @@ function ∂̃4th(x, a, b, ψ, I, _Δ, dir, halo; half=false, kwargs...)
     end
 end
 
-∂̃x4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 1, halo; half=half, kwargs...)
-∂̃y4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 2, halo; half=half, kwargs...)
-∂̃z4th(x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, a, b, ψ, I, _Δ, 3, halo; half=half, kwargs...)
+Base.@propagate_inbounds ∂̃x4th(x, ∂x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, ∂x, a, b, ψ, I, _Δ, 1, halo; half=half, kwargs...)
+Base.@propagate_inbounds ∂̃y4th(x, ∂x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, ∂x, a, b, ψ, I, _Δ, 2, halo; half=half, kwargs...)
+Base.@propagate_inbounds ∂̃z4th(x, ∂x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, ∂x, a, b, ψ, I, _Δ, 3, halo; half=half, kwargs...)
 
 
-function ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, dir, halo; half=false, kwargs...)
+function ∂̃²4th(x, ∂²x, a, b, ψ, ξ, I, _Δ, dir, halo; half=false, kwargs...)
     ndim = size(x, dir)
     idim = I[dir]
     iidim = I[dir] - (ndim - halo) + 1 + halo
@@ -241,7 +207,6 @@ function ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, dir, halo; half=false, kwargs...)
     IIψ = ntuple(i -> i == dir ? iidim-1 : I[i], Val(length(I)))
     Iξ = ntuple(i -> i == dir ? idim : I[i], Val(length(I)))
     IIξ = ntuple(i -> i == dir ? iidim : I[i], Val(length(I)))
-    ∂²x = ∂²4th(x, I, _Δ, dir; half=half, kwargs...)
     # Apply CPML damping
     if idim <= halo
         ∂ψ = ∂4th(ψ, Iψ, _Δ, dir; half=half, kwargs...)
@@ -256,17 +221,6 @@ function ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, dir, halo; half=false, kwargs...)
     end
 end
 
-∂̃²x4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 1, halo; half=half, kwargs...)
-∂̃²y4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 2, halo; half=half, kwargs...)
-∂̃²z4th(x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, a, b, ψ, ξ, I, _Δ, 3, halo; half=half, kwargs...)
-
-# Vector derivatives with CPML damping
-function ∇̃4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
-    ntuple(i -> ∂̃4th(x, a[i], b[i], ψs[i], I, _Δs[i], i, halo; half=half, kwargs...), Val(length(_Δs)))
-end
-function diṽ4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
-    sum(∂̃4th(x, a[i], b[i], ψs[i], I, _Δs[i], i, halo; half=half, kwargs...) for i in eachindex(_Δs))
-end
-function ∇̃²4th(x, a, b, ψs, ξs, I, _Δs, halo; half=false, kwargs...)
-    sum(∂̃²4th(x, a[i], b[i], ψs[i], ξs[i], I, _Δs[i], i, halo; half=half, kwargs...) for i in eachindex(_Δs))
-end
+∂̃²x4th(x, ∂²x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, ∂²x, a, b, ψ, ξ, I, _Δ, 1, halo; half=half, kwargs...)
+∂̃²y4th(x, ∂²x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, ∂²x, a, b, ψ, ξ, I, _Δ, 2, halo; half=half, kwargs...)
+∂̃²z4th(x, ∂²x, a, b, ψ, ξ, I, _Δ, halo; half=false, kwargs...) = ∂̃²4th(x, ∂²x, a, b, ψ, ξ, I, _Δ, 3, halo; half=half, kwargs...)
