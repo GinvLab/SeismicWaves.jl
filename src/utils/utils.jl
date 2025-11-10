@@ -87,57 +87,6 @@ modd(x, x0, r, β, Δx) = begin
 end
 
 """
-Band limited delta function with reflected coefficients over the boundary.
-This function keeps the property of having integral equal to one even when the sinc function goes over the boundary.
-This function should be used to inject / record velocities.
-
-# Parameters
-
-  - `x`: coordinate of points
-  - `x0`: coordinate of delta function center
-  - `xbl`: coordinate of left boundary
-  - `xbr`: coordinate of right boundary 
-  - `r`: cut-off radius in number of grid points
-  - `β`: Kaiser shape coefficient
-  - `Δx`: grid spacing
-"""
-modd_refl(x, x0, xbl, xbr, r, β, Δx) = begin
-    res = modd(x, x0, r, β, Δx)
-    if x < xbl || x > xbr
-        return 0.0
-    end
-    res_left = modd(xbl - (x - xbl), x0, r, β, Δx)
-    res_right = modd(xbr + (xbr - x), x0, r, β, Δx)
-    res_tot = res + res_left + res_right
-    return res_tot
-end
-
-"""
-Band limited delta function with mirrored coefficients over the boundary.
-This delta functions should be used to inject / record pressure or stress when free surface boundary conditions are used.
-
-# Parameters
-
-  - `x`: coordinate of points
-  - `x0`: coordinate of delta function center
-  - `xbl`: coordinate of left boundary
-  - `xbr`: coordinate of right boundary 
-  - `r`: cut-off radius in number of grid points
-  - `β`: Kaiser shape coefficient
-  - `Δx`: grid spacing
-"""
-modd_mirror(x, x0, xbl, xbr, r, β, Δx) = begin
-    res = modd(x, x0, r, β, Δx)
-    if x < xbl || x > xbr
-        return 0.0
-    end
-    res_left = modd(xbl - (x - xbl), x0, r, β, Δx)
-    res_right = modd(xbr + (xbr - x), x0, r, β, Δx)
-    res_tot = res - res_left - res_right
-    return res_tot
-end
-
-"""
 Compute coefficients for a 1D band limited delta function.
 
 # Parameters
@@ -163,23 +112,45 @@ function coeffsinc1D(x0::T, dx::T, nx::Int, r::Int, β::T, xstart::T, mirror::Bo
     i0 = findnearest(x0, xs)
     # Compute coefficients
     for idx in i0-r-1:i0+r+1
-        # Check if the index is within the grid
-        if idx < 1 || idx > nx
-            continue
-        end
-        # Compute coefficient using modified band limited delta function
-        if mirror
-            coe = modd_mirror(xs[idx], x0, xbl, xbr, r, β, dx)
-        else
-            coe = modd_refl(xs[idx], x0, xbl, xbr, r, β, dx)
-        end
+        xcurr = (idx-1) * dx + xstart
+        coe = modd(xcurr, x0, r, β, dx)
         # Store coefficients that are not close to zero
         if !isapprox(coe, 0.0; atol=1e-15)
             push!(idxs, idx)
             push!(coeffs, coe)
         end
     end
-    return idxs, coeffs
+    # Mirror or reflect coefficients over the boundary
+    idxs_new, coeffs_new = Vector{Int}(), Vector{T}()
+    for (idx, coeffs) in zip(idxs, coeffs)
+        xcurr = (idx-1) * dx + xstart
+        if xcurr < xbl
+            idx_mirr = findnearest(xbl + (xbl - xcurr), xs)
+            push!(idxs_new, idx_mirr)
+            push!(coeffs_new, mirror ? -coeffs : coeffs)
+        elseif xcurr > xbr
+            idx_mirr = findnearest(xbr - (xcurr - xbr), xs)
+            push!(idxs_new, idx_mirr)
+            push!(coeffs_new, mirror ? -coeffs : coeffs)
+        else
+            push!(idxs_new, idx)
+            push!(coeffs_new, coeffs)
+        end
+    end
+    # Sum coefficients with same index
+    idxs_dict = Dict{Int, T}()
+    for (idx, coeff) in zip(idxs_new, coeffs_new)
+        if haskey(idxs_dict, idx)
+            idxs_dict[idx] += coeff
+        else
+            idxs_dict[idx] = coeff
+        end
+    end
+    # Prepare final output
+    idxs_new = collect(keys(idxs_dict))
+    coeffs_new = collect(values(idxs_dict))
+
+    return idxs_new, coeffs_new
 end
 
 """
@@ -210,7 +181,7 @@ function spread_positions(
     elseif freesurfposition==:ongridbound
         position_freesurface = zeros(T,N)
     else
-        error("spread_positions(): Wrong keyword argument freesurfaceposition $freesurfaceposition")
+        error("spread_positions(): Wrong keyword argument freesurfposition $freesurfposition")
     end
     # Get number of positions to spread
     npos = size(positions, 1)

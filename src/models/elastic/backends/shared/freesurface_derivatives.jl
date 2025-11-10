@@ -82,10 +82,15 @@ function ∂σxx∂x_4th(σxx, i, j, _Δx, nx)
     end
 end
 
-function ∂σzz∂z_4th(σzz, i, j, _Δz, nz)
+function ∂σzz∂z_4th(σzz, i, j, _Δz, nz, freeboundtop)
     if j == 1
-        # Free surface at top boundary, half a grid point above
-        return formula2_y_top(σzz, i, j, _Δz)
+        if freeboundtop
+            # Free surface at top boundary, half a grid point above
+            return formula2_y_top(σzz, i, j, _Δz)
+        else
+            # Set missing top point to 0
+            return ∂y4th_inner(0, σzz[i, j], σzz[i, j+1], σzz[i, j+2], _Δz)
+        end
     elseif j == nz-1
         # Set missing bottom point to 0
         return ∂y4th_inner(σzz[i, j-1], σzz[i, j], σzz[i, j+1], 0, _Δz)
@@ -115,15 +120,25 @@ function ∂σxz∂x_4th(σxz, i, j, _Δz, nx)
     end
 end
 
-function ∂σxz∂z_4th(σxz, i, j, _Δz, nz)
+function ∂σxz∂z_4th(σxz, i, j, _Δz, nz, freeboundtop)
     if j == 1
-        # Free surface at top boundary, half a grid point above
-        f0 = 0 # σxz = 0 at free surface
-        return formula1_y_top(σxz, i, j, _Δz, f0)
+        if freeboundtop
+            # Free surface at top boundary, half a grid point above
+            f0 = 0 # σxz = 0 at free surface
+            return formula1_y_top(σxz, i, j, _Δz, f0)
+        else
+            # Set missing top points to 0
+            return ∂y4th_inner(0, 0, σxz[i, j], σxz[i, j+1], _Δz)
+        end
     elseif j == 2
-        # Free surface at top boundary, 3 half grid points above
-        f0 = 0 # σxz = 0 at free surface
-        return formula4_y_top(σxz, i, j, _Δz, f0)
+        if freeboundtop
+            # Free surface at top boundary, 3 half grid points above
+            f0 = 0 # σxz = 0 at free surface
+            return formula4_y_top(σxz, i, j, _Δz, f0)
+        else
+            # Set missing top point to 0
+            return ∂y4th_inner(0, σxz[i, j-1], σxz[i, j], σxz[i, j+1], _Δz)
+        end
     elseif j == nz-1
         # Set missing bottom point to 0
         return ∂y4th_inner(σxz[i, j-2], σxz[i, j-1], σxz[i, j], 0, _Δz)
@@ -137,7 +152,7 @@ function ∂σxz∂z_4th(σxz, i, j, _Δz, nz)
     end
 end
 
-function ∂ux∂x_4th(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz)
+function ∂ux∂x_4th(ux, i, j, _Δx, nx)
     if i == 1
         # Set missing left points to 0
         return ∂x4th_inner(0, 0, ux[i, j], ux[i+1, j], _Δx)
@@ -157,17 +172,27 @@ function ∂ux∂x_4th(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz)
     end
 end
 
-function ∂uz∂z_4th(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz)
+function ∂uz∂z_4th(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz, freeboundtop)
     if j == 1
-        # On the free surface at top boundary, use ∂ux∂x to compute ∂uz∂z via Hooke's law and free surface condition
-        ∂ux∂x = ∂ux∂x_4th(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz)
-        # σzz = (λ + 2μ) * ∂uz∂z + λ * ∂ux∂x = 0  =>  ∂uz∂z = - (λ / (λ + 2μ)) * ∂ux∂x
-        return (-λ[i,j] / (λ[i,j] + 2*μ[i,j])) * ∂ux∂x
+        if freeboundtop
+            # On the free surface at top boundary, use ∂ux∂x to compute ∂uz∂z via Hooke's law and free surface condition
+            ∂ux∂x = ∂ux∂x_4th(ux, i, j, _Δx, nx)
+            # σzz = (λ + 2μ) * ∂uz∂z + λ * ∂ux∂x = 0  =>  ∂uz∂z = - (λ / (λ + 2μ)) * ∂ux∂x
+            return (-λ[i,j] / (λ[i,j] + 2*μ[i,j])) * ∂ux∂x
+        else
+            # Set missing top points to 0
+            return ∂y4th_inner(0, 0, uz[i, j], uz[i, j+1], _Δz)
+        end
     elseif j == 2
-        # A grid point inside the domain, but adjacent to the free surface at top boundary
-        # Compute ∂uz∂z a grid point before and use it in formula #3
-        ∂uz0 = ∂uz∂z_4th(ux, uz, λ, μ, i, j-1, _Δx, _Δz, nx, nz)
-        return formula3_y_top(uz, i, j, _Δz, ∂uz0)
+        if freeboundtop
+            # A grid point inside the domain, but adjacent to the free surface at top boundary
+            # Compute ∂uz∂z a grid point before and use it in formula #3
+            ∂uz0 = ∂uz∂z_4th(ux, uz, λ, μ, i, j-1, _Δx, _Δz, nx, nz, freeboundtop)
+            return formula3_y_top(uz, i, j, _Δz, ∂uz0)
+        else
+            # Set missing top point to 0
+            return ∂y4th_inner(0, uz[i, j-1], uz[i, j], uz[i, j+1], _Δz)
+        end
     elseif j == nz-1
         # Set missing bottom point to 0
         return ∂y4th_inner(uz[i, j-2], uz[i, j-1], uz[i, j], 0, _Δz)
@@ -181,10 +206,15 @@ function ∂uz∂z_4th(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz)
     end
 end
 
-function ∂ux∂z_4th(ux, i, j, _Δz, nz)
+function ∂ux∂z_4th(ux, i, j, _Δz, nz, freeboundtop)
     if j == 1
-        # Free surface at top boundary, half a grid point above
-        return formula2_y_top(ux, i, j, _Δz)
+        if freeboundtop
+            # Free surface at top boundary, half a grid point above
+            return formula2_y_top(ux, i, j, _Δz)
+        else
+            # Set missing top point to 0
+            return ∂y4th_inner(0, ux[i, j], ux[i, j+1], ux[i, j+2], _Δz)
+        end
     elseif j == nz-1
         # Set missing bottom point to 0
         return ∂y4th_inner(ux[i, j-1], ux[i, j], ux[i, j+1], 0, _Δz)
