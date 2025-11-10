@@ -47,12 +47,8 @@ end
     ∂uz∂z_cpml = ∂̃y4th(uz, ∂uz∂z, a_z, b_z, ψ_∂uz∂z, (i, j-1), _Δz, halo; half=true)
 
     # Update normal stresses
-    if (i == 1 || i == size(σxx, 1))
-        σxx[i, j] = 0
-    else
-        σxx[i, j] = (λ[i,j] + 2*μ[i,j]) * ∂ux∂x_cpml + λ[i,j] * ∂uz∂z_cpml
-    end
-    if (j == 1 || j == size(σzz, 2))
+    σxx[i, j] = (λ[i,j] + 2*μ[i,j]) * ∂ux∂x_cpml + λ[i,j] * ∂uz∂z_cpml
+    if j == 1
         σzz[i, j] = 0
     else
         σzz[i, j] = λ[i,j] * ∂ux∂x_cpml + (λ[i,j] + 2*μ[i,j]) * ∂uz∂z_cpml
