@@ -1,40 +1,10 @@
 @parallel_indices (i, j) function update_ux!(
-    uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt,
-    halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z,
-    freetop
+    uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt, nx, nz,
+    halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z
 )
     # Compute partial derivatives
-    ∂σxx∂x = begin
-        if i == 1
-            (0           - 27 * σxx[i, j] + 27 * σxx[i+1, j] - σxx[i+2, j])/24 * _Δx
-        elseif 2 <= i <= size(σxx, 1)-2
-            (σxx[i-1, j] - 27 * σxx[i, j] + 27 * σxx[i+1, j] - σxx[i+2, j])/24 * _Δx
-        elseif i == size(σxx, 1)-1
-            (σxx[i-1, j] - 27 * σxx[i, j] + 27 * σxx[i+1, j] - 0          )/24 * _Δx
-        end
-    end
-
-    ∂σxz∂z = begin
-        if j == 1
-            if freetop
-                (-σxz[i, j+1] + 27 * σxz[i, j] + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
-            else
-                (0            - 0              + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
-            end
-        elseif j == 2
-            if freetop
-                (-σxz[i, j-1] - 27 * σxz[i, j-1] + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
-            else
-                (0            - 27 * σxz[i, j-1] + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
-            end
-        elseif 3 <= j <= size(σxz, 2)-1
-            (σxz[i, j-2] - 27 * σxz[i, j-1] + 27 * σxz[i, j] - σxz[i, j+1])/24 * _Δz
-        elseif j == size(σxz, 2)
-            (σxz[i, j-2] - 27 * σxz[i, j-1] + 27 * σxz[i, j] - 0          )/24 * _Δz
-        elseif j == size(σxz, 2)+1
-            (σxz[i, j-2] - 27 * σxz[i, j-1] + 0              - 0          )/24 * _Δz
-        end
-    end
+    ∂σxx∂x = ∂σxx∂x_4th(σxx, i, j, _Δx, nx)
+    ∂σxz∂z = ∂σxz∂z_4th(σxz, i, j, _Δz, nz)
     
     # Add CPML attenuation to partial derivatives
     ∂σxx∂x_cpml = ∂̃x4th(σxx, ∂σxx∂x, a_x_half, b_x_half, ψ_∂σxx∂x, (i, j)  , _Δx, halo; half=false)
@@ -47,37 +17,12 @@
 end
 
 @parallel_indices (i, j) function update_uz!(
-    uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt,
-    halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z,
-    freetop
+    uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt, nx, nz,
+    halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z
 )
     # Compute partial derivatives
-    ∂σxz∂x = begin
-        if i == 1
-            (0           - 0                + 27 * σxz[i, j] - σxz[i+1, j])/24 * _Δx
-        elseif i == 2
-            (0           - 27 * σxz[i-1, j] + 27 * σxz[i, j] - σxz[i+1, j])/24 * _Δx
-        elseif 3 <= i <= size(σxz, 1)-1
-            (σxz[i-2, j] - 27 * σxz[i-1, j] + 27 * σxz[i, j] - σxz[i+1, j])/24 * _Δx
-        elseif i == size(σxz, 1)
-            (σxz[i-2, j] - 27 * σxz[i-1, j] + 27 * σxz[i, j] - 0          )/24 * _Δx
-        elseif i == size(σxz, 1)+1
-            (σxz[i-2, j] - 27 * σxz[i-1, j] + 0              - 0          )/24 * _Δx
-        end
-    end
-    ∂σzz∂z = begin
-        if j == 1
-            if freetop
-                (-σzz[i, j+1] - 27 * σzz[i, j] + 27 * σzz[i, j+1] - σzz[i, j+2])/24 * _Δz
-            else
-                (0            - 27 * σzz[i, j] + 27 * σzz[i, j+1] - σzz[i, j+2])/24 * _Δz
-            end
-        elseif 2 <= j <= size(σzz, 2)-2
-            (σzz[i, j-1] - 27 * σzz[i, j] + 27 * σzz[i, j+1] - σzz[i, j+2])/24 * _Δz
-        elseif j == size(σzz, 2)-1
-            (σzz[i, j-1] - 27 * σzz[i, j] + 27 * σzz[i, j+1] - 0          )/24 * _Δz
-        end
-    end
+    ∂σxz∂x = ∂σxz∂x_4th(σxz, i, j, _Δx, nx)
+    ∂σzz∂z = ∂σzz∂z_4th(σzz, i, j, _Δz, nz)
 
     # Add CPML attenuation to partial derivatives
     ∂σxz∂x_cpml = ∂̃x4th(σxz, ∂σxz∂x, a_x     , b_x     , ψ_∂σxz∂x, (i-1, j), _Δx, halo; half=true)
@@ -90,110 +35,39 @@ end
 end
 
 @parallel_indices (i, j) function update_σxx_σzz!(
-    σxx, σzz, ux, uz, λ, μ, _Δx, _Δz,
-    halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z,
-    freetop
+    σxx, σzz, ux, uz, λ, μ, _Δx, _Δz, nx, nz,
+    halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z
 )
     # Compute partial derivatives
-    ∂ux∂x = begin
-        if i == 1
-            (0          - 0               + 27 * ux[i, j] - ux[i+1, j])/24 * _Δx
-        elseif i == 2
-            (0          - 27 * ux[i-1, j] + 27 * ux[i, j] - ux[i+1, j])/24 * _Δx
-        elseif 3 <= i <= size(ux, 1)-1
-            (ux[i-2, j] - 27 * ux[i-1, j] + 27 * ux[i, j] - ux[i+1, j])/24 * _Δx
-        elseif i == size(ux, 1)
-            (ux[i-2, j] - 27 * ux[i-1, j] + 27 * ux[i, j] - 0         )/24 * _Δx
-        elseif i == size(ux, 1)+1
-            (ux[i-2, j] - 27 * ux[i-1, j] + 0             - 0         )/24 * _Δx
-        end
-    end
-    ∂uz∂z = begin
-        if j == 1
-            if freetop
-                # z == 0 (on the free surface)
-                # use σzz(z=0) = 0 to derive ∂uz/∂z at z=0
-                # σzz = λ * ∂ux/∂x + (λ + 2μ) * ∂uz/∂z = 0 (at z=0)  =>  ∂uz/∂z = -λ/(λ + 2μ) * ∂ux/∂x
-                (-λ[i,j] / (λ[i,j] + 2*μ[i,j])) * ∂ux∂x
-            else
-                (0 - 0 + 27 * uz[i, j] - uz[i, j+1])/24 * _Δz
-            end
-        elseif j == 2
-            if freetop
-                # z == Δz (first grid point below the free surface)
-                # compute vz(z=-Δz/2) using 2nd order FD for ∂uz/∂z at z=0
-                # ∂uz/∂z(z=0) = (uz(Δz/2) - uz(-Δz/2)) / Δz  => uz(-Δz/2) = uz(Δz/2) - Δz * ∂uz/∂z(z=0)
-                ∂ux∂x_z0 = begin
-                    if i == 1
-                        (0          - 0               + 27 * ux[i, j-1] - ux[i+1, j-1])/24 * _Δx
-                    elseif i == 2
-                        (0          - 27 * ux[i-1, j-1] + 27 * ux[i, j-1] - ux[i+1, j-1])/24 * _Δx
-                    elseif 3 <= i <= size(ux, 1)-1
-                        (ux[i-2, j-1] - 27 * ux[i-1, j-1] + 27 * ux[i, j-1] - ux[i+1, j-1])/24 * _Δx
-                    elseif i == size(ux, 1)
-                        (ux[i-2, j-1] - 27 * ux[i-1, j-1] + 27 * ux[i, j-1] - 0         )/24 * _Δx
-                    elseif i == size(ux, 1)+1
-                        (ux[i-2, j-1] - 27 * ux[i-1, j-1] + 0             - 0         )/24 * _Δx
-                    end
-                end
-                ∂uz∂z_z0 = (-λ[i,j-1] / (λ[i,j-1] + 2*μ[i,j-1])) * ∂ux∂x_z0 # ∂uz/∂z at z=0
-                uz_halfaboveme = uz[i, j-1] # uz(Δz/2)
-                uz_halfabovefreesurface = uz_halfaboveme - (1/_Δz) * ∂uz∂z_z0 # uz(-Δz/2)
-                # manual 4th order FD using uz(-Δz/2), uz(Δz/2), uz(3Δz/2), uz(5Δz/2)
-                ∂uz∂z = (uz_halfabovefreesurface - 27 * uz_halfaboveme + 27 * uz[i, j] - uz[i, j+1])/24 * _Δz
-            else
-                (0 - 27 * uz[i, j-1] + 27 * uz[i, j] - uz[i, j+1])/24 * _Δz
-            end
-        elseif 3 <= j <= size(uz, 2)-1
-            (uz[i, j-2] - 27 * uz[i, j-1] + 27 * uz[i, j] - uz[i, j+1])/24 * _Δz
-        elseif j == size(uz, 2)
-            (uz[i, j-2] - 27 * uz[i, j-1] + 27 * uz[i, j] - 0         )/24 * _Δz
-        elseif j == size(uz, 2)+1
-            (uz[i, j-2] - 27 * uz[i, j-1] + 0             - 0         )/24 * _Δz
-        end
-    end
+    ∂ux∂x = ∂ux∂x_4th(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz)
+    ∂uz∂z = ∂uz∂z_4th(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz)
 
-    # # Add CPML attenuation to partial derivatives
+    # Add CPML attenuation to partial derivatives
     ∂ux∂x_cpml = ∂̃x4th(ux, ∂ux∂x, a_x, b_x, ψ_∂ux∂x, (i-1, j), _Δx, halo; half=true)
     ∂uz∂z_cpml = ∂̃y4th(uz, ∂uz∂z, a_z, b_z, ψ_∂uz∂z, (i, j-1), _Δz, halo; half=true)
 
-    # Update normal stress
-    σxx[i, j] = (λ[i,j] + 2*μ[i,j]) * ∂ux∂x_cpml + λ[i,j] * ∂uz∂z_cpml
-    σzz[i, j] = λ[i,j] * ∂ux∂x_cpml + (λ[i,j] + 2*μ[i,j]) * ∂uz∂z_cpml
+    # Update normal stresses
+    if (i == 1 || i == size(σxx, 1))
+        σxx[i, j] = 0
+    else
+        σxx[i, j] = (λ[i,j] + 2*μ[i,j]) * ∂ux∂x_cpml + λ[i,j] * ∂uz∂z_cpml
+    end
+    if (j == 1 || j == size(σzz, 2))
+        σzz[i, j] = 0
+    else
+        σzz[i, j] = λ[i,j] * ∂ux∂x_cpml + (λ[i,j] + 2*μ[i,j]) * ∂uz∂z_cpml
+    end
 
     return nothing
 end
 
 @parallel_indices (i, j) function update_σxz!(
-    σxz, ux, uz, μ_ihalf_jhalf, _Δx, _Δz,
-    halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
-    freetop
+    σxz, ux, uz, μ_ihalf_jhalf, _Δx, _Δz, nx, nz,
+    halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x
 )
     # Compute partial derivatives
-    ∂uz∂x = begin
-        if i == 1
-            (0          - 27 * uz[i, j] + 27 * uz[i+1, j] - uz[i+2, j])/24 * _Δx
-        elseif 2 <= i <= size(uz, 1)-2
-            (uz[i-1, j] - 27 * uz[i, j] + 27 * uz[i+1, j] - uz[i+2, j])/24 * _Δx
-        elseif i == size(uz, 1)-1
-            (uz[i-1, j] - 27 * uz[i, j] + 27 * uz[i+1, j] - 0       )/24 * _Δx
-        end
-    end
-    ∂ux∂z = begin
-        if j == 1
-            if freetop
-                # z == Δz/2 (half grid point below the free surface)
-                # use 2nd order FD for ∂ux/∂z
-                (-ux[i, j] + ux[i, j+1]) * _Δz
-            else
-                (0            - 27 * ux[i, j] + 27 * ux[i, j+1] - ux[i, j+2])/24 * _Δz
-            end
-        elseif 2 <= j <= size(ux, 2)-2
-            (ux[i, j-1] - 27 * ux[i, j] + 27 * ux[i, j+1] - ux[i, j+2])/24 * _Δz
-        elseif j == size(ux, 2)-1
-            (ux[i, j-1] - 27 * ux[i, j] + 27 * ux[i, j+1] - 0         )/24 * _Δz
-        end
-    end
+    ∂uz∂x = ∂uz∂x_4th(uz, i, j, _Δx, nx)
+    ∂ux∂z = ∂ux∂z_4th(ux, i, j, _Δz, nz)
 
     # Add CPML attenuation to partial derivatives
     ∂uz∂x_cpml = ∂̃x4th(uz, ∂uz∂x, a_x_half, b_x_half, ψ_∂uz∂x, (i, j), _Δx, halo; half=false)
@@ -266,7 +140,6 @@ function forward_onestep_CPML!(
     save_trace::Bool=true
 )
     # Extract info from grid
-    freetop = model.cpmlparams.freeboundtop
     cpmlcoeffs = model.cpmlcoeffs
     Δx, Δz = model.grid.spacing
 
@@ -306,17 +179,14 @@ function forward_onestep_CPML!(
     _Δz = 1 / Δz
 
     # Update normal stress
-    idxzσxx = freetop ? (1:nz-1) : (2:nz-1)
-    @parallel (2:nx-1, idxzσxx) update_σxx_σzz!(
-        σxx, σzz, uxcur, uzcur, λ, μ, _Δx, _Δz,
+    @parallel (1:nx, 1:nz) update_σxx_σzz!(
+        σxx, σzz, uxcur, uzcur, λ, μ, _Δx, _Δz, nx, nz,
         halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z,
-        freetop
     )
     # Update shear stress
     @parallel (1:nx-1, 1:nz-1) update_σxz!(
-        σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz,
+        σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz, nx, nz,
         halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
-        freetop
     )
 
     # Inject sources (moment tensor type of internal force)
@@ -330,14 +200,12 @@ function forward_onestep_CPML!(
 
     # Update displacements
     @parallel (1:nx-1, 1:nz) update_ux!(
-        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt,
-        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z,
-        freetop
+        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt, nx, nz,
+        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z
     )
     @parallel (1:nx, 1:nz-1) update_uz!(
-        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt,
-        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z,
-        freetop
+        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt, nx, nz,
+        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z
     )
 
     # Record receivers
@@ -384,7 +252,6 @@ function forward_onestep_CPML!(
     save_trace::Bool=true
 )
     # Extract info from grid
-    freetop = model.cpmlparams.freeboundtop
     cpmlcoeffs = model.cpmlcoeffs
     Δx, Δz = model.grid.spacing
 
@@ -424,29 +291,24 @@ function forward_onestep_CPML!(
     _Δz = 1 / Δz
 
     # Update normal stress
-    idxzσxx = freetop ? (1:nz-1) : (2:nz-1)
-    @parallel (2:nx-1, idxzσxx) update_σxx_σzz!(
-        σxx, σzz, uxcur, uzcur, λ, μ, _Δx, _Δz,
-        halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z,
-        freetop
+    @parallel (1:nx, 1:nz) update_σxx_σzz!(
+        σxx, σzz, uxcur, uzcur, λ, μ, _Δx, _Δz, nx, nz,
+        halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z
     )
     # Update shear stress
     @parallel (1:nx-1, 1:nz-1) update_σxz!(
-        σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz,
-        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
-        freetop
+        σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz, nx, nz,
+        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x
     )
 
     # Update displacements
     @parallel (1:nx-1, 1:nz) update_ux!(
-        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt,
-        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z,
-        freetop
+        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt, nx, nz,
+        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z
     )
     @parallel (1:nx, 1:nz-1) update_uz!(
-        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt,
-        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z,
-        freetop
+        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt, nx, nz,
+        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z
     )
 
     # Inject sources (external force type)
@@ -493,7 +355,6 @@ function adjoint_onestep_CPML!(
     it::Int
 )
     # Extract info from grid
-    freetop = model.cpmlparams.freeboundtop
     cpmlcoeffs = model.cpmlcoeffs
     Δx, Δz = model.grid.spacing
     Δt = model.dt
@@ -532,29 +393,24 @@ function adjoint_onestep_CPML!(
     _Δz = 1 / Δz
 
     # Update normal stress
-    idxzσxx = freetop ? (1:nz-1) : (2:nz-1)
-    @parallel (2:nx-1, idxzσxx) update_σxx_σzz!(
-        σxx, σzz, uxcur, uzcur, λ, μ, _Δx, _Δz,
-        halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z,
-        freetop
+    @parallel (1:nx, 1:nz) update_σxx_σzz!(
+        σxx, σzz, uxcur, uzcur, λ, μ, _Δx, _Δz, nx, nz,
+        halo, a_x, a_z, b_x, b_z, ψ_∂ux∂x, ψ_∂uz∂z
     )
     # Update shear stress
     @parallel (1:nx-1, 1:nz-1) update_σxz!(
-        σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz,
-        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x,
-        freetop
+        σxz, uxcur, uzcur, μ_ihalf_jhalf, _Δx, _Δz, nx, nz,
+        halo, a_x_half, a_z_half, b_x_half, b_z_half, ψ_∂ux∂z, ψ_∂uz∂x
     )
 
     # Update displacements
     @parallel (1:nx-1, 1:nz) update_ux!(
-        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt,
-        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z,
-        freetop
+        uxnew, uxcur, uxold, σxx, σxz, ρ_ihalf, _Δx, _Δz, Δt, nx, nz,
+        halo, a_x_half, a_z, b_x_half, b_z, ψ_∂σxx∂x, ψ_∂σxz∂z
     )
     @parallel (1:nx, 1:nz-1) update_uz!(
-        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt,
-        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z,
-        freetop
+        uznew, uzcur, uzold, σxz, σzz, ρ_jhalf, _Δx, _Δz, Δt, nx, nz,
+        halo, a_x, a_z_half, b_x, b_z_half, ψ_∂σxz∂x, ψ_∂σzz∂z
     )
 
     # Inject adjoint sources (external forces)

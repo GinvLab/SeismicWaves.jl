@@ -150,7 +150,7 @@ function swgradient_1shot!(
         unew_corr = getsaved(checkpointer, "ucur", it).value
 
         # Correlate for gradient computation
-        backend.correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, model.dt, model.cpmlparams.freeboundtop)
+        backend.correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, model.dt)
     end
     # Allocate gradients
     gradient_ρ = zeros(T, grid.size...)
@@ -325,7 +325,7 @@ function swgradient_1shot!(
         unew_corr = getsaved(checkpointer, "ucur", it).value
 
         # Correlate for gradient computation
-        backend.correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, model.dt, model.cpmlparams.freeboundtop)
+        backend.correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, model.dt)
     end
     # Allocate gradients
     gradient_ρ = zeros(T, grid.size...)
