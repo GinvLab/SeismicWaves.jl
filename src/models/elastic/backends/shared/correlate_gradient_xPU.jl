@@ -34,7 +34,7 @@ end
     return nothing
 end
 
-function correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, dt)
+function correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, dt, freeboundtop)
     nx, nz = grid.size
     @parallel correlate_gradient_ρ_kernel!(
         grid.fields["grad_ρ_ihalf"].value,
@@ -48,7 +48,7 @@ function correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, dt)
         uold_corr[2], ucur_corr[2], unew_corr[2],
         1 / dt^2
     )
-    idxσxx = model.cpmlparams.freeboundtop ? (1:nz-1) : (2:nz-1)
+    idxσxx = freeboundtop ? (1:nz-1) : (2:nz-1)
     @parallel (2:nx-1, idxσxx) correlate_gradient_λ_μ_kernel!(
         grid.fields["grad_λ"].value,
         grid.fields["grad_μ"].value,
@@ -58,7 +58,7 @@ function correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, dt)
         grid.fields["μ"].value,
         (1 ./ grid.spacing)...,
         grid.size...,
-        model.cpmlparams.freeboundtop
+        freeboundtop
     )
     @parallel (1:nx-1, 1:nz-1) correlate_gradient_μ_ihalf_jhalf_kernel!(
         grid.fields["grad_μ_ihalf_jhalf"].value,
@@ -66,6 +66,6 @@ function correlate_gradients!(grid, uold_corr, ucur_corr, unew_corr, dt)
         ucur_corr...,
         (1 ./ grid.spacing)...,
         grid.size...,
-        model.cpmlparams.freeboundtop
+        freeboundtop
     )
 end
