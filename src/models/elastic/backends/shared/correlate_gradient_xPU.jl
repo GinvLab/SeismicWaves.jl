@@ -11,10 +11,10 @@ end
 
 @parallel_indices (i, j) function correlate_gradient_λ_μ_kernel!(grad_λ, grad_μ, adjux, adjuz, ux, uz, λ, μ, _Δx, _Δz, nx, nz, freeboundtop)
     # Compute bulk strain tensor components
-    ε_xx     = ∂ux∂x_2nd(ux, i, j, _Δx, nx)
-    ε_xx_adj = ∂ux∂x_2nd(adjux, i, j, _Δx, nx)
-    ε_zz     = ∂uz∂z_2nd(ux   , uz   , λ, μ, i, j, _Δx, _Δz, nx, nz, freeboundtop)
-    ε_zz_adj = ∂uz∂z_2nd(adjux, adjuz, λ, μ, i, j, _Δx, _Δz, nx, nz, freeboundtop)
+    ε_xx     = ∂ux∂x_4th(ux, i, j, _Δx, nx)
+    ε_xx_adj = ∂ux∂x_4th(adjux, i, j, _Δx, nx)
+    ε_zz     = ∂uz∂z_4th(ux   , uz   , λ, μ, i, j, _Δx, _Δz, nx, nz, freeboundtop)
+    ε_zz_adj = ∂uz∂z_4th(adjux, adjuz, λ, μ, i, j, _Δx, _Δz, nx, nz, freeboundtop)
     # Compute divergence of displacement
     div_u = ε_xx + ε_zz
     div_u_adj = ε_xx_adj + ε_zz_adj
@@ -32,10 +32,10 @@ end
 
 @parallel_indices (i, j) function correlate_gradient_μ_ihalf_jhalf_kernel!(grad_μ_ihalf_jhalf, adjux, adjuz, ux, uz, _Δx, _Δz, nx, nz, freeboundtop)
     # Compute shear strain tensor components
-    ε_xz     = (∂uz∂x_2nd(uz   , i, j, _Δx, nx) + 
-                ∂ux∂z_2nd(ux   , i, j, _Δz, nz, freeboundtop)) / 2
-    ε_xz_adj = (∂uz∂x_2nd(adjuz, i, j, _Δx, nx) + 
-                ∂ux∂z_2nd(adjux, i, j, _Δz, nz, freeboundtop)) / 2
+    ε_xz     = (∂uz∂x_4th(uz   , i, j, _Δx, nx) + 
+                ∂ux∂z_4th(ux   , i, j, _Δz, nz, freeboundtop)) / 2
+    ε_xz_adj = (∂uz∂x_4th(adjuz, i, j, _Δx, nx) + 
+                ∂ux∂z_4th(adjux, i, j, _Δz, nz, freeboundtop)) / 2
     ε_zx = ε_xz
     ε_zx_adj = ε_xz_adj
     # Accumulate gradients

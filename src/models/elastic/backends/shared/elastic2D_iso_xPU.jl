@@ -4,8 +4,8 @@
     freeboundtop
 )
     # Compute partial derivatives
-    ∂σxx∂x = ∂σxx∂x_2nd(σxx, i, j, _Δx, nx)
-    ∂σxz∂z = ∂σxz∂z_2nd(σxz, i, j, _Δz, nz, freeboundtop)
+    ∂σxx∂x = ∂σxx∂x_4th(σxx, i, j, _Δx, nx)
+    ∂σxz∂z = ∂σxz∂z_4th(σxz, i, j, _Δz, nz, freeboundtop)
     
     # Add CPML attenuation to partial derivatives
     ∂σxx∂x_cpml = ∂̃x4th(σxx, ∂σxx∂x, a_x_half, b_x_half, ψ_∂σxx∂x, (i, j)  , _Δx, halo; half=false)
@@ -23,8 +23,8 @@ end
     freeboundtop
 )
     # Compute partial derivatives
-    ∂σxz∂x = ∂σxz∂x_2nd(σxz, i, j, _Δx, nx)
-    ∂σzz∂z = ∂σzz∂z_2nd(σzz, i, j, _Δz, nz, freeboundtop)
+    ∂σxz∂x = ∂σxz∂x_4th(σxz, i, j, _Δx, nx)
+    ∂σzz∂z = ∂σzz∂z_4th(σzz, i, j, _Δz, nz, freeboundtop)
 
     # Add CPML attenuation to partial derivatives
     ∂σxz∂x_cpml = ∂̃x4th(σxz, ∂σxz∂x, a_x     , b_x     , ψ_∂σxz∂x, (i-1, j), _Δx, halo; half=true)
@@ -42,8 +42,8 @@ end
     freeboundtop
 )
     # Compute partial derivatives
-    ∂ux∂x = ∂ux∂x_2nd(ux, i, j, _Δx, nx)
-    ∂uz∂z = ∂uz∂z_2nd(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz, freeboundtop)
+    ∂ux∂x = ∂ux∂x_4th(ux, i, j, _Δx, nx)
+    ∂uz∂z = ∂uz∂z_4th(ux, uz, λ, μ, i, j, _Δx, _Δz, nx, nz, freeboundtop)
     # Add CPML attenuation to partial derivatives
     ∂ux∂x_cpml = ∂̃x4th(ux, ∂ux∂x, a_x, b_x, ψ_∂ux∂x, (i-1, j), _Δx, halo; half=true)
     ∂uz∂z_cpml = ∂̃y4th(uz, ∂uz∂z, a_z, b_z, ψ_∂uz∂z, (i, j-1), _Δz, halo; half=true)
@@ -65,8 +65,8 @@ end
     freeboundtop
 )
     # Compute partial derivatives
-    ∂uz∂x = ∂uz∂x_2nd(uz, i, j, _Δx, nx)
-    ∂ux∂z = ∂ux∂z_2nd(ux, i, j, _Δz, nz, freeboundtop)
+    ∂uz∂x = ∂uz∂x_4th(uz, i, j, _Δx, nx)
+    ∂ux∂z = ∂ux∂z_4th(ux, i, j, _Δz, nz, freeboundtop)
 
     # Add CPML attenuation to partial derivatives
     ∂uz∂x_cpml = ∂̃x4th(uz, ∂uz∂x, a_x_half, b_x_half, ψ_∂uz∂x, (i, j), _Δx, halo; half=false)
