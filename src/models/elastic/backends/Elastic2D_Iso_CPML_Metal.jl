@@ -7,7 +7,7 @@ using ParallelStencil.FiniteDifferences2D
 using SeismicWaves.FiniteDifferencesMacros
 using SeismicWaves.FDGeneratedFunctions
 
-@init_parallel_stencil(package = Metal, ndims = 2, inbounds = false)
+@init_parallel_stencil(package = Metal, ndims = 2, inbounds = true)
 
 include("shared/standard_xPU.jl")
 include("shared/freesurface_derivatives_4th_mirror.jl")
