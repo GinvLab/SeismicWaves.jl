@@ -8,7 +8,7 @@ Fornberg (1998)
 Calculation of Weights in Finite Difference Formulas
 SIAM Rev. 40.3, pp. 685-691.
 """
-function fornberg(x::SVector{O, T}, m::Int)::MVector{O, T} where {T, O}
+Base.@propagate_inbounds function fornberg(x::SVector{O, T}, m::Int)::MVector{O, T} where {T, O}
     z = zero(T)
     n = length(x) - 1
     c = @MMatrix zeros(T, O, m+1)
@@ -40,7 +40,7 @@ function fornberg(x::SVector{O, T}, m::Int)::MVector{O, T} where {T, O}
     c[:,end]
 end
 
-function fdcoeffs_and_shifts(
+Base.@propagate_inbounds function fdcoeffs_and_shifts(
     m::Int, vO::Val{O}, ::Val{T}
 )::Tuple{NTuple{O, T}, NTuple{O, Int}} where {T, O}
     xs = SVector{O, T}(ntuple(i -> i - (O / 2 + 0.5), vO))
@@ -184,7 +184,7 @@ Base.@propagate_inbounds function ∂̃4th(x, ∂x, a, b, ψ, I, _Δ, dir, halo;
     IIψ = ntuple(i -> i == dir ? iidim : I[i], Val(length(I)))
     # Apply CPML damping
     if idim <= (halo + plusone)
-        ψ[Iψ...]  = b[idim] * ψ[Iψ...] + a[idim] * ∂x
+        ψ[Iψ...] = b[idim] * ψ[Iψ...] + a[idim] * ∂x
         ∂x + ψ[Iψ...]
     elseif idim >= ndim - halo
         ψ[IIψ...] = b[iidim] * ψ[IIψ...] + a[iidim] * ∂x
@@ -192,6 +192,7 @@ Base.@propagate_inbounds function ∂̃4th(x, ∂x, a, b, ψ, I, _Δ, dir, halo;
     else
         ∂x
     end
+    return ∂x
 end
 
 Base.@propagate_inbounds ∂̃x4th(x, ∂x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, ∂x, a, b, ψ, I, _Δ, 1, halo; half=half, kwargs...)
