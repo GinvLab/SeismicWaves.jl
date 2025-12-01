@@ -80,7 +80,7 @@ function check_positions(
         for c in 1:Ndim
             # Check that positions are outside of the CPML region
             if !(c == Ndim && model.cpmlparams.freeboundtop)
-                if (
+                if !(
                     model.grid.spacing[c] * model.cpmlparams.halo <=
                     positions[s, c] <=
                     model.grid.extent[c] - (model.grid.spacing[c] * model.cpmlparams.halo)
