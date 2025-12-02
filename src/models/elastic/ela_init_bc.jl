@@ -36,9 +36,5 @@ function init_bdc!(
         lastcoe.a_h[1:length(lastcoe.a_h)÷2] .= zero(T)
         lastcoe.b[1:length(lastcoe.b)÷2] .= one(T)
         lastcoe.b_h[1:length(lastcoe.b_h)÷2] .= one(T)
-        # model.cpmlcoeffs[N].a_l .= 0.0
-        # model.cpmlcoeffs[N].a_hl .= 0.0
-        # model.cpmlcoeffs[N].b_l .= 1.0
-        # model.cpmlcoeffs[N].b_hl .= 1.0
     end
 end
