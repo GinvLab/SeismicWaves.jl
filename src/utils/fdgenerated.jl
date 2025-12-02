@@ -8,7 +8,7 @@ Fornberg (1998)
 Calculation of Weights in Finite Difference Formulas
 SIAM Rev. 40.3, pp. 685-691.
 """
-Base.@propagate_inbounds function fornberg(x::SVector{O, T}, m::Int)::MVector{O, T} where {T, O}
+function fornberg(x::SVector{O, T}, m::Int)::MVector{O, T} where {T, O}
     z = zero(T)
     n = length(x) - 1
     c = @MMatrix zeros(T, O, m+1)
@@ -40,7 +40,7 @@ Base.@propagate_inbounds function fornberg(x::SVector{O, T}, m::Int)::MVector{O,
     c[:,end]
 end
 
-Base.@propagate_inbounds function fdcoeffs_and_shifts(
+function fdcoeffs_and_shifts(
     m::Int, vO::Val{O}, ::Val{T}
 )::Tuple{NTuple{O, T}, NTuple{O, Int}} where {T, O}
     xs = SVector{O, T}(ntuple(i -> i - (O / 2 + 0.5), vO))
