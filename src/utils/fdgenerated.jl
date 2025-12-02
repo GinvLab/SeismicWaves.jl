@@ -192,7 +192,6 @@ Base.@propagate_inbounds function ∂̃4th(x, ∂x, a, b, ψ, I, _Δ, dir, halo;
     else
         ∂x
     end
-    return ∂x
 end
 
 Base.@propagate_inbounds ∂̃x4th(x, ∂x, a, b, ψ, I, _Δ, halo; half=false, kwargs...) = ∂̃4th(x, ∂x, a, b, ψ, I, _Δ, 1, halo; half=half, kwargs...)
