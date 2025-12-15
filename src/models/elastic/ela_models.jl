@@ -5,7 +5,7 @@
 # Scaling for ElasticIsoWaveSimulation
 function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::ExternalForceShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
-        freesurfpos=:halfgridin
+        freesurfpos=:ongridbound
         # interpolation coefficients for sources in vx
         nsrcs = size(shot.srcs.positions, 1)
         srccoeij_ux, srccoeval_ux = spread_positions(model.grid, shot.srcs.positions;
@@ -48,7 +48,7 @@ end
 
 function possrcrec_scaletf(model::ElasticIsoWaveSimulation{T}, shot::MomentTensorShot{T, 2}; sincinterp=false) where {T}
     if sincinterp
-        freesurfpos=:halfgridin
+        freesurfpos=:ongridbound
         nsrcs = size(shot.srcs.positions, 1)
         # interpolation coefficients for sources in σxx and σzz
         srccoeij_xx, srccoeval_xx = spread_positions(model.grid, shot.srcs.positions;
