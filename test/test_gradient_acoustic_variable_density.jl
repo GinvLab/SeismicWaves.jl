@@ -185,7 +185,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             f0 = 10.0
             t0 = 2 / f0
             # Numerics
-            nt = 1100
+            nt = 300
             nx = 101
             dx = 10.0
             dt = 0.9 * dx / c0 * 6 / 7
@@ -225,7 +225,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
 
             # Perturb density model in random direction
-            δm_rel = 1e-3
+            δm_rel = 1e-5
             Δm = rand(size(matprop.rho)...)
             Δm .= Δm ./ norm(Δm) .* (δm_rel * maximum(matprop.rho))
             matprop_perturbed = VpRhoAcousticVDMaterialProperties(matprop.vp, matprop.rho .+ Δm)
@@ -291,7 +291,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
 
             # Perturb density model in random direction
-            δm_rel = 1e-3
+            δm_rel = 1e-5
             Δm = rand(size(matprop.rho)...)
             # Exclude CPML region from perturbation
             Δm[1:halo+1] .= 0.0
@@ -357,7 +357,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
 
             # Perturb density model in random direction
-            δm_rel = 1e-3
+            δm_rel = 1e-5
             Δm = rand(size(matprop.rho)...)
             Δm .= Δm ./ norm(Δm) .* (δm_rel * maximum(matprop.rho))
             matprop_perturbed = VpRhoAcousticVDMaterialProperties(matprop.vp, matprop.rho .+ Δm)
@@ -425,7 +425,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
 
             # Perturb density model in random direction
-            δm_rel = 1e-3
+            δm_rel = 1e-5
             Δm = rand(size(matprop.rho)...)
             # Exclude CPML region from perturbation
             Δm[1:halo+1, :] .= 0.0

@@ -185,7 +185,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
 
             # Perturb density in random direction
-            δm_rel = 1e-3
+            δm_rel = 1e-5
             Δm = rand(size(matprop.ρ)...)
             Δm .= Δm ./ norm(Δm) .* (δm_rel * maximum(matprop.ρ))
             matprop_perturbed = ElasticIsoMaterialProperties(; ρ=matprop.ρ .+ Δm, λ=matprop.λ, μ=matprop.μ)
@@ -277,7 +277,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
 
             # Perturb density in random direction
-            δm_rel = 1e-3
+            δm_rel = 1e-5
             Δm = rand(size(matprop.ρ)...)
             Δm .= Δm ./ norm(Δm) .* (δm_rel * maximum(matprop.ρ))
             # Mute perturbation in CPML region
@@ -373,7 +373,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
 
             # Perturb density in random direction
-            δm_rel = 1e-3
+            δm_rel = 1e-5
             Δm = rand(size(matprop.ρ)...)
             Δm .= Δm ./ norm(Δm) .* (δm_rel * maximum(matprop.ρ))
             # Mute perturbation in CPML region
