@@ -90,7 +90,7 @@ function swgradient_1shot!(
     mutearoundmultiplepoints!(gradient,shot.recs.positions,grid,
                               model.gradparams.mute_radius_rec)
     # rescale gradient
-    gradient .= (convert(T, 2.0) ./ (model.matprop.vp .^ 3)) .* gradient
+    gradient .=  ( -convert(T, 2.0) ./ (model.matprop.vp .^ 3)) .* gradient
     return Dict("vp" => gradient)
 end
 
