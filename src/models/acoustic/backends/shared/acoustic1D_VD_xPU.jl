@@ -127,15 +127,17 @@ function adjoint_onestep_CPML!(model, possrcs, srctf, it)
     @parallel (1:size(possrcs, 1)) inject_sources!(pcur, srctf, possrcs, it)
 end
 
-function correlate_gradient_m1!(curgrad_m1_stag, adjvcur, pold, gridspacing)
+function correlate_gradient_m1!(curgrad_m1_stag, fact_m1_stag, adjvcur, pold, gridspacing, dt)
     _gridspacing = 1 ./ gridspacing
     nx = length(pold)
-    @parallel (2:nx-2) correlate_gradient_m1_kernel_x!(curgrad_m1_stag[1], adjvcur[1], pold, _gridspacing[1])
+    fact_m1_x = fact_m1_stag[1]
+    @parallel (2:nx-2) correlate_gradient_m1_kernel_x!(curgrad_m1_stag[1], fact_m1_x, adjvcur[1], pold, _gridspacing[1], dt)
 end
 
-@parallel_indices (i) function correlate_gradient_m1_kernel_x!(curgrad_m1_stag_x, adjvcur_x, pold, _dx)
+@parallel_indices (i) function correlate_gradient_m1_kernel_x!(curgrad_m1_stag_x, fact_m1_x, adjvcur_x, pold, _dx, dt)
     ∂p∂x = @∂x(pold, order=4, I=(i,), _Δ=_dx)
-    curgrad_m1_stag_x[i] = curgrad_m1_stag_x[i] + adjvcur_x[i] * ∂p∂x
+    m1_x = fact_m1_x[i] / dt
+    curgrad_m1_stag_x[i] = curgrad_m1_stag_x[i] + adjvcur_x[i] * ∂p∂x / m1_x
 
     return nothing
 end

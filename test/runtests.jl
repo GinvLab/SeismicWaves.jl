@@ -33,7 +33,6 @@ testfiles = filter(f->(startswith(f,"test") && endswith(f, ".jl") ),jufiles)
 
 
 @testset ExtendedTestSet "SeismicWaves Tests" begin
-    #include("test_gradient_elastic_homogeneous.jl")
     for test in testfiles
         include(test)
      end
