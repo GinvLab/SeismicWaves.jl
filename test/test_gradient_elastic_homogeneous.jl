@@ -167,7 +167,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
 
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
 
             # Perturb mu in random direction
             δm_rel = 1e-5
@@ -182,7 +182,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
 
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
 
             # Perturb density in random direction
             δm_rel = 1e-5
@@ -197,7 +197,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
             
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
         end
 
         @testset "Test 2D (P-SV) $(parall) swgradient! dot product test (CPML)" begin

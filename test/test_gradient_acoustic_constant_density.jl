@@ -272,7 +272,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
 
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
         end
 
         @testset "Test 1D $(parall) swgradient! dot product test (CPML)" begin
@@ -403,7 +403,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
 
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
         end
 
         @testset "Test 2D $(parall) swgradient! dot product test (CPML)" begin
@@ -536,7 +536,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
 
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
         end
 
         @testset "Test 3D $(parall) swgradient! dot product test (CPML)" begin

@@ -222,11 +222,14 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
 
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
 
             # Perturb density model in random direction
             δm_rel = 1e-5
             Δm = rand(size(matprop.rho)...)
+            # Avoid perturbing sides of the model to prevent boundary effects
+            Δm[1:10] .= 0.0
+            Δm[end-9:end] .= 0.0
             Δm .= Δm ./ norm(Δm) .* (δm_rel * maximum(matprop.rho))
             matprop_perturbed = VpRhoAcousticVDMaterialProperties(matprop.vp, matprop.rho .+ Δm)
 
@@ -238,7 +241,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
 
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
         end
 
         @testset "Test 1D $(parall) swgradient! dot product test (CPML)" begin
@@ -354,7 +357,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
 
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
 
             # Perturb density model in random direction
             δm_rel = 1e-5
@@ -370,7 +373,7 @@ with_logger(ConsoleLogger(stderr, Logging.Warn)) do
             lhs = (misfit_perturbed - misfit)
 
             # Check that finite difference approximation is close to gradient dot perturbation
-            @test isapprox(lhs, rhs; rtol=1e2*δm_rel)
+            @test isapprox(lhs, rhs; rtol=10*δm_rel)
         end
 
         @testset "Test 2D $(parall) swgradient! dot product test (CPML)" begin
