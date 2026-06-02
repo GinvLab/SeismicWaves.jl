@@ -74,9 +74,9 @@ function swgradient_1shot!(
             )
         end
         # Get pressure fields from saved buffer
-        pcur_corr = getsaved(checkpointer, "pcur", it - 2).value
+        pcur_corr = getsaved(checkpointer, "pcur", it).value
         pold_corr = getsaved(checkpointer, "pcur", it - 1).value
-        pveryold_corr = getsaved(checkpointer, "pcur", it).value
+        pveryold_corr = getsaved(checkpointer, "pcur", it - 2).value
         # Correlate for gradient computation
         backend.correlate_gradient!(grid.fields["grad_vp"].value, grid.fields["adjcur"].value, pcur_corr, pold_corr, pveryold_corr, model.dt)
     end
@@ -90,7 +90,7 @@ function swgradient_1shot!(
     mutearoundmultiplepoints!(gradient,shot.recs.positions,grid,
                               model.gradparams.mute_radius_rec)
     # rescale gradient
-    gradient .= (convert(T, 2.0) ./ (model.matprop.vp .^ 3)) .* gradient
+    gradient .= (convert(T, -2.0) ./ (model.matprop.vp .^ 3)) .* gradient
     return Dict("vp" => gradient)
 end
 
@@ -139,7 +139,7 @@ function swgradient_1shot!(
     copyto!(shot.recs.seismograms, traces_bk)
 
     @debug "Computing residuals"
-    adjointsource_bk = backend.Data.Array(.-∂χ_∂u(misfit, shot.recs))
+    adjointsource_bk = backend.Data.Array(∂χ_∂u(misfit, shot.recs)) # no sign change since equation is anti-self-adjoint
 
     # Prescale residuals (fact = vel^2 * rho * dt)
     backend.prescale_residuals!(adjointsource_bk, posrecs_bk, grid.fields["fact_m0"].value)
@@ -172,7 +172,7 @@ function swgradient_1shot!(
         pcur_old = getsaved(checkpointer, "pcur", it - 1).value
         # Correlate for gradient computation
         backend.correlate_gradient_m0!(grid.fields["grad_m0"].value, grid.fields["adjpcur"].value, pcur_corr, pcur_old, model.dt)
-        backend.correlate_gradient_m1!(grid.fields["grad_m1_stag"].value, grid.fields["adjvcur"].value, pcur_corr, grid.spacing)
+        backend.correlate_gradient_m1!(grid.fields["grad_m1_stag"].value, grid.fields["fact_m1_stag"].value, grid.fields["adjvcur"].value, pcur_corr, grid.spacing, model.dt)
     end
     # Allocate gradients
     gradient_m0 = zeros(T, grid.size...)
@@ -197,7 +197,7 @@ function swgradient_1shot!(
 
     # Rescale gradients with respect to material properties (chain rule)
     return Dict(
-        "vp" => .-convert(T, 2.0) .* gradient_m0 ./ (model.matprop.vp .^ 3 .* model.matprop.rho), 
-        "rho" => .-gradient_m0 ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2) .- gradient_m1 ./ model.matprop.rho # grad wrt rho
+        "vp" => (convert(T, -2.0) ./ (model.matprop.vp .^ 3 .* model.matprop.rho)) .* gradient_m0, 
+        "rho" => (convert(T, -1.0) ./ (model.matprop.vp .^ 2 .* model.matprop.rho .^ 2)) .* gradient_m0 .+ (convert(T, -1.0) ./ model.matprop.rho .^ 2) .* gradient_m1
     )
 end

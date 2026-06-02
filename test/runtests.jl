@@ -7,7 +7,7 @@ using Test, TestSetExtensions
 using DSP, NumericalIntegration, LinearAlgebra
 using Logging
 using SeismicWaves
-
+using Random
 
 # Load CUDA only if requested for testing
 if "CUDA" in ARGS
@@ -33,7 +33,7 @@ testfiles = filter(f->(startswith(f,"test") && endswith(f, ".jl") ),jufiles)
 
 
 @testset ExtendedTestSet "SeismicWaves Tests" begin
-    #include("test_gradient_elastic_homogeneous.jl")
+    Random.seed!(1234) # for reproducibility of random tests
     for test in testfiles
         include(test)
      end
