@@ -1,4 +1,13 @@
 
+@doc """
+
+$(TYPEDEF)
+
+L2-norm misfit.
+
+$(TYPEDFIELDS)
+
+"""
 struct L2Misfit{T, D, OA <: AbstractArray{T, D}, IM <: AbstractMatrix{T}} <: AbstractMisfit{T}
     observed::OA
     invcov::IM
