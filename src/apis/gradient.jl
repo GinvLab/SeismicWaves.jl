@@ -16,6 +16,7 @@ Bigger values speed up computation at the cost of using more memory.
 - `params::InputParameters{T, N}`: input parameters for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., acoustic variable-density).
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
+- `misfit::Vector{<:AbstractMisfit{T}}`: a vector whose elements are misfit structures, i.e., subtypes of `AbstractMisfit`. See, for instance, [`L2Misfit`](@ref) and [`CCTSMisfit`](@ref).
 
 # Keyword arguments
 - `runparams::RunParameters`: a struct containing parameters related to forward calculations. See [`RunParameters`](@ref) for details. In case of a forward simulation, `gradparams` is set to `nothing`.
@@ -64,6 +65,7 @@ Bigger values speed up computation at the cost of using more memory.
 - `wavesim::Union{WaveSimulation{T,N},Vector{<:WaveSimulation{T,N}}}`: input `WaveSimulation` object containing all required information to run the simulation.
 - `matprop::MaterialProperties{T, N}`: material properties for the simulation, where T represents the data type and N represents the number of dimensions. They vary depending on the simulation kind (e.g., Vp only is required for an acoustic constant-density simulation).
 - `shots::Vector{<:Shot{T}}`: a vector whose elements are `Shot` structures. Each shot contains information about both source(s) and receiver(s).
+- `misfit::Vector{<:AbstractMisfit{T}}`: a vector whose elements are misfit structures, i.e., subtypes of `AbstractMisfit`. See, for instance, [`L2Misfit`](@ref) and [`CCTSMisfit`](@ref).
 
 # Keyword arguments
 - `runparams::RunParameters`: a struct containing parameters related to forward calculations. See [`RunParameters`](@ref) for details. In case of a forward simulation, `gradparams` is set to `nothing`.

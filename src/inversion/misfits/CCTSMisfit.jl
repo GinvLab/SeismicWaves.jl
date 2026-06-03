@@ -1,3 +1,13 @@
+
+@doc """
+
+$(TYPEDEF)
+
+Cross-correlation time-shift misfit.
+
+$(TYPEDFIELDS)
+
+"""
 struct CCTSMisfit{T, D, OA <: AbstractArray{T, D}} <: AbstractMisfit{T}
     dt::T
     std::T
